@@ -3,23 +3,28 @@ doc_type: phase_plan
 project_id: client-intelligence-platform
 pm_project_id: 596825db-61bc-4899-bc6c-e207489ca35d
 phase: 1
-shape: D
+shape: plain-jane
 status: locked
 owner: tim
 authors: [tim, atlas]
 created: 2026-04-17
-last_updated: 2026-04-17
-appetite: 8 weeks
-primary_tenant: wayward
+last_updated: 2026-04-20
+supersedes: >
+  (1) 2026-04-17 Shape D (Wayward-as-primary-tenant + Zendesk/HubSpot connectors bundled into Phase 1) — rescoped 2026-04-20 per Tim's "plain jane CIP" directive. Wayward specifics moved to Phase 2 Wayward Onboarding. Rocky Ridge remains Phase 3.
+  (2) 2026-04-20 evening cip_09 insertion (cross-tenant grants schema-only in Phase 1) — moved to Phase 3 so Phase 1 ships pure plain-jane plumbing. Grants schema + runtime both live in Phase 3 where the multi-tenant proof actually exercises them.
+appetite: session-bound (milestone-ordered, not week-ordered)
+primary_tenant: none — fixture tenant only (synthetic deterministic data)
 locks: [D-117, D-118, D-119, D-120, D-121, P-21]
-pillars_lit: [ingestion, structured-store, unstructured-store, lens-engine, consumption-surfaces-partial, access-ops-minimum]
+pillars_lit: [ingestion-framework, structured-store, unstructured-store, lens-engine, consumption-surfaces-partial, access-ops-minimum]
 pillars_dark: [push-sync, intelligence-alerts]
-consumer_acceptance: ali-opens-metabase-switches-lenses-sees-live-wayward-data
+consumer_acceptance: fixture-tenant-demo-shows-two-lenses-switching + ten-doc-suite-published + four-access-paths-validated
 ---
 
-# CIP Phase 1 — Shape D: Inbound + Lens Validation + Minimum Consumption
+# CIP Phase 1 — Plain Jane: Tenant-Neutral Blank-Slate Product
 
-> This doc authors Phase 1 in Atlas's four-section plan shape: **VISION** (why this phase exists), **WDGLL** (what done looks like), **SPEC** (technical requirements), **PLAN** (execution sequence). Phase 0 is COMPLETE. Phase 2+ are provisional shapes in `ROADMAP.md` — each gets its own VISION/WDGLL/SPEC/PLAN when its turn comes.
+> Authors Phase 1 in Atlas's four-section shape: **VISION** (why this phase exists), **WDGLL** (what done looks like), **SPEC** (technical requirements), **PLAN** (execution sequence).
+>
+> Phase 0 is COMPLETE. Phase 2 (Wayward Onboarding) and Phase 3 (Rocky Ridge + Multi-Tenant + Cross-Tenant Grants Runtime) each get their own VISION/WDGLL/SPEC/PLAN when their turn comes.
 
 ---
 
@@ -27,130 +32,134 @@ consumer_acceptance: ali-opens-metabase-switches-lenses-sees-live-wayward-data
 
 ### The bet
 
-Phase 1 bets that if we can get **live Wayward data flowing from two external systems into one structured store with history, then surface that data through two different lenses in one read tool**, we will have proved the three most novel claims in the CIP architecture in a single eight-week arc:
+Phase 1 bets that if we ship a **generic, tenant-neutral blank-slate CIP product**, validated end-to-end against a **synthetic fixture dataset**, and paired with a complete documentation suite sufficient for a second person to onboard any reasonable tenant without Atlas or Tim in the room — we will have proved four things at once:
 
-1. The connector framework is the right abstraction (not per-venture one-off ingestion scripts).
-2. The Lens Engine is the right abstraction (not per-consumer SQL forks).
-3. The three-data-layer model — Originals + Derived Knowledge + Structured Data — composes cleanly into one product without the layers leaking into each other.
+1. **The CIPConnector / CIPMapper abstraction is real.** A `FixtureConnector` proves the Protocol without burning API quota, leaking real data, or waiting on external-system auth. Phase 2 plugs HubSpot and Zendesk into the same Protocol. If HubSpot/Zendesk can't fit the Protocol, that's a Phase 2 bug, not a Phase 1 redesign.
+2. **The Lens Engine is real.** Two lenses on one fixture dataset is the minimum validation of P-21. Lens-A is unfiltered; Lens-B applies a single-dimension fixture filter. Same rows underneath, two legitimately different views on top.
+3. **The three data layers compose.** Fixture originals (files in R2) → Derived Knowledge (chunks + graph entities) → Structured Data (cip_* rows) all line up for a single fixture client without the layers leaking into each other.
+4. **The documentation is real.** Ten doc artifacts ship alongside the code, battle-tested by being used during the fixture build itself. If a doc is wrong, the fixture build exposes it; the doc gets revised before Phase 2 meets real data.
 
-If those three claims hold under real data, the rest of CIP (Push & Sync, multi-tenant, intelligence, write-back, scale) is additive and well-understood — phases can be authored as they ship. If those claims fail, we want to find out in Phase 1, not Phase 4.
+If those four claims hold under fixture conditions, Phase 2 (Wayward) is a **configuration and wiring exercise**, not a redesign. If they fail, we find out against synthetic data — where failure is cheap — not against Wayward's live HubSpot revision clock.
 
-### Why this shape (architectural, not appetite-driven)
+### Why tenant-neutral (not Wayward-first)
 
-Four hard constraints fixed the scope:
+The prior Phase 1 shape ("Shape D") bundled Wayward's specific connectors and lenses into Phase 1. That conflates two problems: *building the product* and *onboarding a tenant to the product*. When those two problems ship together, the product carries Wayward-shaped fingerprints it shouldn't — a tenant-specific `cip_clients` population rule, tenant-specific property splits, tenant-specific lens filters. The product that ships at the end of Phase 1 must be the product that Rocky Ridge in Phase 3 can adopt without asking "which of these decisions are mine to make?"
 
-**(1) HubSpot's 20-revision retention makes delayed HubSpot sync = permanent data loss.** HubSpot keeps only the last 20 property revisions per record. Every day we sync structured but skip HubSpot is a day of history we can never recover. HubSpot is therefore mandatory IN Phase 1. Zendesk history is retrievable later; HubSpot history is not. This single constraint turns HubSpot from a "nice to have" into the hard floor of Phase 1.
+Plain-jane Phase 1 separates those concerns:
+- **Phase 1 = build the blank-slate product.** FixtureConnector stands in for any real connector. Two generic lenses prove the Lens Engine mechanism. Migrations are tenant-agnostic. Docs are written to the product, not to a tenant.
+- **Phase 2 = onboard Wayward** (real HubSpot + Zendesk connectors, EcomLever + PS lenses, Wayward push targets). Uses the docs Phase 1 produced. Where the docs broke, Phase 2 hardens them.
+- **Phase 3 = onboard Rocky Ridge and light up the cross-tenant grants runtime.** Uses the twice-hardened docs. Proves multi-tenant isolation.
 
-**(2) The Lens Engine is the novel abstraction with the highest retrofit cost.** P-21 (Multi-Lens by Default) says every data surface assumes N consumers with N filter configs. If we build Phase 1 with a single-consumer dashboard and try to retrofit lenses in Phase 2, we pay the cost twice: once building the single-view dashboard, once tearing it apart and re-wiring it. One lens proves nothing (any SELECT is a lens-of-one). Two lenses on the same data is the minimum validation of P-21 — Wayward's EcomLever and Project Silk are the natural pair because they already consume the same data today through two different lenses in production.
+This is the "shrink-wrap" frame: Phase 1 makes the box you can hand to a new engineer.
 
-**(3) The connector framework stress-tests itself better with HubSpot's 4-object topology than Zendesk alone.** Zendesk has a simple ticket/user/organization shape. HubSpot has contacts, companies, deals, and notes with non-trivial relationship graphs. A framework designed only against Zendesk would miss the join-and-relationship complexity that shows up the moment HubSpot enters the picture. Building the framework against both simultaneously ensures the CIPConnector Protocol is general enough to serve future connectors (Chatwoot, partner CRMs, Bob sources, Rocky Ridge sources) without a second round of re-architecture.
+### The HubSpot 20-revision retention tradeoff
 
-**(4) Push & Sync has a well-understood problem shape and is additive.** We already have `zendesk_to_chatwoot.py` working in production — the mechanics of outbound delivery are not the novel claim. Push depends on Phase 1's structured store existing; Phase 1 does not depend on push. Deferring Push & Sync to Phase 2 takes nothing off the critical path and keeps Phase 1 narrow enough to ship.
+HubSpot retains only the last 20 property revisions per record. Every day Wayward runs without CIP history capture is permanent intelligence loss. Shape D put HubSpot in Phase 1 explicitly to start the capture clock as early as possible. Plain-jane Phase 1 delays the capture start because real HubSpot connector ships in Phase 2.
+
+**Mitigation:** Phase 2 Wayward Onboarding runs HubSpot connector implementation as its longest-critical-path milestone (earliest start, first live sync early in the milestone). If the gap between Phase 1 exit and Phase 2 HubSpot first-sync is unacceptably long, an optional "HubSpot backup tape" mini-project can run in parallel with Phase 1 — a minimal script that dumps current HubSpot state to R2 daily, not through the CIP framework, so that when Phase 2's connector lands we can backfill history from the tapes. Decision on whether to run the tape is Tim's; scope it at Phase 1 kickoff if it feels urgent.
 
 ### What Phase 1 is NOT
 
-- Not a multi-tenant proof (that's Phase 3).
-- Not a push-to-Chatwoot replacement (that's Phase 2 — the current one-off script keeps running in the meantime).
-- Not a chatbot or agent MCP surface (Phase 2–3).
-- Not an anomaly-detection or freshness-signal system (Phase 4–5).
-- Not a dedicated CIP database (Phase 6).
-- Not full observability — Phase 1 ships `cip_sync_runs` audit and RLS + SET LOCAL enforcement, and no more.
-
-Anything in that list is a deliberate deferral, not an oversight. The roadmap documents where it lands.
+- Not a tenant-specific build — that's Phase 2 (Wayward) and Phase 3 (Rocky Ridge).
+- Not a push-target replacement — Chatwoot routing, Twenty CRM sync, Drive exports all ship in Phase 2 as part of Wayward's full round-trip.
+- Not a second-tenant proof — Phase 3.
+- Not a chatbot, REST, or MCP surface — Phase 4 (MCP + REST), Phase 5 (Chatbot).
+- Not cross-tenant grants schema — moved to Phase 3 alongside the runtime, so the schema and the runtime ship together and the multi-tenant harness exercises them together.
+- Not observability maturity — `cip_sync_runs` audit and RLS + SET LOCAL enforcement are the entire governance footprint. Full maturity is Phase 8.
 
 ### Primary consumer
 
-**Ali** (EcomLever ops) is the Phase 1 human consumer. When Ali opens Metabase, switches between EcomLever Full View and PS China View, and sees live Wayward data from Zendesk and HubSpot with history captured from day one — Phase 1 is done. Ali is the acceptance test for "did the Lens Engine abstraction land."
+**The fixture tenant.** Phase 1 has no human consumer on the acceptance path — the acceptance test is Tim (or any engineer) opening Metabase against the fixture tenant, switching lenses, and seeing the fixture data resolve correctly under both lenses. Ali (Wayward/EcomLever ops) is the Phase 2 acceptance consumer; she does not evaluate Phase 1.
 
 ---
 
-## SOLVE FOR — Wayward's CIP
+## SOLVE FOR — The Plain-Jane Product
 
-Wayward doesn't have "a client." Wayward *is* a tenant of CIP, operated through two distinct partner relationships that each need different visibility into the same underlying data.
+The product shipping at Phase 1 exit is a tenant-agnostic CIP platform that a competent engineer could, armed with the ten-doc suite, onboard any reasonable tenant onto without Atlas or Tim intervening. That engineer can:
 
-### The two partner relationships
+1. Provision a new tenant via the **Tenant Onboarding Checklist** (one-command-or-close).
+2. Register a new connector via the **Connector Authoring Guide** (subclass CIPConnector + CIPMapper, drop into Integration Mesh, pass the connector-conformance test harness).
+3. Define a new lens via the **Lens Authoring Guide** (write a `cip_views` row with `filter_config` JSONB, verify it composes correctly with RLS).
+4. Add a new structured column via the **Migration Runbook** (new `cip_N+1` migration following the naming + RLS + history-table + CSS-tag convention).
+5. Debug a tenant leak via the **RLS & SET LOCAL Operator Guide**.
+6. Monitor sync health via the **Sync Orchestrator Operator Guide**.
+7. Understand which retrieval path returns what via the **Four Access Paths Reference**.
+8. Stand up or reset a fixture for local dev via the **Fixture Tenant Handbook**.
+9. Know which Kind/Domain tags a new `cip_*` file needs via the **CIP CSS Classification Contract**.
+10. Hand the product off to the next phase via the **Phase 1 → Phase 2 Handoff Doc**.
 
-- **EcomLever** — the consumer-facing ops arm. Ali runs Wayward's operations through here. Needs to see everything.
-- **Project Silk** — the China-facing partnership. PS handles the China side of Wayward's business. Needs to see only the China-relevant slice — no access to non-China customers or deals.
+Those ten artifacts are the product alongside the code. A product that ships without them is half a product.
 
-Both partners consume the same underlying Wayward data (Zendesk tickets, HubSpot contacts/companies/deals/notes). They consume it through legitimately different scopes. Today, each partner gets its slice through cobbled-together paths: ad-hoc Metabase queries, the one-off `zendesk_to_chatwoot.py` routing script, manual data entry into Project Silk's Twenty CRM to mirror Wayward's HubSpot. Three structural problems with that state:
+### Why FixtureConnector exists
 
-1. **Data drift between partners.** EcomLever's view and PS's view can diverge silently. Same ticket, different filters applied inconsistently, different conclusions about what's happening.
-2. **Permanent history loss.** HubSpot retains only 20 property revisions per record. Any day Wayward's data isn't captured into something durable is intelligence gone forever.
-3. **Labor tax that scales with partners.** Someone maintains the ad hoc routing scripts and manual CRM mirroring. That tax scales with every new partner relationship Wayward adds.
+FixtureConnector is the Phase 1 implementation of the `CIPConnector` Protocol. Its job is to stand in for any real connector so that the framework, the Lens Engine, Metabase, the registry, and the four access paths can all be exercised end-to-end without depending on external APIs or real tenant data.
 
-### What CIP solves for Wayward — EcomLever-side (Ali)
+Fixture data is deterministic: seeding the fixture DB produces identical row IDs, identical chunk content, identical graph entities every time. Two lenses applied to the fixture yield known-good row sets that the lens-test harness checks against golden-file expectations.
 
-- **One dashboard surface** (Metabase) unifying Zendesk + HubSpot in live view, no context switch.
-- **"What's the state of this customer?"** answered in seconds across support tickets + deal pipeline + contact history, without jumping between three systems.
-- **History preserved against HubSpot's 20-revision retention** — every property change is an SCD row in `cip_*_history`, queryable across time.
-- **EcomLever Full View** = the baseline truth. No filters. Unfiltered consumer lens.
-- **Foundation for Phase 2 push** — once CIP is the source of truth, `zendesk_to_chatwoot.py` can retire and Chatwoot routing becomes a configured lens, not a one-off script Ali has to babysit.
+The fixture tenant's `cip_clients` are mock companies with mock contacts, mock tickets, mock deals, and mock documents. The fixture mimics a "CS support" shape generically — it has a single region dimension (so Lens-B can filter by region) and a single language dimension (so agents can test graph-hop queries that cut across dimensions). It does not mimic Wayward's actual data.
 
-### What CIP solves for Wayward — Project Silk-side
+### What the plain jane solves for
 
-- **PS China View** = the same underlying data, lens-filtered to only the China-relevant slice (by `hs_language` on contacts, by `country` on companies, by language/org fields on Zendesk). PS sees *only* what's in their scope.
-- **No data drift.** PS's view comes from the same rows EcomLever's view uses. Filters apply consistently because they're centralized in `cip_views.filter_config`, not scattered in per-partner SQL.
-- **Phase 2 unblocks PS's CRM population.** Twenty (PS's CRM) gets pushed the lens-filtered slice of Wayward's HubSpot, automatically. No more manual data entry to keep Twenty in sync.
-- **Phase 2 unblocks PS ticket routing.** Chatwoot routing per lens — PS's China-scoped tickets land in PS's inbox; everything else goes to EcomLever's inbox.
-- **Partnership stays aligned** without waiting on Wayward to manually curate what gets shared.
-
-### The novel claim being validated
-
-Two partner relationships with legitimately different scopes of access, one data store, no data drift, no per-partner SQL fork. The Lens Engine (P-21) is the abstraction that makes this work. Phase 1 proves the *read* side works (Metabase + two lenses). Phase 2 proves the *push* side works (Chatwoot + Twenty routing through lenses). Phase 3 generalizes to a second tenant.
-
-### Why Wayward first (not Rocky Ridge, not Bob)
-
-- Wayward already runs on HubSpot + Zendesk — Phase 1's connector set is Wayward-native anyway.
-- Wayward has two distinct partner relationships with naturally different scopes — the lens pair is organic, not contrived.
-- Wayward's HubSpot 20-revision retention is a live production risk today — CIP Phase 1 directly buys history protection.
-- EcomLever and Project Silk are both Shatcher-adjacent — friction-free pilot access for debugging and iteration.
-- Rocky Ridge and Bob don't have the same partner-pair shape. They'd stress different parts of CIP (multi-tenant, single-lens) more naturally in Phase 3.
-
-### What Wayward's CIP is NOT solving in Phase 1
-
-- Not solving outbound delivery — `zendesk_to_chatwoot.py` keeps running during Phase 1, gets replaced in Phase 2.
-- Not solving PS CRM population — that's a Phase 2 push concern.
-- Not solving cross-tenant pattern detection — needs a second tenant (Phase 3) plus intelligence layer (Phases 4–5).
-- Not solving anomaly alerts — Phase 4.
+- **Connector framework proof.** If FixtureConnector can be subclassed into a real connector by following the Connector Authoring Guide alone, Phase 2 onboarding is a mechanical build. If it can't, Phase 1 has a Protocol bug that Phase 2 would have paid for.
+- **Lens Engine proof.** Two lenses on fixture data proves the resolver composes filter_config + RLS + lens without per-consumer SQL forks.
+- **Documentation proof.** The fixture build exercises every doc by using it during the build. Docs that don't match the code get updated before Phase 2.
+- **Discoverability proof.** Every Phase 1 artifact is queryable through registries — `cip_connector_property_registry`, `cip_views`, `cip_sync_runs`, `cip_files`, `knowledge_sources`, `graph_templates`. If an agent or analyst needs CIP-specific tooling to find something, that's a registry gap, not a feature.
+- **Four-access-paths proof.** A cold-start Cowork or Claude Code session, holding only generic `foundry_mcp_*` tools, can light up all four access paths (Structured, Derived-Knowledge-vector+BM25, Derived-Knowledge-graph, Originals) against the fixture tenant.
 
 ---
 
 ## WDGLL — What Done Looks Like
 
-Phase 1 is complete when **all** of the following are observable:
+Phase 1 exits when **all** of the following are observable:
 
-### Data flow
+### Code deliverables
 
-1. **Zendesk connector** streams tickets, users, and organizations on a recurring schedule into Wayward's CIP tables. Every row carries all 9 provenance columns (tenant_id, client_id, source_connector, source_id, ingested_at, refreshed_at, previous_version_id, ingestion_batch_id, authority). Sync runs write to `cip_sync_runs` with start/end, row counts, and error state.
-2. **HubSpot connector** streams contacts, companies, deals, and notes on a recurring schedule. History capture is active from the very first sync (not deferred). Every change produces an SCD Type 2 `_history` row.
-3. **Knowledge ingestion** receives ticket bodies, note content, and document attachments via `knowledge_ingester_service.ingest_text_content()` with CIP-scoped `source_type` values (`cip_zendesk_ticket`, `cip_hubspot_note`, `cip_client_document`). Chunks land in Pinecone under the venture namespace. `cip_files` rows point originals (R2) to derived chunks.
-4. **Graph extraction** runs as the non-fatal post-vector hook (D-067). New node types (Client, Ticket, Deal, Contact) and edge types (SUPPORTS, PURCHASED) are registered in `graph_templates` for Wayward.
+1. **Migrations cip_01 through cip_08** applied to dev DB. Schema matches `architecture/ARCHITECTURE.md` §2–§12 exactly. RLS policies active from cip_01. No `cip_09` in Phase 1 — cross-tenant grants schema ships in Phase 3.
+2. **`CIPConnector` and `CIPMapper` Protocols** live in `platform/integration-mesh/src/connectors/cip/`. Protocols carry no Wayward-specific hints.
+3. **Ingestion pipeline orchestrator** wraps connector + mapper + DB writer + SCD differ + `cip_sync_runs` audit. One entry point: `run_sync(connector_id, tenant_id, client_id, db)`.
+4. **`FixtureConnector` + `FixtureMapper`** implement the Protocols against synthetic deterministic data. Fixture schema covers companies, contacts, tickets, deals, documents with region + language dimensions.
+5. **Fixture DB seeder** — `scripts/seed_fixture_tenant.py` produces a repeatable fixture tenant with known row IDs. Reset by running the seeder again (idempotent).
+6. **`cip_connector_property_registry`** table exists (migration cip_08 or adjacent), populated by `FixtureConnector` at setup.
+7. **Two `cip_views` rows** on the fixture tenant: `Lens-A Full View` (empty filter) and `Lens-B Region-EMEA View` (filter: `region='EMEA'`). Any region value works; EMEA is the convention.
+8. **Metabase deployed as a platform service** (not tenant-specific) against the fixture tenant. Two dashboards, one per lens. Lens switcher wired via parameter.
+9. **`cip_sync_runs`** written on every fixture sync. Row counts, started_at, ended_at, status.
+10. **Knowledge + Graph integration** — fixture document/ticket/note text flows through `knowledge_ingester_service.ingest_text_content()`. Chunks land in Pinecone under the fixture tenant's namespace. Graph extraction runs via the non-fatal post-vector hook (D-067). New node/edge types registered in `graph_templates` for the fixture tenant.
+11. **RLS + SET LOCAL** verified on every `cip_*` table via smoke test (set wrong tenant, expect zero rows).
+12. **Four-access-paths validation report** committed at `validation/M7-discoverability-report.md` with pass/fail per path against the fixture tenant.
 
-### Lens surface
+### Documentation suite (the 10 artifacts)
 
-5. **Metabase dashboard** is deployed with a lens switcher. Two lenses resolve from the same underlying tables:
-   - **EcomLever Full View** — unfiltered consumer lens for Ali.
-   - **PS China View** — filtered for Project Silk's China-facing workflow (language / region / org filters).
-6. Ali can switch between lenses without leaving Metabase and see consistent, live data in both.
+All ten exist, exercised against the fixture build, reviewed by Tim before Phase 1 exit:
 
-### Governance
-
-7. **RLS policies** on every `cip_*` table enforce `tenant_id` isolation. `SET LOCAL` middleware scopes every query.
-8. **Migrations cip_01 through cip_08** are applied to the shared Foundry PostgreSQL. Schema matches `architecture/ARCHITECTURE.md` §2–§12 exactly.
-9. **Discoverability registry** (D-121) has rows for every Phase 1 artifact: the one `cip_client` row (Wayward's first tracked client), both lenses in `cip_views`, both connectors in Integration Mesh's connector registry, every sync run in `cip_sync_runs`, every ingested chunk in `knowledge_chunks`, every extracted graph entity in FalkorDB.
-10. **Authority levels** are populated correctly: connector-ingested data = `ingested`, manual entries (if any) = `validated`, anything extracted by an agent (none in Phase 1) would be `agent_discovered`.
+1. **Tenant Onboarding Checklist** — `docs/cip/TENANT-ONBOARDING-CHECKLIST.md`. Step-by-step from "tenant row insert" through "first sync succeeds" through "first dashboard loads."
+2. **Connector Authoring Guide** — `docs/cip/CONNECTOR-AUTHORING-GUIDE.md`. Protocol surface, incremental-sync contract, cursor management, property-registry registration, error handling, rate limiting, SCD-2 history pattern, pytest harness. FixtureConnector is the reference implementation.
+3. **Lens Authoring Guide** — `docs/cip/LENS-AUTHORING-GUIDE.md`. `filter_config` JSONB shape, RLS interaction, audience scoping, Metabase wiring, fixture-based lens test pattern.
+4. **Migration Runbook** — `docs/cip/MIGRATION-RUNBOOK.md`. Naming convention, RLS attachment, history-table pattern, rollback posture, CSS classification, Alembic vs raw-SQL posture.
+5. **RLS & SET LOCAL Operator Guide** — `docs/cip/RLS-SET-LOCAL-OPERATOR-GUIDE.md`. How tenant isolation works, how to verify at runtime, how to debug a suspected leak, session-initialization pattern for every cip_* request handler.
+6. **Sync Orchestrator Operator Guide** — `docs/cip/SYNC-ORCHESTRATOR-GUIDE.md`. How `cip_sync_runs` works, how to monitor, how to debug stuck/failed syncs, retry semantics.
+7. **Four Access Paths Reference** — `docs/cip/FOUR-ACCESS-PATHS.md`. What each path returns, which lens applies, expected latency, sample queries. Reference for Phase 4 (MCP+REST) builders and Phase 5 (Chatbot) builders.
+8. **Fixture Tenant Handbook** — `docs/cip/FIXTURE-TENANT-HANDBOOK.md`. How FixtureConnector works, how to extend fixtures, how to reset the fixture DB, what the access-paths validation exercises.
+9. **CIP CSS Classification Contract** — `docs/cip/CSS-CLASSIFICATION-CONTRACT.md`. Kind/Domain tags for new `cip_*` files (migrations, connector code, lens code, push code). Extends `docs/subsystems/meta/classification-contract.md`.
+10. **Phase 1 → Phase 2 Handoff Doc** — `docs/cip/PHASE-1-TO-PHASE-2-HANDOFF.md`. What Phase 2 inherits, what it must author, what it's allowed to change vs. what it must leave alone. Prevents scope creep in Phase 2.
 
 ### Non-criteria (intentional)
 
-- **Push to Chatwoot is NOT part of Phase 1 done.** The existing one-off script continues running. Replacement ships in Phase 2.
-- **Second tenant is NOT part of Phase 1 done.** Wayward is the sole tenant. Dual-tenant proof lands in Phase 3.
-- **REST API / chatbot / MCP tools are NOT part of Phase 1 done.** Metabase is the sole consumption surface in Phase 1.
-- **Freshness decay visualization is NOT part of Phase 1 done.** Freshness is computed and stored; surfacing it in Metabase lands in Phase 4.
+- **No real connectors (HubSpot, Zendesk, anything).** Phase 2.
+- **No push targets (Chatwoot, Twenty, Drive).** Phase 2.
+- **No second tenant.** Phase 3.
+- **No cross-tenant grants** (neither schema nor runtime). Phase 3.
+- **No REST API, chatbot, or MCP tools.** Phase 4 / Phase 5.
+- **No freshness decay surfacing in Metabase.** Freshness is computed and stored per Phase 0; visualization is Phase 6.
+- **No anomaly detection.** Phase 6.
+- **No dedicated CIP database.** Phase 8.
 
 ### Exit gate
 
-Phase 1 exits when Tim demos the dashboard to Ali, Ali switches lenses, and the data is live and right. If Ali finds the lens filter is wrong or the dashboard is stale, that's a Phase 1 bug, not a Phase 2 deferral.
+Phase 1 exits when:
+- Tim (or any engineer) opens Metabase against the fixture tenant, switches between Lens-A and Lens-B, and sees the fixture data resolve correctly under both lenses.
+- The four-access-paths validation report is green (all four paths light up against the fixture tenant).
+- All ten doc artifacts are committed and reviewed.
+- Claude Code or another agent, acting on PHASE-1-PLAIN-SPEC.md (the SPEC handoff doc) with no additional context, produces a passing validation run — proof the doc suite is self-sufficient.
 
 ---
 
@@ -160,141 +169,129 @@ Phase 1 exits when Tim demos the dashboard to Ali, Ali switches lenses, and the 
 
 Each migration is a single Alembic file under `migrations/versions/`. All tables carry the 9 provenance columns and a matching `_history` table for SCD Type 2. DDL is authoritative in `architecture/ARCHITECTURE.md` §2–§12.
 
-- **cip_01** — `cip_clients` + `cip_clients_history` (subject-of-intelligence entities; separate from `tenants`).
+- **cip_01** — `cip_clients` + `cip_clients_history` (subjects-of-intelligence; separate from `tenants`).
 - **cip_02** — `cip_views` + `cip_views_history` (lens config rows with `filter_config` JSONB).
 - **cip_03** — `cip_sync_runs` (append-only audit, no history table).
 - **cip_04** — `cip_files` + `cip_files_history` (metadata registry linking R2 originals → derived chunks).
-- **cip_05** — `cip_contacts` + `cip_contacts_history` (HubSpot contacts).
-- **cip_06** — `cip_companies` + `cip_companies_history` (HubSpot companies).
-- **cip_07** — `cip_deals` + `cip_deals_history` (HubSpot deals).
-- **cip_08** — `cip_tickets` + `cip_tickets_history` (Zendesk tickets). Users and orgs land in `cip_contacts` / `cip_companies` to avoid duplicate entity types.
+- **cip_05** — `cip_contacts` + `cip_contacts_history` (generic contact shape; Phase 2 maps HubSpot contacts here).
+- **cip_06** — `cip_companies` + `cip_companies_history` (generic company shape).
+- **cip_07** — `cip_deals` + `cip_deals_history` (generic deal shape).
+- **cip_08** — `cip_tickets` + `cip_tickets_history` **+ `cip_connector_property_registry`** (discoverability table, see S8).
 
-**Migrations ship with RLS policies enabled from cip_01.** No table exists without tenant scoping.
+Migrations ship with RLS policies enabled from cip_01. No table exists without tenant scoping.
 
-### S2. Ingestion & Connectors — framework inside Integration Mesh (D-118)
+**cip_09 (`cip_cross_tenant_grants`) does not ship in Phase 1.** It moves to Phase 3 where schema and runtime light up together under the multi-tenant proof harness.
 
-**Location:** `platform/integration-mesh/src/connectors/cip/` (not in the CIP product folder — the connector framework is a platform capability hosted in Integration Mesh; CIP's specific connectors are its first instances).
+### S2. Ingestion & Connectors — generic framework inside Integration Mesh (D-118)
+
+**Location:** `platform/integration-mesh/src/connectors/cip/`. The connector framework is a platform capability hosted in Integration Mesh; CIP's first instance is FixtureConnector.
 
 **Framework deliverables:**
 
-- **`CIPConnector` Protocol** — abstract interface with methods: `authenticate()`, `stream_records(cursor, batch_size)`, `describe_schema()`, `rate_limit_policy`, `incremental_key()`. Implementations are swappable.
+- **`CIPConnector` Protocol** — abstract interface with methods: `authenticate()`, `stream_records(cursor, batch_size)`, `describe_schema()`, `rate_limit_policy`, `incremental_key()`. Implementations are swappable. No Wayward-specific hints.
 - **`CIPMapper` Protocol** — abstract interface that transforms source records into `cip_*` rows. Methods: `map(record) -> Iterable[CIPRow]`, `overflow_fields() -> list[str]`, `authority() -> str`.
 - **Ingestion pipeline orchestrator** — wraps connector + mapper + DB writer + SCD differ + `cip_sync_runs` audit. One entry point: `run_sync(connector_id, tenant_id, client_id, db)`.
 - **Graph/Knowledge post-hook** — after structured writes land, the orchestrator calls `knowledge_ingester_service.ingest_text_content()` for any text fields marked `ingest_as_knowledge=True` in the mapper. Graph extraction runs via the existing non-fatal post-vector hook (D-067).
+- **Connector-conformance test harness** — generic pytest fixtures that any `CIPConnector` subclass can use to verify Protocol compliance (incremental sync works, property registry populates, SCD diffs produce `_history` rows, `cip_sync_runs` writes are well-formed). Phase 2 HubSpot/Zendesk connectors get this harness for free.
 
-**Phase 1 connector instances:**
+**Phase 1 connector instance:** `FixtureConnector` only. Real-world connectors are Phase 2+.
 
-- **`ZendeskConnector`** — OAuth2 auth, incremental by `updated_at`, streams `/api/v2/tickets.json`, `/api/v2/users.json`, `/api/v2/organizations.json`. Rate limit: 400 req/min per account. Paginates via `next_page`.
-- **`HubSpotConnector`** — private app token auth, incremental by `hs_lastmodifieddate`, streams `/crm/v3/objects/contacts`, `/crm/v3/objects/companies`, `/crm/v3/objects/deals`, `/crm/v3/objects/notes`. Rate limit: 100 req/10s. Paginates via `after` cursor. Property split between structured columns and `properties` JSONB overflow is **locked for Phase 1** (table below). Per Phase 0 decision #9, dashboardable/filterable/joinable/lens-predicate-relevant fields become columns; everything else lands in overflow.
+### S3. FixtureConnector — synthetic deterministic data
 
-**Locked HubSpot property split — Phase 1:**
+**Purpose:** stand in for any real connector so the framework, lenses, Metabase, registry, and four access paths can all be exercised end-to-end without external dependencies.
 
-| Object | Structured columns (dashboardable / filterable / joinable / lens predicate) | JSONB overflow |
-|--------|---|---|
-| **Companies** (`cip_companies`) | `hubspot_id`, `name`, `domain`, `country`, `state`, `city`, `zip`, `industry`, `lifecyclestage`, `type`, `numberofemployees`, `annualrevenue`, `hubspot_owner_id`, `createdate`, `hs_lastmodifieddate` | Custom fields, analytics properties (e.g., `hs_analytics_*`), integration metadata, source tracking |
-| **Contacts** (`cip_contacts`) | `hubspot_id`, `email`, `firstname`, `lastname`, `phone`, `country`, `state`, `city`, `jobtitle`, `lifecyclestage`, `hs_lead_status`, `hs_language`, `hs_analytics_source`, `hubspot_owner_id`, `associatedcompanyid`, `createdate`, `hs_lastmodifieddate` | Form fill fields, marketing analytics, custom contact properties |
-| **Deals** (`cip_deals`) | `hubspot_id`, `dealname`, `amount`, `closedate`, `dealstage`, `pipeline`, `dealtype`, `hubspot_owner_id`, `associatedcompanyid`, `associatedcontactids` (array), `createdate`, `hs_lastmodifieddate` | Probability scores, custom deal fields, weighted-value derivations |
-| **Notes / engagements** (stored in `cip_tickets` or a dedicated `cip_notes` table — final table decision in Milestone 1) | `hubspot_id`, `hs_createdate`, `hs_lastmodifieddate`, `associated_object_type`, `associated_object_id`, `hubspot_owner_id` | Engagement type metadata; **note body** flows through the Knowledge ingester as text content, not a structured column |
+**Location:** `platform/integration-mesh/src/connectors/cip/fixture/`.
 
-**Why these specific columns:**
-- `country` / `state` / `city` on companies + `country` / `hs_language` on contacts are the authoritative PS China View filter fields — must be columns.
-- `email` on contacts is the dedup key — must be column.
-- `associatedcompanyid` / `associatedcontactids` are join keys — must be columns.
-- `hubspot_owner_id` lets us slice by Wayward rep in dashboards — must be column.
-- `lifecyclestage` / `hs_lead_status` / `dealstage` / `pipeline` drive core dashboard tiles — must be columns.
-- `amount` / `closedate` / `createdate` / `hs_lastmodifieddate` are dashboard + SCD keys — must be columns.
+**Fixture data shape** (tenant-agnostic but structurally complete):
 
-**Adding columns later:** if a field in overflow becomes dashboardable, add a structured column in a subsequent migration. The `cip_connector_property_registry` (see S7) tracks which fields have been promoted.
+- ~50 mock **companies**, each with `region` ∈ {EMEA, AMER, APAC, LATAM}, `language` ∈ {en, zh, es, fr, de, pt, ja}, `industry` ∈ {retail, saas, manufacturing, services}.
+- ~200 mock **contacts** linked to companies via `associated_company_id`.
+- ~300 mock **deals** linked to contacts and companies.
+- ~500 mock **tickets** with subjects/bodies generated from a small deterministic template set (so Knowledge chunks have real-looking text).
+- ~100 mock **documents** as small text files uploaded to R2 under the fixture tenant namespace.
+- ~50 mock **notes** attached to companies/deals/tickets with body text.
 
-**What stress-tests the framework:** HubSpot's 4-object topology exercises relationship mapping, property overflow, and incremental keys; Zendesk's simpler shape validates the framework doesn't over-fit to HubSpot. If the framework can handle both without branching, it's general enough.
+**Determinism:** Seeded by a single random seed declared in `scripts/seed_fixture_tenant.py`. Re-seeding produces byte-identical fixture state. Row IDs are derived from hash of (entity_type, sequence_index, seed) so they're stable across re-seeds.
 
-**Contract edit required:** `docs/subsystems/integration/CONTRACT.md` already has the R0031 note about this; when framework ships, update subsystem status PARTIAL → ACTIVE.
+**`cip_clients` population:** one `cip_clients` row per fixture company. Mirrors the Phase 2 Wayward pattern of "one company = one subject of intelligence" without locking any tenant into that pattern — the Connector Authoring Guide explicitly notes that other tenants may define `cip_clients` differently (e.g., Rocky Ridge in Phase 3 might use members or visitors).
 
-### S3. Unstructured Store — Knowledge + Graph consumption (D-119)
+**Schema introspection:** `FixtureConnector.describe_schema()` returns a well-formed schema used to populate `cip_connector_property_registry` automatically at connector setup — no manual registry authoring required.
 
-**No new subsystem work.** CIP consumes the existing Knowledge Subsystem and Graph Subsystem as-is.
+**Fixture reset:** `python scripts/seed_fixture_tenant.py --reset` wipes the fixture tenant and re-seeds. Documented in the Fixture Tenant Handbook.
 
-**`cip_clients` population model:**
+### S4. Unstructured Store — Knowledge + Graph consumption (D-119)
 
-For Wayward, `cip_clients` is a 1:1 mirror of HubSpot companies. Every HubSpot company row becomes one `cip_clients` row at first HubSpot sync. No manual picking. No curated "first client" — the whole HubSpot company list is the subject-of-intelligence registry for Wayward. This is what Wayward's CIP actually means: every company Wayward tracks in HubSpot is a subject CIP has structured, unstructured, and original data about.
-
-Mechanism: the HubSpot connector's company mapper writes **both** a `cip_companies` row (with all the HubSpot fields per the property split table above) **and** a `cip_clients` row (with `client_id`, `tenant_id=wayward-tenant-id`, `source_connector='hubspot'`, `source_id=hubspot_company_id`, `name=company.name`, `domain=company.domain`, authority=`ingested`). The two tables stay linked by `cip_clients.source_id = cip_companies.hubspot_id`. Future tenants may use a different `cip_clients` population strategy (manual curation, different connector mapping) — the 1:1 HubSpot-mirror is Wayward-specific.
-
-Different tenants may define "subjects" differently. For Wayward, subjects = HubSpot companies. For Rocky Ridge (Phase 3), subjects would be visitors or members (whatever Rocky Ridge's CRM treats as its primary entity). `cip_clients` is the pattern; the population mapping is per-tenant config.
+**No new subsystem work.** CIP consumes the existing Knowledge Subsystem and Graph Subsystem.
 
 **Knowledge integration:**
 
-- Add three `source_type` values to `knowledge_sources` table: `cip_zendesk_ticket`, `cip_hubspot_note`, `cip_client_document`.
-- For each `cip_client` that has ingestible content (all of them for Wayward), create one `knowledge_sources` row per source_type with `tenant_id` scoping and ingestion_config JSONB capturing the connector's chunking defaults (D-055: 512 tokens ± 25%, 125 overlap).
-- Ingestion flows through `knowledge_ingester_service.ingest_text_content(content, source_id, tenant_id, db)`. No changes to the ingester itself.
-- Authority level on ingested chunks: `ingested` (this is the neutral source-origin value; `agent_discovered` is reserved for Phase 5 write-back).
+- Add three `source_type` values to `knowledge_sources` table: `cip_fixture_ticket`, `cip_fixture_note`, `cip_fixture_document`. Phase 2 adds the real-connector analogues (`cip_zendesk_ticket`, `cip_hubspot_note`, `cip_client_document`).
+- For each fixture `cip_client`, one `knowledge_sources` row per source_type with `tenant_id=fixture_tenant_id` and ingestion_config JSONB capturing chunking defaults (D-055: 512 tokens ± 25%, 125 overlap).
+- Ingestion flows through `knowledge_ingester_service.ingest_text_content(content, source_id, tenant_id, db)`. No changes to the ingester.
+- Authority on ingested chunks: `ingested`.
 
 **Graph integration:**
 
-- Extend Wayward's `graph_templates` row with new node types: `Client`, `Ticket`, `Deal`, `Contact`, `Document`. New edge types: `SUPPORTS` (Client–Ticket), `PURCHASED` (Contact–Deal), `EMPLOYS` (Company–Contact), `ABOUT` (Note–any entity).
-- Extraction runs via the existing `graph_extractor_service.extract_and_upsert(chunk_id, content, tenant_id, db)` post-vector hook. Non-fatal per D-067 — if FalkorDB is down, structured and knowledge writes still complete.
+- Fixture tenant's `graph_templates` row has node types: `Client`, `Ticket`, `Deal`, `Contact`, `Document`, `Note`. Edge types: `SUPPORTS` (Client–Ticket), `PURCHASED` (Contact–Deal), `EMPLOYS` (Company–Contact), `ABOUT` (Note–any entity).
+- Extraction runs via the existing `graph_extractor_service.extract_and_upsert(chunk_id, content, tenant_id, db)` post-vector hook. Non-fatal per D-067.
 
 **`cip_files` glue:**
 
-- Every document attachment (Zendesk ticket attachments, HubSpot notes with file refs, manually-uploaded client docs) creates one `cip_files` row. `cip_files.linked_chunk_ids` is a UUID[] column pointing to the `knowledge_chunks` rows derived from that file. R2 path in `cip_files.r2_path`.
+- Every fixture document creates one `cip_files` row. `cip_files.linked_chunk_ids` is a UUID[] column pointing to the `knowledge_chunks` rows derived from that file. R2 path in `cip_files.r2_path`.
 
-### S4. Lens Engine — two lenses on same data (P-21 canonical example)
+### S5. Lens Engine — two lenses on fixture data (P-21 canonical example)
 
-**Two `cip_views` rows** for Wayward's first `cip_client`:
+**Two `cip_views` rows** on the fixture tenant:
 
-- **EcomLever Full View**
-  - `view_id` = generated UUID
-  - `view_name` = "EcomLever Full View"
+- **`Lens-A Full View`**
+  - `view_id` = generated UUID (recorded in the seeder for deterministic lookup)
+  - `view_name` = "Lens-A Full View"
   - `filter_config` = `{}` (empty — unfiltered)
-  - Audience: Ali, EcomLever ops
 
-- **PS China View**
-  - `view_id` = generated UUID
-  - `view_name` = "PS China View"
-  - `filter_config` = (provisional; finalized at kickoff) — likely shape: `{"language": ["zh-CN", "zh-TW"], "region": ["CN", "HK", "TW"], "org_tags": ["project-silk", "ps-partner"]}`
-  - Audience: Project Silk team
+- **`Lens-B Region-EMEA View`**
+  - `view_id` = generated UUID (recorded in the seeder)
+  - `view_name` = "Lens-B Region-EMEA View"
+  - `filter_config` = `{"region": "EMEA"}` (single-dimension filter)
 
-**Filter resolution:** at query time, lens resolver applies `filter_config` as a WHERE predicate composed onto the base RLS-scoped query. No per-consumer SQL forks. No hardcoded "admin sees all" branches.
+**Filter resolution:** at query time, the lens resolver applies `filter_config` as a WHERE predicate composed onto the base RLS-scoped query. No per-consumer SQL forks. No hardcoded "admin sees all" branches.
 
-**Open decision for kickoff:** exact shape of PS China View `filter_config`. Needs Tim's sign-off on which HubSpot fields (company country? contact language? deal region?) and which Zendesk fields (organization tag? requester locale?) are authoritative for the China-facing filter. Draft in kickoff session, write into `filter_config` as a single decision commit.
+**Lens test harness:** for each lens, compare the returned row set to a golden-file expectation. Lens-A returns all fixture rows; Lens-B returns only rows where the underlying company's `region='EMEA'`. Golden files live in `tests/fixtures/lens/`.
 
-### S5. Consumption Surfaces — Metabase only, with lens switcher
+### S6. Consumption Surfaces — Metabase only, deployed as a platform service
 
-**Sole Phase 1 surface is Metabase.** REST API, chatbots, and MCP tools are Phase 2–3.
+**Sole Phase 1 surface is Metabase.** REST API, chatbots, and MCP tools are Phase 4 / Phase 5.
 
-- Deploy Metabase connected to Foundry's shared PostgreSQL. Credentials scoped read-only to `cip_*` tables for the Wayward tenant.
-- One Metabase "collection" per client (Wayward in Phase 1).
-- Two dashboards backing the two lenses: "EcomLever Full View" dashboard and "PS China View" dashboard.
-- Lens switcher: Metabase's dashboard-level filter, or (cleaner) a parameterized SQL question that resolves the `view_id` at runtime. Final UX decided during build — the important constraint is that switching lenses does not require a query rewrite, just a parameter change.
-- Dashboards show: ticket volume, ticket aging, contact/company counts, deal pipeline, recent activity. Exact tiles sharpened during build, but they're all plain SQL against `cip_*` — no special Lens-Engine UI code in Phase 1.
+- Deploy Metabase **as a platform service** (not tenant-specific; future tenants plug into the same Metabase instance). Connect to Foundry's shared PostgreSQL. Credentials scoped read-only to `cip_*` tables.
+- One Metabase collection for the fixture tenant.
+- Two dashboards backing the two lenses: `Lens-A Full View` dashboard and `Lens-B Region-EMEA View` dashboard.
+- Lens switcher: parameterized SQL question resolving `view_id` at runtime. Switching lenses is a parameter change, not a query rewrite.
+- Dashboards show: ticket volume, ticket aging, contact/company counts, deal pipeline, recent activity. Exact tile layouts sharpened during build.
 
-### S6. Access & Operations — minimum viable
+### S7. Access & Operations — minimum viable
 
-**Phase 1 ships the bare minimum to avoid tenant leaks; full maturity is Phase 6.**
+**Phase 1 ships the bare minimum to avoid tenant leaks; full maturity is Phase 8.**
 
 - RLS policies on every `cip_*` table scoped by `tenant_id`. Migrations install them.
 - `SET LOCAL app.current_tenant = '<uuid>'` middleware applied to every request that touches CIP tables. Metabase connection uses a service account with RLS bypass disabled.
 - `cip_sync_runs` audit table — every connector run writes a row with `started_at`, `ended_at`, `status`, `rows_ingested`, `rows_history`, `error_detail` (JSONB).
-- **Not in Phase 1:** retention policies, observability dashboards, per-connector health alerts, slow-query monitoring, backup/restore rehearsal. All deferred to Phase 6.
+- **Not in Phase 1:** retention policies, observability dashboards, per-connector health alerts, slow-query monitoring, backup/restore rehearsal. All deferred to Phase 8.
 
-### S7. Discoverability (D-121)
+### S8. Discoverability (D-121)
 
 Every Phase 1 artifact must be queryable by agents and scripts per NN-01 + STD-08:
 
-- **Connectors:** Integration Mesh connector registry has rows for `zendesk_cip_v1` and `hubspot_cip_v1`.
-- **Views:** `cip_views` has both rows.
+- **Connectors:** Integration Mesh connector registry has a row for `cip_fixture_v1`.
+- **Views:** `cip_views` has both Phase 1 rows on the fixture tenant.
 - **Sync runs:** `cip_sync_runs` is the registry for itself.
 - **Files:** `cip_files` is the registry for itself.
 - **Chunks:** `knowledge_chunks.source_id` FK to `knowledge_sources` provides the join.
-- **Source types:** new `source_type` values added to a `knowledge_source_types` enum or registry (whichever exists — verify against live schema during build).
-- **Graph entities:** FalkorDB is self-registering via Cypher; graph_templates documents the schema.
-- **Connector properties:** `cip_connector_property_registry` table (new in Phase 1, see below) — the authoritative map of where every ingested field lives.
+- **Source types:** new `source_type` values registered as described in S4.
+- **Graph entities:** FalkorDB self-registers via Cypher; `graph_templates` documents the schema.
+- **Connector properties:** `cip_connector_property_registry` table (Phase 1, in migration cip_08) — authoritative map of where every ingested field lives.
 
 If any of these is not queryable by `foundry_mcp_db_query` or equivalent at Phase 1 exit, D-121 is violated and it's a Phase 1 bug.
 
-#### `cip_connector_property_registry` (Phase 1 table)
-
-**Purpose:** answer the question "for connector X, object type Y, where do I find property Z?" — without the agent/analyst having to know the source system's schema. Populated at connector setup time by introspecting the source system's schema API. Refreshed on a schedule (TBD — likely weekly).
+#### `cip_connector_property_registry`
 
 **Schema:**
 
@@ -302,42 +299,49 @@ If any of these is not queryable by `foundry_mcp_db_query` or equivalent at Phas
 |---|---|---|
 | `registry_id` | uuid PK | row id |
 | `tenant_id` | uuid FK | scope (RLS) |
-| `connector` | text | `'hubspot'`, `'zendesk'`, etc. |
-| `object_type` | text | `'companies'`, `'contacts'`, `'deals'`, `'notes'`, `'tickets'`, `'users'`, `'organizations'`, etc. |
-| `property_name` | text | source system's property key (`hs_language`, `annualrevenue`, `custom_xyz`) |
-| `property_type` | text | source system's type (`string`, `number`, `datetime`, `enumeration`, etc.) |
+| `connector` | text | `'fixture'`, later `'hubspot'`, `'zendesk'`, etc. |
+| `object_type` | text | `'companies'`, `'contacts'`, `'deals'`, `'tickets'`, `'notes'`, `'documents'` |
+| `property_name` | text | source system's property key |
+| `property_type` | text | `string` / `number` / `datetime` / `enumeration` / ... |
 | `storage_location` | text | `'column'` or `'overflow'` |
-| `column_name` | text nullable | if `storage_location='column'`, the CIP column name (may differ from property_name — e.g., normalization) |
-| `cip_table` | text | target CIP table (`cip_companies`, `cip_contacts`, etc.) |
+| `column_name` | text nullable | if `storage_location='column'`, the CIP column name |
+| `cip_table` | text | target CIP table |
 | `description` | text nullable | from source system's field metadata |
-| `is_custom` | boolean | true if it's a tenant-custom property (e.g., a Wayward-specific HubSpot field) |
-| `first_seen_at` | timestamptz | when this property was first observed |
-| `last_synced_schema_at` | timestamptz | when the registry was last reconciled against the source system's schema |
+| `is_custom` | boolean | true if tenant-custom |
+| `first_seen_at` | timestamptz | |
+| `last_synced_schema_at` | timestamptz | |
 
-**Usage pattern for agents:**
+**Populated at connector setup** by `FixtureConnector.describe_schema()` introspection. Phase 2 HubSpot/Zendesk connectors populate via their own introspection following the Connector Authoring Guide.
 
-```sql
--- What's on a HubSpot company?
-SELECT property_name, storage_location, column_name
-FROM cip_connector_property_registry
-WHERE connector = 'hubspot' AND object_type = 'companies' AND tenant_id = <wayward>
-ORDER BY storage_location, property_name;
+### S9. Documentation Suite (the 10 artifacts)
 
--- Then to query a specific field:
--- If storage_location='column':   SELECT <column_name> FROM cip_companies WHERE ...
--- If storage_location='overflow': SELECT properties->>'<property_name>' FROM cip_companies WHERE ...
-```
+All ten doc artifacts listed in WDGLL are Phase 1 deliverables. Doc-build discipline:
 
-**Phase 2+ layering:** a `foundry_mcp_cip_describe_properties(connector, object_type)` MCP tool wraps the registry query so agents call a tool instead of writing SQL. Phase 1 ships the registry table + population logic only. Phase 2/3 ships the tool.
+- **M0**: author doc **skeletons** (section headers, TODO markers, required-sections list). No content yet. Skeletons live in `docs/cip/` from M0 forward.
+- **M1–M6**: fill in each doc as the milestone that produces its subject matter completes. The Migration Runbook fills in during M1. The Connector Authoring Guide fills in during M2–M3 (framework + FixtureConnector). The Lens Authoring Guide fills in during M4. The Fixture Tenant Handbook fills in during M3. The Sync Orchestrator Guide fills in during M2. The RLS & SET LOCAL Operator Guide fills in during M1. Etc.
+- **M7**: doc suite hardening pass. Every doc is read end-to-end by Tim (or a fresh reviewer) and any gap that would block a second engineer from onboarding a tenant using the doc alone becomes an M7 fix.
+- **M8**: doc suite locked at Phase 1 exit. Phase 2 Wayward Onboarding hardens them further as they meet real data for the first time.
 
-**Why Phase 1 (not deferred):** without this registry, no agent and no ad-hoc analyst can find overflow fields without knowing HubSpot's schema intimately. That violates D-121 and NN-01 (discoverability). The registry is low-cost (one table + one population routine that runs at connector setup), high-leverage (every future connector reuses the pattern).
+**Doc best-practices-first:** all ten docs follow the same skeleton (Purpose / Audience / When to use / Step-by-step / Common pitfalls / Where to get help). Enforced by a template doc at `docs/cip/_TEMPLATE.md`.
 
-### S8. Non-negotiables
+### S10. Claude Code Handoff
+
+Phase 1 execution assumes Claude Code (or equivalent agent) does the actual code writing, supervised by Tim + Atlas. The handoff mechanism:
+
+- Atlas authors **`PHASE-1-PLAIN-SPEC.md`** — a single SPEC doc containing everything Claude Code needs: acceptance criteria, file-path conventions, FixtureConnector shape, RLS patterns, fixture DB seed layout, forbidden imports (raw LLM SDKs per D-018/D-031/D-077), CSS tag requirements, test-harness conventions.
+- Claude Code (architect subagent) reads `PHASE-1-PLAIN-SPEC.md` and summarizes its understanding before writing a single line of code.
+- Atlas reviews the architect's summary. Any mismatch = Atlas corrects the SPEC (preferred) or explains the gap to Tim (if the mismatch exposes a plan hole).
+- Iterate until alignment is tight. Then Claude Code builder subagent begins implementation, milestone by milestone.
+- Claude Code reviewer subagent validates each milestone against the SPEC before marking it done.
+
+This closes the "Atlas can't write code" loop: Atlas authors the SPEC; Claude Code writes the code; Atlas and Tim validate the output against the SPEC.
+
+### S11. Non-negotiables
 
 Enforced throughout Phase 1:
 
 - **D-026** — every query scoped by `tenant_id`. No exceptions.
-- **D-017** — no hardcoded agent or client names in code. All behavior from config.
+- **D-017** — no hardcoded tenant, client, or connector names in code. All behavior from config.
 - **D-018 / D-031 / D-077** — no direct LLM SDK imports. All model calls through LLM Roster.
 - **CSS classification** — every new file has `# foundry: kind=X domain=Y`.
 - **Timestamps UTC, UUIDs v4.**
@@ -347,132 +351,180 @@ Enforced throughout Phase 1:
 
 ## PLAN — Execution Sequence
 
-Eight weeks is a target, not a contract. Milestones are ordered by dependency, not calendar.
+Milestones are ordered by dependency. No week-based appetites: Phase 1 is session-bounded and paced by what actually produces output. If a milestone wraps in one session, start the next. If it takes three, take three.
 
-### Milestone 1 — Foundation (Week 1)
+### Milestone 0 — Vision Lock + Doc Skeletons
 
-**Goal:** migrations apply cleanly, registry tables exist, tenant isolation verified.
+**Goal:** Phase 1 plain-jane scope is locked, all ten doc skeletons exist.
 
-- Apply migrations cip_01 through cip_08 + `cip_connector_property_registry` migration to dev DB. Verify RLS policies trip correctly on cross-tenant queries.
-- Resolve notes/engagements table decision (dedicated `cip_notes` vs inclusion in `cip_tickets`) — Milestone 1 decision, write as part of migration cip_08 or a new cip_09.
-- Write smoke test: insert a `cip_views` row, `SET LOCAL` to wrong tenant, expect zero rows back. No `cip_clients` rows needed yet — those auto-populate from HubSpot in Milestone 4.
-- Add migration runbook to `docs/operations/` (cip_* migration procedure — idempotency, rollback).
+- Confirm scope matches this plan (Tim + Atlas).
+- Create `docs/cip/_TEMPLATE.md` skeleton.
+- Create all ten doc skeletons in `docs/cip/` (headers + TODO markers only — no content).
+- Author `PHASE-1-PLAIN-SPEC.md` (the Claude Code handoff doc).
 
-**Exit:** dev environment has full CIP schema including property registry, Wayward tenant exists, RLS verified. `cip_clients` remains empty until HubSpot first sync.
+**Exit:** doc skeletons exist, SPEC handoff doc exists, Claude Code architect confirms SPEC understanding back to Atlas.
 
-### Milestone 2 — Connector Framework (Weeks 1–3)
+### Milestone 1 — Foundation (migrations + RLS verify)
 
-**Goal:** `CIPConnector` Protocol, `CIPMapper` Protocol, and ingestion pipeline orchestrator live inside Integration Mesh.
+**Goal:** migrations apply cleanly, registry table exists, tenant isolation verified.
 
-- Define `CIPConnector` and `CIPMapper` ABCs in `platform/integration-mesh/src/connectors/cip/base.py`.
+- Apply migrations cip_01 through cip_08 + `cip_connector_property_registry` (inside cip_08) to dev DB. Verify RLS policies trip correctly on cross-tenant queries.
+- Create `fixture_tenant` row in `tenants` (Foundry-owned, type=`fixture`).
+- Write smoke tests: insert a dummy `cip_clients` row under fixture tenant, `SET LOCAL` to wrong tenant, expect zero rows back.
+- Fill in: **Migration Runbook** and **RLS & SET LOCAL Operator Guide**.
+
+**Exit:** dev environment has full CIP schema (through cip_08), fixture tenant exists, RLS verified. Two docs drafted.
+
+### Milestone 2 — Generic Connector Framework
+
+**Goal:** `CIPConnector` and `CIPMapper` Protocols + ingestion pipeline orchestrator + connector-conformance test harness.
+
+- Define Protocols in `platform/integration-mesh/src/connectors/cip/base.py`. No tenant-specific hints.
 - Implement ingestion pipeline orchestrator with SCD differ and `cip_sync_runs` audit.
 - Scaffold connector registry hooks.
-- Write unit tests against two mock connectors (not Zendesk/HubSpot yet — fake shapes that exercise overflow, incremental keys, history diffing).
+- Build connector-conformance test harness (pytest fixtures any subclass can use).
+- Fill in: **Connector Authoring Guide** and **Sync Orchestrator Operator Guide** (using the framework itself as the reference implementation).
 
-**Exit:** framework passes its own tests with synthetic data; no external-API calls yet.
+**Exit:** framework passes its own tests against mock Protocol implementations. Two more docs drafted.
 
-### Milestone 3 — Zendesk Connector (Weeks 3–4)
+### Milestone 3 — FixtureConnector + Fixture DB Seeder
 
-**Goal:** Zendesk data flowing into `cip_tickets`, `cip_contacts`, `cip_companies` with history.
+**Goal:** deterministic synthetic data flowing through the framework end-to-end.
 
-- Implement `ZendeskConnector` (auth, stream, rate limit, incremental cursor).
-- Implement `ZendeskTicketMapper`, `ZendeskUserMapper`, `ZendeskOrgMapper`.
-- First live sync against Wayward's Zendesk (read-only). Verify row counts, verify provenance columns populated, verify `cip_sync_runs` row written.
-- Trigger post-vector hook against ticket bodies → Knowledge ingestion → Graph extraction. Confirm chunks land in Pinecone with `source_type='cip_zendesk_ticket'`.
+- Implement `FixtureConnector` + `FixtureMapper` against the fixture shape in S3.
+- Implement `scripts/seed_fixture_tenant.py` (idempotent re-seeder with `--reset` flag).
+- Run first fixture sync. Verify row counts, provenance columns, `cip_sync_runs` row, SCD history on second sync (after seeder modifies a known field).
+- Trigger post-vector hook against fixture ticket/note/document bodies → Knowledge ingestion → Graph extraction. Confirm chunks in Pinecone with `source_type='cip_fixture_*'`.
+- Populate `cip_connector_property_registry` via `FixtureConnector.describe_schema()`.
+- Fill in: **Fixture Tenant Handbook** and **CIP CSS Classification Contract**.
 
-**Exit:** live Wayward Zendesk data in `cip_*` tables, history captured on second sync, knowledge chunks in Pinecone, graph entities in FalkorDB.
+**Exit:** fixture tenant has populated `cip_*` tables, history captured on second sync, chunks in Pinecone, graph entities in FalkorDB, registry populated. Two more docs drafted.
 
-### Milestone 4 — HubSpot Connector (Weeks 4–6) ⬅ LONGEST MILESTONE
+### Milestone 4 — Lens Engine on Fixture Data
 
-**Goal:** HubSpot data flowing into `cip_contacts`, `cip_companies`, `cip_deals`, and notes target table. `cip_clients` auto-populates from HubSpot companies. History active from first sync. Property registry populated.
+**Goal:** two lenses registered, filter resolver working, lens-test harness green.
 
-- Property split is **already locked** in S2 — no kickoff decision required. Build directly against the locked table.
-- Implement `HubSpotConnector` with private app token auth.
-- Implement `HubSpotContactMapper`, `HubSpotCompanyMapper`, `HubSpotDealMapper`, `HubSpotNoteMapper`. Company mapper writes **both** `cip_companies` **and** `cip_clients` (per S3 — one HubSpot company = one `cip_clients` row).
-- **Introspect HubSpot schema API** at connector setup and populate `cip_connector_property_registry` with one row per HubSpot property across contacts, companies, deals, notes. Mark each row's `storage_location` per the S2 locked split; custom Wayward-specific properties that didn't appear in the split table get `storage_location='overflow'` automatically.
-- First live sync against Wayward's HubSpot. Verify relationship mappings (contact → company, deal → contact/company, note → any) and that `cip_clients` has one row per HubSpot company.
-- **Critical:** confirm history capture is working from the very first sync. Once the first sync lands, HubSpot's 20-revision retention clock has already ticked — any field that was at revision 19 yesterday and is at revision 20 today is lost if we didn't capture it. Run the first sync early in the milestone.
-
-**Exit:** live Wayward HubSpot data in `cip_*` tables, `cip_clients` populated 1:1 from HubSpot companies, first sync run captures revision 20 of every property that had ≥ 20 changes, `cip_connector_property_registry` has a row for every HubSpot property encountered.
-
-### Milestone 5 — Lens Engine + `cip_views` (Weeks 6–7)
-
-**Goal:** two lenses registered, filter resolver working.
-
-- Write both `cip_views` rows (EcomLever Full View, PS China View). PS China View `filter_config` finalized with Tim.
+- Seeder inserts both `cip_views` rows on the fixture tenant.
 - Implement lens resolver — given a `view_id` and a base query, returns the filtered query. RLS-composed.
-- Write integration tests: same underlying data, two queries via two views, different row counts, no per-consumer branching.
+- Write lens-test harness with golden-file expectations.
+- Verify: same underlying fixture data, two queries via two views, different row counts matching golden files, no per-consumer branching.
+- Fill in: **Lens Authoring Guide**.
 
-**Exit:** `SELECT * FROM cip_tickets WHERE <lens-applied>` returns correct rows for both lenses.
+**Exit:** `SELECT * FROM cip_tickets` via Lens-A returns all fixture rows; via Lens-B returns only EMEA-region rows, matching golden files. One more doc drafted.
 
-### Milestone 6 — Metabase (Week 7)
+### Milestone 5 — Metabase Platform Service on Fixture
 
-**Goal:** dashboards live, lens switcher working, Ali can use it.
+**Goal:** Metabase deployed as a platform service, two dashboards live, lens switcher working.
 
-- Deploy Metabase to staging (shared Foundry PostgreSQL).
-- Create Wayward collection. Build two dashboards (one per lens).
+- Deploy Metabase as a platform service (not tenant-scoped — future tenants plug in).
+- Create fixture-tenant collection. Build two dashboards (one per lens).
 - Wire lens switcher (parameter-based at dashboard level).
-- Load test: full Wayward dataset, verify response times are reasonable (< 5s per tile is the Phase 1 target; optimization is Phase 6).
+- Verify tiles render correctly under both lenses against fixture data.
+- Load test: full fixture dataset, verify response times are reasonable (< 5s per tile is the Phase 1 target; optimization is Phase 8).
 
-**Exit:** Ali opens staging Metabase, switches between lenses, data looks right.
+**Exit:** Tim opens Metabase, switches between lenses, fixture data resolves correctly under both.
 
-### Milestone 7 — Demo + Lock (Week 8)
+### Milestone 6 — Discoverability Registry Completeness Pass
 
-**Goal:** Phase 1 exit gate — Tim demos to Ali, Ali signs off, Phase 1 marked DONE.
+**Goal:** every Phase 1 artifact is queryable through registries. No "dark" data.
 
-- Tim walks Ali through both lenses.
-- Collect Ali's first-round feedback. Anything that's "the filter is wrong" or "the dashboard is stale" gets fixed in Phase 1. Anything that's "I wish I could also see X" or "can we push this to Chatwoot" gets triaged into Phase 2.
-- Phase 1 retrospective: what did the connector framework teach us? Did the Lens Engine abstraction survive first contact? What should Phase 2 sharpen?
-- **WORKBENCH → `products/client-intelligence-platform/` move** — once Phase 1 ships, the project graduates to the governed location per FOUNDRY-TAXONOMY.md. This is a Tier 3 move (governed repo-path change); proposed to `pending-review.md` before execution.
+- Verify `cip_connector_property_registry` has rows for every fixture property (populated in M3, but double-check no gaps).
+- Verify `cip_views` has both lenses.
+- Verify `cip_sync_runs` has rows for every fixture sync.
+- Verify `cip_files` has rows for every fixture document.
+- Verify `knowledge_sources` has rows for all three fixture source types.
+- Verify `graph_templates` has the fixture tenant's row.
+- Fill in: **Four Access Paths Reference**.
 
-**Exit:** Phase 1 LOCKED DONE. ROADMAP.md updated. PM scopes for the 6 lit pillars advance to "lit, producing ongoing work" status. Phase 2 VISION/WDGLL/SPEC/PLAN begins.
+**Exit:** cold-start agent (no CIP-specific context) can enumerate every Phase 1 artifact via generic registries alone. One more doc drafted.
+
+### Milestone 7 — Four Access Paths Validation + Doc Suite Harden
+
+**Goal:** prove the four access paths light up against fixture; harden every doc against first-read review.
+
+**Four-access-paths procedure.** Spin up a fresh Cowork or Claude Code session with no CIP-specific context. The agent must:
+
+1. **Path 1 — Structured via `foundry_mcp_db_query`.**
+   - Discover: query `cip_connector_property_registry` to enumerate fixture columns.
+   - Read: `SET LOCAL app.current_tenant = '<fixture>'` then `SELECT cip_client_id, name FROM cip_clients LIMIT 5`.
+   - Cross-check: same query without `SET LOCAL`, expect zero rows (RLS block).
+2. **Path 2 — Derived Knowledge (vector + BM25).**
+   - Discover: query `knowledge_sources WHERE tenant_id = '<fixture>'` to enumerate `source_type` values.
+   - Retrieve: call Knowledge Subsystem retrieval with a test query tied to fixture content ("refund request ticket body" or similar). Confirm results carry `cip_fixture_*` source references.
+3. **Path 3 — Derived Knowledge (graph).**
+   - Discover: query `graph_templates` for fixture tenant node/edge types.
+   - Retrieve: ask a graph-hop question ("which contacts at EMEA companies filed tickets?"). Confirm graph hops return entity-linked citations.
+4. **Path 4 — Originals via Storage Service + `cip_files`.**
+   - Discover: query `cip_files WHERE tenant_id = '<fixture>' LIMIT 5`.
+   - Resolve: pass `cip_file_id` to Storage Service, get signed R2 URL, fetch bytes.
+
+**Acceptance criteria (all four must pass):**
+- Agent reaches data on each path without CIP-specific tooling or hard-coded table names.
+- Registries cover what's queryable.
+- Tenant scoping holds (wrong tenant returns empty; no `SET LOCAL` returns empty).
+
+**Doc hardening:** Tim (or a fresh reviewer) reads all ten docs end-to-end. Any gap that would block a second engineer from onboarding a tenant using the doc alone becomes an M7 fix. Special attention to the **Tenant Onboarding Checklist** and **Phase 1 → Phase 2 Handoff Doc** since those are the artifacts Phase 2 consumes first.
+
+**Exit:** four-access-paths validation report green at `validation/M7-discoverability-report.md`. All ten docs reviewed and gaps closed.
+
+### Milestone 8 — Product-Ready Gate: Plain-Jane Lock
+
+**Goal:** Phase 1 exit gate — plain jane is shippable.
+
+- Tim (or any engineer) opens Metabase against the fixture tenant, switches lenses, confirms data resolves correctly under both.
+- Claude Code architect, reading only `PHASE-1-PLAIN-SPEC.md` + the ten docs, confirms the product is buildable-and-onboardable as described (sanity check — a fresh architect should not have to ask Atlas or Tim "what does this mean?" for any doc).
+- Phase 1 retrospective: what did the framework teach us? Did the Lens Engine abstraction survive first contact? What should Phase 2 Wayward Onboarding sharpen when it meets real connectors?
+
+**Exit:** Phase 1 LOCKED DONE. ROADMAP.md updated with Phase 1 LIT status. PM scopes for the 6 lit pillars advance to "lit, producing ongoing work" status. Phase 2 Wayward Onboarding VISION/WDGLL/SPEC/PLAN authoring begins.
 
 ### Risks & contingencies
 
-**R1. HubSpot auth or rate-limit issues delay Milestone 4.**
-*Mitigation:* Milestone 4 starts first sync as early as possible. Even a partial first sync captures history from that moment onward. If HubSpot blocks us entirely, Phase 1 has to reshape — the 20-revision constraint is non-negotiable.
+**R1. Protocol design doesn't survive first real connector (Phase 2).**
+*Mitigation:* Phase 2 is allowed to extend the Protocol if a real connector (HubSpot, Zendesk) surfaces a legitimate missing method. What it's not allowed to do is hardcode a connector-specific branch in the framework. Phase 1 optimizes for Protocol generality; Phase 2 is the empirical test.
 
-**R2. Knowledge/Graph subsystems prove incompatible with CIP content shape.**
-*Mitigation:* the post-vector hook is non-fatal (D-067). If graph extraction chokes on ticket content, structured writes still complete. Knowledge ingestion is more important — if `ingest_text_content()` can't handle the content, we flag it, fix it in Knowledge, and proceed. CIP does not own the fix but does escalate.
+**R2. FixtureConnector proves too simple — missing a real-world complexity that only emerges against HubSpot.**
+*Mitigation:* the fixture covers relationship joins (contact → company, deal → contact), property overflow (structured vs JSONB), incremental sync cursors, and schema introspection. These are the framework's load-bearing features. If HubSpot still breaks something, update the fixture in Phase 2 to exercise that thing too, so Phase 3 and future connectors inherit the coverage.
 
-**R3. Lens filter_config for PS China View is harder to pin down than expected.**
-*Mitigation:* ship EcomLever Full View (empty filter — trivially correct) first. PS China View can be refined iteratively as Project Silk users look at early data and correct it. The key is that the Lens Engine *mechanism* works; the specific filter is tunable.
+**R3. Docs drift from code during the build.**
+*Mitigation:* M7 doc hardening pass is mandatory and blocking. Docs review by fresh reader closes drift before Phase 1 exits.
 
-**R4. Metabase performance sags under full Wayward data.**
-*Mitigation:* add indexes on hot query paths (tenant_id, client_id, source_id, updated_at). Materialized views are explicitly Phase 6 — Phase 1 just needs to not be embarrassing.
+**R4. Claude Code confirm-loop overhead slows execution.**
+*Mitigation:* the SPEC doc is the expensive part — once it's right, architect/builder/reviewer loops are short. Expect M0–M2 to be SPEC-heavy and slow; M3 onward is faster.
 
-**R5. Appetite blows past 8 weeks.**
-*Mitigation:* the lock is on *scope* (6 of 8 pillars lit), not weeks. If scope ships in 10 weeks, Phase 1 is still Phase 1. If weeks 9–10 arrive and scope isn't shipping, Atlas proposes a rescope to Tim (which pillar drops to minimum-minimum, what defers to Phase 1.5). The forbidden move is quietly widening scope to keep the 8-week calendar.
+**R5. HubSpot 20-revision retention clock ticks during Phase 1.**
+*Mitigation:* the "HubSpot backup tape" mini-project can run in parallel if Tim judges the gap between Phase 1 exit and Phase 2 HubSpot first-sync too long to tolerate. Tape decision is Tim's at Phase 1 kickoff.
 
 ### Dependencies
 
 - Integration Mesh subsystem must remain in its current state or move forward. No refactors during Phase 1 work.
-- Knowledge Subsystem must remain in its current state (LIVE per CONTRACT.md). No breaking changes during Phase 1 work.
-- Graph Subsystem must remain in its current state (LIVE per CONTRACT.md). No breaking changes during Phase 1 work.
-- Wayward venture must provide Zendesk and HubSpot credentials in the first few days of Phase 1.
-- Ali's availability for the Milestone 7 demo must be lined up by end of Milestone 5.
+- Knowledge Subsystem must remain in its current state (LIVE per CONTRACT.md). No breaking changes during Phase 1.
+- Graph Subsystem must remain in its current state (LIVE per CONTRACT.md). No breaking changes during Phase 1.
+- Claude Code is available on tims-desktop for architect/builder/reviewer loops.
+- Metabase deployment target (platform service) — Tim confirms hosting decision at M5 kickoff.
 
 ### What this plan does NOT commit to
 
-- Exact week counts per milestone (estimates, not contracts).
 - Specific Metabase tile layouts (decided during build, not locked here).
-- Exact HubSpot property subset (decided at Milestone 4 kickoff, with Tim).
-- Exact PS China View filter shape (decided with Tim during Milestone 5).
+- Exact fixture row counts (rough guidance in S3; tunable during build).
 - A Phase 2 start date (that's a Phase 2 authoring decision).
+- Specific HubSpot or Zendesk behavior (that's Phase 2 scope).
 
 ---
 
 ## Cross-references
 
-- `README.md` — Shape D pin + 8-pillar table + scope IDs
+- `README.md` — plain-jane Phase 1 pin + 8-pillar table
 - `ROADMAP.md` — pillar-aligned phase sequence (this is Phase 1 of that roadmap)
+- `vision/VISION.md` — product vision
+- `PHASE-1-PLAIN-SPEC.md` — Claude Code handoff doc (sibling to this plan)
 - `architecture/ARCHITECTURE.md` — Phase 0 DDL + §13–§19 hardening layer
 - `docs/DECISION-LOG.md` — D-117, D-118, D-119, D-120, D-121
 - `docs/architecture/principles/DESIGN-PRINCIPLES.md` — P-21 (Multi-Lens by Default)
 - `docs/subsystems/integration/CONTRACT.md` — framework host
 - `docs/subsystems/knowledge/CONTRACT.md` — Knowledge consumer notes (D-119)
 - `docs/subsystems/graph/CONTRACT.md` — Graph consumer notes (D-119)
+- `docs/cip/` — the ten-doc suite (skeletons authored in M0, filled M1–M7, locked M8)
 
 ## Authoring note
 
-This doc is the working plan for CIP Phase 1. When Phase 1 kicks off (Milestone 1), this doc becomes the execution reference. Milestones get tracked as PM tasks under the 6 lit pillar scopes. Status updates land as `pm_task_update` + `pm_comment`, not as edits to this doc. The doc itself updates only when scope changes — and scope changes require real-time Tim authorization (Tier 3).
+This doc is the working plan for CIP Phase 1 plain-jane. When Phase 1 kicks off (M1), this doc becomes the execution reference. Milestones get tracked as PM tasks under the 6 lit pillar scopes. Status updates land as `pm_task_update` + `pm_comment`, not as edits to this doc. The doc itself updates only when scope changes — and scope changes require real-time Tim authorization (Tier 3).

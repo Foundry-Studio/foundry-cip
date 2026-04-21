@@ -3,9 +3,9 @@
 > **Location:** `products/client-intelligence-platform/` (governed — promoted from WORKBENCH 2026-04-17)
 > **PM Project:** CIP (596825db-61bc-4899-bc6c-e207489ca35d)
 > **Product #:** 6 in `FOUNDRY-TAXONOMY.md`
-> **Status:** Planning — Phase 0 COMPLETE, Phase 1 LOCKED Shape D, PHASE-1-PLAN.md authored
+> **Status:** Planning — Phase 0 COMPLETE, Phase 1 LOCKED (Plain-Jane reshape), PHASE-1-PLAN.md + PHASE-1-PLAIN-SPEC.md + PHASE-2.5-PLAN.md authored
 > **Owner:** Tim
-> **Last Updated:** 2026-04-17 (repo-move to products/ + PHASE-1-PLAN.md Shape D + Wayward SOLVE FOR articulated)
+> **Last Updated:** 2026-04-20 (Plain-Jane reshape: Phase 1 rewired to fixture-tenant-only + 10 doc artifacts; Wayward onboarding pulled into Phase 2; Phase 2.5 trimmed to write-back only; cip_09 moved to Phase 3; week-based appetites dropped)
 
 ## What's Here
 
@@ -13,8 +13,10 @@
 client-intelligence-platform/
 ├── vision/
 │   ├── VISION.md                    ← Product vision doc (THE source of truth)
-│   ├── ROADMAP.md                   ← Pillar-aligned phase sequence (Phase 0 COMPLETE, Phase 1 LOCKED)
-│   └── PHASE-1-PLAN.md              ← Phase 1 VISION/WDGLL/SPEC/PLAN — Shape D, authored 2026-04-17
+│   ├── ROADMAP.md                   ← Pillar-aligned phase sequence (Phase 0 COMPLETE, Phase 1 LOCKED Plain-Jane)
+│   ├── PHASE-1-PLAN.md              ← Phase 1 VISION/WDGLL/SPEC/PLAN — Plain Jane, reshaped 2026-04-20
+│   ├── PHASE-1-PLAIN-SPEC.md        ← Claude Code handoff — binding spec for Phase 1 implementation
+│   └── PHASE-2.5-PLAN.md            ← Phase 2.5 VISION/WDGLL/SPEC/PLAN — Foundry Self-Tenant + Write-Back
 ├── architecture/
 │   └── ARCHITECTURE.md              ← Phase 0 output — schemas, tenant model, all DDL
 ├── stages/
@@ -38,12 +40,13 @@ client-intelligence-platform/
 ## Current State
 
 - Vision drafted, discussed, and stable
-- PM project created with 8 scopes
-- Phased ROADMAP.md written (Phases 0-7, dependency chain documented)
+- PM project has 8 capability-pillar scopes (D-117)
+- Phased ROADMAP.md written — 9 phases (Phase 0 COMPLETE; Phase 1 LOCKED Plain Jane; Phase 2, 2.5, 3 shapes committed; Phase 4+ provisional)
 - **Phase 0 (Data Model & Tenant Architecture) COMPLETE** — all decisions locked 2026-04-17
-- **Phase 1 (Connector Framework + History Tables) UP NEXT**
-- Wayward is first planned tenant (data already staged in wayward-cs-overhaul/)
-- HubSpot retains only 20 property revisions — CIP must own history from first sync
+- **Phase 1 (Plain-Jane CIP + Doc Suite) UP NEXT** — fixture-tenant-only, 12 code deliverables + 10 doc artifacts, reshaped 2026-04-20
+- Wayward onboarding pulled into Phase 2 (full round-trip: Zendesk/HubSpot + push)
+- Rocky Ridge onboarding pulled into Phase 3 (alongside cross-tenant grants runtime)
+- HubSpot retains only 20 property revisions — Phase 2 begins history capture from first sync (delay = permanent loss)
 
 ## Phase 0 Decisions — LOCKED
 
@@ -62,28 +65,52 @@ All approved by Tim during Cowork session 2026-04-17. Full details in `architect
 | 9 | JSONB Overflow | Keep `properties` column. Real columns for dashboardable fields, JSONB for the rest. |
 | 10 | Authority Enum | 5 levels, manual entries = `validated`. source_connector tracks origin, authority tracks trust. |
 
-## Phase 1 Scope — LOCKED 2026-04-17 (Shape D)
+## Phase 1 Scope — LOCKED 2026-04-20 (Plain-Jane Reshape)
 
-**Appetite:** ~8 weeks. **Pillar coverage:** 6 of 8 at minimum viable state (Ingestion, Structured, Unstructured, Lens, Consumption, Access). Two deferred (Push & Sync, Intelligence & Alerts).
+**Framing:** Session-bound, milestone-ordered — no week-based appetite. **Primary tenant:** none — fixture tenant only. **Pillar coverage:** 6 of 8 at minimum viable state (Ingestion, Structured, Unstructured, Lens, Consumption, Access). Two deferred (Push & Sync, Intelligence & Alerts).
 
-**IN:**
-1. Database migrations — cip_01 through cip_08 (Structured Store pillar)
-2. Connector framework inside Integration Mesh — CIPConnector Protocol + CIPMapper Protocol + ingestion pipeline orchestrator (Ingestion pillar — D-118)
-3. **Zendesk connector** — tickets, users, organizations
-4. **HubSpot connector** — contacts, companies, deals, notes (urgent: HubSpot only retains 20 property revisions — every day without sync = permanent history loss)
-5. Wayward as sole tenant, sole client (one client picked at Phase 1 kickoff)
-6. **Two lenses** on same data: EcomLever Full View + PS China View (Lens Engine pillar validation — P-21's canonical example)
-7. Metabase read dashboard with lens switcher (Consumption Surfaces minimum — sole surface in Phase 1)
+**IN (code, 12 deliverables):**
+1. Database migrations — `cip_01` through `cip_08` (Structured Store pillar). **`cip_09` cross_tenant_grants is NOT in Phase 1** — moved to Phase 3 so schema + runtime ship together.
+2. Connector framework inside Integration Mesh — `CIPConnector` Protocol + `CIPMapper` Protocol + ingestion pipeline orchestrator (Ingestion pillar — D-118)
+3. **FixtureConnector** — deterministic synthetic data source (no external API) producing ~50 companies / ~200 contacts / ~300 deals / ~500 tickets / ~100 documents / ~50 notes from one fixed random seed for byte-identical repeatability
+4. `cip_connector_property_registry` populated by `FixtureConnector.describe_schema()` (D-121 discoverability minimum)
+5. Unstructured Store wiring — CIP → Knowledge Subsystem via `knowledge_ingester_service.ingest_text_content()`; `source_type` values `cip_fixture_ticket`, `cip_fixture_note`, `cip_fixture_doc`; graph extraction via post-vector hook (D-067 non-fatal)
+6. Lens Engine — `resolve_lens()` resolver with two lenses on the fixture dataset (**Lens-A** empty filter, **Lens-B** `region=EMEA`)
+7. Metabase dashboard with lens switcher (Consumption Surfaces minimum — sole surface in Phase 1)
 8. SCD Type 2 history active from first sync (already mandatory per Phase 0)
-9. RLS + SET LOCAL enforcement (Access & Operations minimum)
+9. RLS + `SET LOCAL app.current_tenant` enforcement (Access & Operations minimum)
+10. Four agent access paths validated against fixture data (Structured, Derived Knowledge vector+BM25, Derived Knowledge graph, Originals)
+11. Connector-conformance test harness (every future `CIPConnector` runs the same harness and passes before its migration lands)
+12. CSS classification tags (`# foundry: kind=X domain=Y`) on every new file
 
-**OUT (deferred to Phase 2+):**
-- Push & Sync pillar entirely (Chatwoot, PS CRM, client Drive)
-- Second tenant / dual-tenant proof
-- Intelligence & Alerts pillar (anomaly detection, freshness signals, investigative agents)
-- REST API, chatbots, agent MCP tools (Metabase is Phase 1's sole surface)
+**IN (documentation, 10 artifacts):**
 
-**Why this shape:** (1) HubSpot's 20-revision retention makes delayed HubSpot sync = permanent data loss, so HubSpot is mandatory IN. (2) Lens Engine is the novel abstraction with highest retrofit cost — two lenses on same data is the minimum validation of P-21. (3) Push & Sync has well-understood problem shape and is additive — safe to defer to Phase 2. (4) Connector framework stress-tests itself better with HubSpot's 4-object topology than Zendesk alone.
+1. Tenant Onboarding Checklist
+2. Connector Authoring Guide
+3. Lens Authoring Guide
+4. Migration Runbook (`cip_01`–`cip_08`)
+5. RLS & `SET LOCAL` Operator Guide
+6. Sync Orchestrator Guide
+7. Four Access Paths Reference
+8. Fixture Tenant Handbook
+9. CIP CSS Classification Contract
+10. Phase 1 → Phase 2 Handoff Doc
+
+**OUT (deferred to later phases):**
+- Zendesk connector → Phase 2 (Wayward onboarding)
+- HubSpot connector → Phase 2 (Wayward onboarding; HubSpot 20-revision retention clock starts at Phase 2 kickoff, not Phase 1)
+- Any real-tenant data (Wayward, Rocky Ridge, Foundry) → Phases 2, 3, 2.5 respectively
+- `cip_09` cross_tenant_grants schema + runtime → Phase 3
+- Push & Sync pillar (Chatwoot, PS CRM, Drive) → Phase 2
+- Foundry self-tenant + write-back → Phase 2.5
+- Second tenant / multi-tenant proof → Phase 3
+- REST API, chatbots, agent MCP tools → Phases 4, 5
+- Intelligence & Alerts pillar → Phase 6
+- Investigative agents + advanced write-back → Phase 7
+
+**Why this shape:** (1) Forcing the plain-jane product against FixtureConnector *before* any real venture proves the interfaces are connector-agnostic, not back-fit to Wayward's shape. (2) Shipping 10 doc artifacts alongside the code turns Phase 1 into a package an outside engineer can onboard from — not tribal knowledge. (3) Moving Wayward into its own dedicated Phase 2 ("Wayward Onboarding — Full Round-Trip") makes Wayward a single coherent proof instead of an ingredient scattered across Phase 1 ingest + Phase 2 push. (4) Holding `cip_09` until Phase 3 lets schema + runtime ship together — no orphan migration sitting unused for two phases.
+
+**Phase 1 exit gate:** Plain-jane product works against fixture data + all 10 doc artifacts exist + `PHASE-1-PLAIN-SPEC.md` marked complete by the Claude Code reviewer subagent.
 
 ## PM Scopes — 8 CAPABILITY PILLARS (LOCKED 2026-04-17)
 
@@ -113,19 +140,22 @@ These are durable work slices — what CIP *is* as a product, forever. Phases (w
 | D-121 | CIP discoverability — every CIP artifact (files, clients, views, connectors, sync runs, chunks, graph entities, source_types) gets a registry row/table/namespace queryable by agents and scripts. Complies with NN-01 + STD-08. | Registry tables required in schema |
 | P-21 | Multi-Lens by Default (platform-wide principle) — every data surface assumes N consumers with N filter configs | Architectural guardrail across Foundry |
 
-## Post-Phase-1 Roadmap (Provisional — Committed Direction, Not Locked)
+## Post-Phase-1 Roadmap (9-Phase Shape, reshaped 2026-04-20)
 
-Pillar-aligned. Each phase lights up a pillar's abstraction against real data; once lit, the pillar keeps producing work forever.
+Pillar-aligned. Each phase lights up a pillar's abstraction against real data; once lit, the pillar keeps producing work forever. Full detail in `vision/ROADMAP.md`. Week-based appetites have been dropped — phases are session-bound and milestone-ordered.
 
 | Phase | Ships | Pillars Upgraded |
 |-------|-------|------------------|
-| **Phase 2** — Push & Sync goes live | Push to Chatwoot (ticket routing — replaces current `zendesk_to_chatwoot.py`) · Push to PS CRM (HubSpot→Twenty CRM sync) · Push to client Google Drive (scheduled report delivery) | **Push & Sync** (first light) · **Consumption Surfaces** (expand from Metabase-only to REST API + scheduled reports) |
-| **Phase 3** — Multi-tenant + agent access | Rocky Ridge or Bob onboards as tenant #2 · `foundry_mcp_cip_query` + `foundry_mcp_cip_search` MCP tools · Web chatbot for Rocky Ridge staff · Cross-tenant lens validation | **Consumption Surfaces** (chatbots, agent MCP tools) · **Access & Operations** (dual-tenant proof) |
-| **Phase 4** — Intelligence & Alerts | Anomaly detection (ticket volume spikes, overdue payment proofs) · Freshness signals surfaced in Metabase · Scheduled analytical reports · Slack alert integration | **Intelligence & Alerts** (first light — 7 of 8 pillars now active) |
-| **Phase 5** — Investigative agents + write-back | Agents write discoveries back to CIP (authority=`agent_discovered`→`validated` workflow) · Cross-tenant pattern detection (anonymized) · Temporal point-in-time queries beyond SCD | **Intelligence & Alerts** (full light — proactive + investigative) |
-| **Phase 6** — Scale & extract | Extract CIP tables from shared Foundry PostgreSQL to dedicated CIP DB (per Phase 0 decision: "extract at Stage 3") · Retention policies operational · Observability upgrade · Performance tuning | **Access & Operations** (full maturity) · **Structured Store** (dedicated instance) |
+| **Phase 2** — Wayward Onboarding (Full Round-Trip) | Zendesk + HubSpot connectors (HubSpot history capture begins at Phase 2 kickoff) · Wayward as primary tenant in EcomLever · Two lenses on Wayward data · Push to Chatwoot · Push to PS Twenty CRM · Push to client Google Drive · First-light REST API | **Ingestion & Connectors** (Zendesk + HubSpot) · **Push & Sync** (first light) · **Consumption Surfaces** (REST added) |
+| **Phase 2.5** — Foundry Self-Tenant + Write-Back | Foundry provisioned as a peer tenant · `cip_10`/`cip_11`/`cip_12` migrations · `cip_write` API on three surfaces (REST / MCP / Python) converging on one `write_service.cip_write()` · Authority model live (`agent_discovered` / `ingested` / `validated` with TSP thresholds) · Minimal CLI promotion queue · First producer: Foundry internal research agent | **Access & Operations** · **Ingestion & Connectors** (producer side) |
+| **Phase 3** — Rocky Ridge + Multi-Tenant + Grants Runtime | `cip_09` cross_tenant_grants migration + runtime together · Rocky Ridge onboards as tenant #2 · PS grant-in to Wayward goes live · Cross-tenant lens validation · Access-layer observability | **Access & Operations** (dual-tenant proof + grant runtime) |
+| **Phase 4** — Agent Access Surfaces (MCP + REST) | `foundry_mcp_cip_query` · `foundry_mcp_cip_search` · `foundry_mcp_cip_files` · REST parallel at `/cip/query`, `/cip/search`, `/cip/files` · Discoverability endpoints (`/cip/registries/*`) · **Chatbot explicitly excluded** | **Consumption Surfaces** (agents-as-first-class-consumer) |
+| **Phase 5** — Chatbot Capability (Internal) | **5A** `vision/CHATBOT-VISION.md` · **5B** `architecture/CHATBOT-ARCHITECTURE.md` · **5C** Implementation against Rocky Ridge first, then Wayward. Grounded, lens-aware, grant-aware, read-only, citations mandatory | **Consumption Surfaces** (conversational light) |
+| **Phase 6** — Intelligence & Alerts | Anomaly detection (ticket spikes, overdue payments, freshness crossings) · Slack alert channel · Freshness signals in Metabase · Scheduled analytical reports | **Intelligence & Alerts** (first light — 7 of 8 pillars active) |
+| **Phase 7** — Investigative Agents + Advanced Write-Back | Long-running investigative agents · Rich validated-promotion UX · Cross-tenant anonymized pattern detection · Temporal point-in-time query API · Self-service embedded analytics (white-label) · First phase chatbot-initiated writes are allowed | **Intelligence & Alerts** (full light) |
+| **Phase 8** — Scale & Extract | Extract `cip_*` tables from shared Foundry PostgreSQL → dedicated Railway PostgreSQL (per Phase 0 decision #1) · Retention policies active · Observability upgrade · Performance tuning · Backup & restore tested quarterly | **Access & Operations** (full maturity) · **Structured Store** (dedicated instance) |
 
-Phases are provisional shapes, not commitments — each Phase gets its own VISION/WDGLL/SPEC/PLAN doc before execution. The pillars are the durable frame; phases decide which pillar gets attention when.
+Phase 2, Phase 2.5, and Phase 3 shapes are the current commit. Phase 4+ remain provisional shapes, not commitments — each Phase gets its own VISION/WDGLL/SPEC/PLAN doc before execution. The pillars are the durable frame; phases decide which pillar gets attention when.
 
 ## Governed Location — Promoted 2026-04-17
 

@@ -2,9 +2,17 @@
 doc_type: vision
 project_id: client-intelligence-platform
 pm_project_id: 596825db-61bc-4899-bc6c-e207489ca35d
-status: draft
+status: draft-under-revision
 owner: tim
 created: 2026-04-06
+last_updated: 2026-04-20
+supersedes: >
+  Original §2 Two Data Layers simplified the storage model — superseded 2026-04-20 by D-120 Three Data Layers (Structured / Derived Knowledge / Originals). Original §4 Tenant Model showed a nested super-tenant → venture → client shape — superseded 2026-04-20 by flat peer-tenant model with first-class `cip_cross_tenant_grants`. Original §10 Roadmap was a 3-phase Wayward-scoped list — superseded 2026-04-20 to point at `ROADMAP.md` as authoritative source; this section is now a hand-synced summary.
+open_revision_items:
+  - "M0 Vision Revisit 2026-04-20 evening — six Tim directives applied (never-defer ethos, QBO/financial planned connector, peer-tenant model, early write-back pulled to Phase 2.5, per-client siloing inside venture tenant, Foundry Chatbot spinoff)."
+  - "Cross-tenant grant placement — Phase 1 schema or Phase 2+ addition? Leaning Phase 1 schema-only (table + RLS-aware view) with runtime behavior arriving Phase 3+. Confirm before Phase 1 M1 kickoff."
+  - "Personal tenant not yet provisioned in `tenants` table — provisioning deferred until Tim has a concrete first use case."
+  - "Foundry Chatbot spun out as separate product at `products/foundry-chatbot/` (stubbed, blocked by CIP Phase 5). Retrieval stack will be shared; consumer + branding + per-recipient scoping are the separation reasons. See `products/foundry-chatbot/README.md`."
 ---
 
 # Foundry Client Intelligence Platform — Product Vision
@@ -29,16 +37,17 @@ This took a full Claude Code session to build manually. The second client should
 
 ## 2. What This Product Is
 
-A **Client Intelligence Platform** with two data layers and multiple consumption interfaces, scoped per venture and per client.
+A **Client Intelligence Platform** organized into three canonical data layers (D-120) and multiple consumption interfaces, scoped per tenant and per client.
 
-### Two Data Layers
+### Three Data Layers (D-120)
 
 | Layer | Stores | Queries Via | Use Cases |
 |-------|--------|-------------|-----------|
-| **Structured** (relational) | Contacts, companies, tickets, deals, call notes, invoices, financial data | SQL, API, dashboards, reports | "All Chinese brands with overdue payments," "ticket volume by month," "$3M pipeline breakdown" |
-| **Unstructured** (vector/RAG) | PDFs, documents, SOPs, transcripts, research articles, email bodies | Semantic search, chatbot, agent RAG context | "What's our commission overlap policy?" "Summarize the last 3 calls with AEEZO" |
+| **Structured** (PostgreSQL `cip_*`) | Contacts, companies, tickets, deals, call notes, invoices, financial records (QBO etc.), client-siloed records per `cip_clients` | SQL with RLS + `SET LOCAL app.current_tenant`, Metabase, `foundry_mcp_cip_query` | "All Chinese brands with overdue payments," "ticket volume by month," "Q1 revenue by client," "pipeline breakdown by lens." |
+| **Derived Knowledge** (Pinecone + FalkorDB) | Embeddings of ticket bodies, call transcripts, notes, docs, SOPs, research; graph nodes + edges for entity relationships | BM25 + vector retrieval (Knowledge Subsystem), GraphRAG (Graph Subsystem), `foundry_mcp_cip_search` | "What's our commission overlap policy?" "Summarize the last 3 calls with AEEZO," "Who else at this company has raised billing issues?" |
+| **Originals** (Cloudflare R2) | Raw source files (PDFs, Firefly transcripts, HubSpot note HTML, QBO exports, client uploads), indexed by `cip_files` | Storage Service; citations resolve through `cip_files` → signed R2 URL | "Open the PDF that sentence came from," "replay the original ticket payload," auditability, legal/compliance retrieval. |
 
-Both layers are optional per deployment. A client who just wants dashboards gets structured only. A client who wants document Q&A gets both. Mix and match.
+All three layers are wired from Phase 1. Consumers pick which they need — a dashboard-only deployment queries Structured; a chatbot needs all three (Structured for facts, Derived Knowledge for retrieval, Originals for citations).
 
 ### Consumption Interfaces
 
@@ -93,6 +102,14 @@ Both layers are optional per deployment. A client who just wants dashboards gets
 
 **What CIP provides:** Connectors for SEC EDGAR, financial data APIs. Structured layer stores the numbers. Unstructured layer stores transcripts and analyst reports. Anomaly detection on structured data. Agent-generated thesis documents.
 
+### Planned: Financial Intelligence (QuickBooks Online + future financial sources)
+
+**What's needed:** Every venture and personal business needs accessible financial data. Pull P&L, AR/AP, invoices, expense categories, chart-of-accounts history from QuickBooks Online (and equivalents — Xero, NetSuite, raw CSV imports) per tenant. Generate reports on demand ("show me Q1 margin by service line for Project Silk"), surface anomalies (unpaid invoices past 60 days, unusual expense categories), and give agents financial context when they're working on planning, pricing, or cash-flow questions.
+
+**What CIP provides:** A QBO connector that obeys the same `CIPConnector`/`CIPMapper` Protocol contract as every other connector (D-118) — no bespoke financial-data pillar, just another source feeding the three data layers. Structured layer gains financial tables (`cip_accounts`, `cip_invoices`, `cip_transactions`, `cip_expenses` — schema locked during Phase 2 or later when QBO goes on the connector queue). Derived Knowledge layer embeds invoice memos and expense descriptions for semantic search. Originals layer preserves raw QBO JSON exports and any uploaded financial PDFs. Scoping: each business is typically its own tenant (Project Silk, EcomLever, Rocky Ridge, Personal, Foundry all have separate QBO orgs), so financial data stays inside each tenant — cross-tenant aggregation is explicit via `cip_cross_tenant_grants` (see §4), not implicit.
+
+**Posture:** CIP is connector-agnostic. QBO is a named planned connector, not an elevated pillar. The connector framework must absorb it the same way it absorbs Zendesk, HubSpot, Stripe, Shopify, SEC EDGAR, news/RSS, and WhatsApp/WeChat — a new `CIPConnector` subclass, a new `CIPMapper`, a schema migration for new `cip_*` tables, registered in the connector registry. No financial-specific code paths outside the connector's mapper.
+
 ---
 
 ## 4. Architecture (High-Level)
@@ -129,31 +146,70 @@ Manual upload ────┘                             ▼
                                     │  │ (raw files)  │ │  (graph)    │ │
                                     │  └─────────────┘ └─────────────┘ │
                                     │                                   │
-                                    │  TENANT SCOPING: venture → client │
+                                    │  TENANT SCOPING: tenant + client  │
+                                    │  + cross-tenant grants + lens     │
                                     └───────────────────────────────────┘
 ```
 
-### Tenant Model
+### Tenant Model — Peer Tenants with Cross-Tenant Grants (updated 2026-04-20)
+
+The tenant model is flatter than the original sketch. **Foundry operates the platform but is itself a tenant.** All primary tenants are peers — there is no "super-tenant" that implicitly sees all data. Cross-tenant visibility is explicit, auditable, and first-class via `cip_cross_tenant_grants`.
 
 ```
-Foundry (super-tenant, sees everything)
-├── Shatcher Ventures
-│   ├── Project Silk (venture tenant)
-│   │   ├── Wayward (client sub-tenant)  ← PS staff sees Chinese subset
-│   │   ├── Next PS client
-│   │   └── ...
-│   ├── EcomLever (venture tenant)
-│   │   ├── Wayward (same data, full view) ← Tim sees everything
-│   │   └── Next consulting client
-│   ├── Rocky Ridge (venture tenant)
-│   │   └── Land management data
-│   └── Stock Venture (venture tenant)
-│       └── Financial data
-└── Foundry Internal
-    └── AI Research Pipeline (self-feeding KB)
+Foundry (platform operator — owns the hosting, schema, governance)
+│
+└── Peer tenants in CIP (each fully isolated by RLS + `SET LOCAL app.current_tenant`):
+
+    ├── EcomLever        ── Clients: Wayward (primary data lives here), future consulting clients
+    │                        ↓
+    │                        cross-tenant grant ───→ Project Silk
+    │                                                 (read-only, filtered to Wayward rows
+    │                                                  relevant to PS China engagement)
+    │
+    ├── Project Silk      ── Clients: PS Client A, PS Client B, PS Client C …
+    │                        each siloed inside PS tenant via `cip_clients`
+    │                        (+ grant-in from EcomLever for Wayward)
+    │
+    ├── Rocky Ridge       ── Clients: Rocky Ridge land-mgmt data + document corpus
+    │
+    ├── Personal          ── Tim's personal businesses, finances, research
+    │                        (not yet provisioned — future)
+    │
+    └── Foundry (self)    ── Foundry's own operational data: agent-written research,
+                             cross-venture pattern discoveries, internal KB —
+                             what agents USE to improve themselves.
 ```
 
-**Key:** Wayward data exists ONCE but is visible through TWO lenses (Project Silk filtered view + EcomLever full view). Not duplicated.
+**Three scoping concepts, explicitly separated:**
+
+1. **Tenant** — top-level isolation boundary. An `EcomLever` row is invisible to `Project Silk` unless an explicit grant exists. Every query runs inside `SET LOCAL app.current_tenant = '<tenant_id>'`; RLS enforces that nothing else slips through.
+2. **Client** (`cip_clients`) — the siloed unit *inside* a tenant. A Project Silk tenant has multiple `cip_client` rows (PS Client A, B, C), each owning its own deliverables, company info, contacts, notes. PS staff working on Client A don't see Client B's records — filtered by `cip_client_id` predicates in views and lens filters.
+3. **Lens** (`cip_views`) — the filtered perspective *on top of* tenant + client scope. E.g., "PS China View" is a lens inside Project Silk tenant that filters by region/language; "EcomLever Full View" is a lens inside EcomLever tenant with no filters. Lenses don't cross tenants — they're always scoped inside one tenant (or on top of one grant).
+
+**Cross-tenant grants (`cip_cross_tenant_grants` — first-class, not a workaround):**
+
+When tenant A needs tenant B to see a specific slice of its data, Tim (or a Foundry admin in the future) creates a grant row. Shape:
+
+- `grant_id`
+- `source_tenant_id` (who owns the data)
+- `target_tenant_id` (who gets to read it)
+- `client_scope` (which `cip_client_id` — typically a single client like Wayward, not the whole tenant)
+- `filter` (optional JSONB predicate — e.g., "region=China")
+- `permissions` (enum: `read` only at first; `read+comment` later; never `write` cross-tenant)
+- `authority_floor` (e.g., "validated only" — grants don't expose `agent_discovered` records unless explicitly opted in)
+- `grant_window` (start / end / indefinite)
+- `audit_fields` (`granted_by`, `granted_at`, `last_accessed`, `access_count`)
+
+Runtime: when a Project Silk session queries Wayward data, the access layer walks `cip_cross_tenant_grants` for a live grant matching `source=EcomLever, target=ProjectSilk, client=Wayward`, applies its `filter` + `authority_floor`, and then runs the underlying query with both the granted tenant's RLS context *and* the local tenant's lens filter composed on top. Every cross-tenant read is logged.
+
+**Implications for Wayward specifically (the motivating case):**
+
+- Wayward's primary record lives in **EcomLever tenant** (EcomLever owns the consulting relationship and the historical data).
+- Project Silk gets a **cross-tenant grant** from EcomLever to read the Wayward slice PS needs for its China CS work.
+- Not duplicated. Not copied. The data is in one place; two tenants read it with different filters and different lenses.
+- If tomorrow EcomLever decides to end the PS grant, one row flips and Project Silk loses visibility — without touching any records.
+
+**Why this is P-21 in full force:** Lenses alone couldn't express "EcomLever owns the data but Project Silk can see a slice." Bolting cross-tenant grants onto a venture→client hierarchy would have been a hack. Modeling them first-class from Phase 1 is the only structural choice that keeps CIP defensible as more tenants come online.
 
 ### What Already Exists (Foundry Infrastructure)
 
@@ -171,6 +227,26 @@ Foundry (super-tenant, sees everything)
 | Metabase | DEPLOYED | Analytics/dashboard tool | Dashboard interface (already running at reports.project-silk.com) |
 
 **~70% of the infrastructure already exists.** What's missing: connector framework, structured data normalization, consumption interfaces, filtered views, scheduled reports, anomaly detection, white-label.
+
+### Connector Inventory (Planned)
+
+CIP is **connector-agnostic by posture**. No connector gets pillar status; every connector implements the same `CIPConnector` + `CIPMapper` Protocol contract inside the Integration Mesh (D-118). The inventory below is the committed intent — specific phase assignments tighten as each phase locks.
+
+| Connector | Source | Planned phase | Notes |
+|-----------|--------|---------------|-------|
+| **Zendesk** | Tickets, users, orgs, comments | **Phase 1 (LOCKED)** | First instance; validates the connector framework. |
+| **HubSpot** | Contacts, companies, deals, notes (incl. call transcripts) | **Phase 1 (LOCKED)** | 20-revision retention = history-capture urgency; validates JSONB overflow pattern. |
+| QuickBooks Online | Accounts, invoices, transactions, expenses, chart of accounts | Phase 2+ (per tenant) | Financial intelligence — see §3. Connector-agnostic implementation. |
+| Stripe | Payments, customers, subscriptions, invoices | Phase 2+ | Overlaps with QBO — dedupe via `source_connector` + provenance. |
+| Shopify | Orders, products, customers, carts | Phase 2+ | Needed when an ecom-venture client uses Shopify as system of record. |
+| SEC EDGAR | Filings, earnings transcripts, financial data | Phase 2+ (Stock venture) | Read-only public data; no auth. |
+| News / RSS | Industry news, competitor announcements | Phase 2+ (AI Research Pipeline) | Agents-as-producers tenant (Foundry self-tenant); writes to Derived Knowledge layer. |
+| WeChat / WhatsApp | Conversation logs, media | Phase 3+ | Partner-portal + PS China relevance; auth + compliance review needed. |
+| Chatwoot | Outbound ticket routing | Phase 2 (push) | Downstream consumer, not an inbound source — writes via Push & Sync pillar. |
+| Gmail / Google Drive | Email threads, document corpora | Phase 3+ | Source-of-truth for some ventures; MS365 parallel TBD. |
+| Manual Upload | Ad-hoc PDFs, CSVs, founder-provided docs | **Phase 1 (LOCKED)** | Always the fallback; required for Rocky Ridge and for any tenant where a connector doesn't yet exist. |
+
+**Explicitly not a pillar:** no "Financial Connector Pillar," no "Social Connector Pillar," no per-source elevation. New connectors are scope-as-you-need-them inside Pillar 1 (Ingestion & Connectors). The connector registry (`cip_connectors`) tracks which are deployed per tenant.
 
 ---
 
@@ -266,6 +342,35 @@ Agents are not just consumers of the KB — they're producers. The AI research p
 
 Sources: [Oracle AI Agent Memory](https://blogs.oracle.com/database/introducing-oracle-ai-agent-memory-a-unified-memory-core-for-enterprise-ai-systems), [Temporal Knowledge Graphs as Long-Term Memory](https://medium.com/@bijit211987/agents-that-remember-temporal-knowledge-graphs-as-long-term-memory-2405377f4d51)
 
+### 7g. Agent Discoverability — The Four Access Paths (Phase 1 + Phase 4)
+
+D-121 mandates registries exist so agents can discover CIP data. This subsection names the **four access paths** an agent needs to light up end-to-end against any tenant. Phase 1 M7 validates the paths work against the **fixture tenant** (plain-jane reshape 2026-04-20 — no real venture data in Phase 1); Phase 2 re-validates the same paths against Wayward; Phase 4 ships the MCP tool wrappers that make these paths ergonomic.
+
+| # | Path | What it reaches | How an agent invokes it | Phase |
+|---|------|-----------------|-------------------------|-------|
+| 1 | **Structured** — direct SQL with tenant scope | `cip_*` Postgres tables (contacts, companies, tickets, deals, financial, grants registry) | `foundry_mcp_db_query` with RLS + `SET LOCAL app.current_tenant` enforced by the access layer | Phase 1 (raw), Phase 4 (wrapped as `foundry_mcp_cip_query`) |
+| 2 | **Derived Knowledge — vector + BM25** | Pinecone chunks and payloads for a tenant, keyed by `knowledge_sources.source_type IN (cip_ticket, cip_note, cip_doc, …)` | Knowledge Subsystem retrieval (`knowledge_retriever_service`) | Phase 1 (raw), Phase 4 (wrapped as `foundry_mcp_cip_search`) |
+| 3 | **Derived Knowledge — graph** | FalkorDB nodes/edges for a tenant (entity relationships, mention graph) | Graph Subsystem retrieval (`graphrag_retriever_service`) | Phase 1 (raw), Phase 4 (wrapped into `foundry_mcp_cip_search` when graph boost is requested) |
+| 4 | **Originals** — signed R2 URLs | `cip_files` rows → R2 object paths → signed URL | Storage Service (starts from `cip_files.cip_file_id`) | Phase 1 (raw), Phase 4 (wrapped as `foundry_mcp_cip_files`) |
+
+**Discoverability registries (D-121):** Every path above is backed by a registry so an agent with only generic `foundry_mcp_*` tools can discover what exists without hard-coded table names. Examples: `cip_connector_property_registry` (names every HubSpot/Zendesk/QBO property and which column or JSONB path it lives at), `knowledge_sources` (names every `source_type` with its row shape), `graph_templates` (names every node/edge type + relationship pattern), `cip_files` metadata (names every file with its original connector + content-type). If an agent can't find a property/source/entity/file through these registries, it shouldn't exist.
+
+**Phase 1 M7 (Agent Discoverability Validation)** — the acceptance gate that proves all four paths light up against the **fixture tenant**. See `vision/PHASE-1-PLAN.md` Milestone 7 for the concrete validation procedure. Phase 2 re-validates the paths against Wayward as part of the full round-trip. **Phase 4 (Agent Access Surfaces)** ships the MCP tool wrappers referenced in the table.
+
+### 7h. Conversational Access — Who Uses the Chatbot (Phase 5)
+
+Phase 5 lights up a **chatbot capability inside CIP**. Its scope is **internal / staff-facing**. Intended consumers:
+
+- **Tim** — asking questions across all tenants he has access to (including cross-tenant via grants).
+- **Foundry agents** — pulling conversational context via `foundry_mcp_cip_*` tools rather than a UI.
+- **Rocky Ridge staff** — Q&A over Rocky Ridge's document corpus and records (first non-Tim tenant for this surface; likely the Phase 5C first-tenant pilot per the Task #14 kickoff).
+- **Project Silk staff** — Q&A over PS-internal client deliverables + the grant-in view of Wayward.
+- **EcomLever staff** — Q&A over EcomLever's consulting clients.
+
+All five consumer types share: lens-aware, grant-aware, citations mandatory (Structured row IDs + R2 paths), refusal on low-grounding queries, read-only in Phase 5 (write-back is Phase 2.5 / Phase 7, separate surface).
+
+**Explicitly out of scope for Phase 5:** client-facing chatbots — a tenant's *end clients* (e.g., Wayward's customers asking about their own orders) are served by a separate product, **Foundry Chatbot**, which is stubbed at `products/foundry-chatbot/` and is blocked by this CIP chatbot shipping first. Foundry Chatbot reuses the CIP retrieval stack but adds per-recipient permission scoping, tenant-branded embed widgets, end-customer auth, and tighter governance. See `products/foundry-chatbot/README.md` for the separation rationale.
+
 ---
 
 ## 8. Relationship to Existing Foundry Products (unchanged)
@@ -280,7 +385,7 @@ Sources: [Oracle AI Agent Memory](https://blogs.oracle.com/database/introducing-
 
 ---
 
-## 8. Name
+## 9. Name
 
 **Foundry Client Intelligence Platform (CIP)**
 
@@ -292,30 +397,28 @@ Alternatives considered:
 
 ---
 
-## 10. Roadmap
+## 10. Roadmap (Summary — Authoritative Source is `ROADMAP.md`)
 
-### Phase 1: Foundation (Wayward as first tenant)
-1. Architecture design — data model with provenance fields, connector interface contract, tenant scoping schema (venture → client → view)
-2. Connector framework — standard contract with `authenticate/discover_schema/pull_full/pull_incremental/normalize/rate_limits`. Evolve Zendesk + HubSpot scripts.
-3. Structured data layer — PostgreSQL tables with tenant_id, provenance columns, freshness timestamps
-4. Wayward migration — SQLite → production PostgreSQL + Pinecone. First live tenant.
-5. Dashboard — Metabase connected to structured layer with tenant-filtered views
-6. Filtered views — PS staff sees Chinese only, EcomLever sees all, Ali sees dashboards
+**Authoritative:** `products/client-intelligence-platform/vision/ROADMAP.md`. This section is a hand-synced summary. If the two disagree, `ROADMAP.md` wins.
 
-### Phase 2: Product Layer
-7. Scheduled reports — automated weekly/monthly email delivery per tenant
-8. Chatbot — RAG interface over both structured + unstructured layers
-9. Agent MCP tools — `cip_query`, `cip_search`, `cip_write` for agent access
-10. Anomaly detection — ticket volume spikes, billing gaps, engagement drops → Slack/email alerts
-11. White-label — per-client branding on dashboards and reports
-12. Connector marketplace — self-service provisioning, connector registry, one-click setup
+The original §10 (Wayward-scoped 3-phase "Foundation / Product Layer / Intelligence Layer") has been superseded since 2026-04-17 by the pillar-aligned multi-phase ROADMAP. The 2026-04-20 M0 Vision Revisit inserted **Phase 2.5 — Foundry Self-Tenant + Early Write-Back** between Phase 2 and Phase 3 to pull write-back forward. The 2026-04-20 **Plain-Jane Reshape** rewired Phase 1 to fixture-tenant-only + 10 doc artifacts, pulled Wayward onboarding into its own dedicated Phase 2 (full round-trip inbound + push), trimmed Phase 2.5 to write-back only, moved `cip_09` cross_tenant_grants to Phase 3, and dropped all week-based appetites in favor of session-bound milestone-ordered execution.
 
-### Phase 3: Intelligence Layer
-13. Cross-client pattern detection — portfolio-level anonymized aggregation across tenants
-14. Agent write-back loop — agents as knowledge producers with authority levels
-15. Self-service embedded analytics — clients build their own reports
-16. Temporal versioning — point-in-time knowledge snapshots (critical for stock venture)
-17. Second and third tenants — prove multi-tenancy works beyond Wayward
+Phase structure at a glance (provisional beyond Phase 1):
+
+- **Phase 0 — Data Model & Tenant Architecture.** COMPLETE 2026-04-17. Locked 10 decisions (DB, tenant model, provenance, SCD, auth).
+- **Phase 1 — Plain-Jane CIP + Documentation Suite.** LOCKED 2026-04-20 (reshape). Session-bound, milestone-ordered — no calendar appetite. **No real tenant** — validated against a synthetic FixtureConnector producing deterministic test data. 12 code deliverables + 10 documentation artifacts. Two lenses (Lens-A empty / Lens-B `region=EMEA`) on the fixture dataset. Metabase sole consumer. **`cip_09` cross_tenant_grants is NOT in Phase 1** — held until Phase 3 so schema + runtime ship together.
+- **Phase 2 — Wayward Onboarding (Full Round-Trip).** Inbound (Zendesk + HubSpot connectors — HubSpot 20-revision retention clock starts here) + two lenses on real Wayward data + outbound push (Chatwoot, PS Twenty CRM, client Google Drive) + first-light REST API. Primary tenant in EcomLever; PS grant-in deferred to Phase 3.
+- **Phase 2.5 — Foundry Self-Tenant + Write-Back.** NEW per 2026-04-20 M0, trimmed 2026-04-20 plain-jane reshape (push was in scope; now pure write-back). Foundry provisioned as a tenant. Migrations `cip_10`/`cip_11`/`cip_12`. `cip_write` API exposed on REST, MCP, and Python — all converging on one `write_service.cip_write()`. Authority model with TSP thresholds (auto-promote ≥ 0.9, allow ≥ 0.5).
+- **Phase 3 — Rocky Ridge + Multi-Tenant + Cross-Tenant Grants Runtime.** `cip_09` migration + runtime together. Rocky Ridge onboards as tenant #2. PS grant-in to Wayward lights up. Cross-tenant lens validation. Access-layer observability.
+- **Phase 4 — Agent Access Surfaces (REST + MCP).** Provisional. Chatbot explicitly excluded.
+- **Phase 5 — Chatbot Capability (Internal / Staff-Facing).** Provisional. Three stages: 5A Vision, 5B Architecture, 5C Implementation. First tenant Rocky Ridge, then Wayward via grant. Intended consumers listed in §7g.
+- **Phase 6 — Intelligence & Alerts.** Provisional. Anomaly detection, freshness alerts, scheduled analytical reports.
+- **Phase 7 — Investigative Agents + Advanced Write-Back.** Provisional. Rich validated-promotion UX, cross-tenant anonymized patterns, temporal snapshot API, self-service embedded analytics.
+- **Phase 8 — Scale & Extract.** Provisional. Extract `cip_*` to dedicated PostgreSQL instance per Phase 0 decision #1.
+
+**Related products, tracked separately:**
+
+- `products/foundry-chatbot/` — client-facing chatbot product (stubbed, blocked by CIP Phase 5). Reuses CIP retrieval stack; separate consumer model, separate branding, separate governance. See its README for what's different.
 
 ---
 

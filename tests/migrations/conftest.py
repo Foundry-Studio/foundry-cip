@@ -36,7 +36,7 @@ Implementation note — BYPASSRLS on the superuser role:
 import os
 import uuid
 from collections.abc import Generator
-from contextlib import contextmanager
+from contextlib import contextmanager, suppress
 
 import pytest
 from sqlalchemy import create_engine, text
@@ -108,10 +108,8 @@ def _ensure_rls_test_role(engine) -> None:
         ))
         s.execute(text("COMMIT"))
     except Exception:
-        try:
+        with suppress(Exception):
             s.execute(text("ROLLBACK"))
-        except Exception:
-            pass
         raise
     finally:
         s.close()
@@ -148,10 +146,8 @@ def _purge_cip_test_data(engine) -> None:
         s.execute(text("DELETE FROM cip_connector_property_registry WHERE connector = 'fixture'"))
         s.execute(text("COMMIT"))
     except Exception:
-        try:
+        with suppress(Exception):
             s.execute(text("ROLLBACK"))
-        except Exception:
-            pass
         raise
     finally:
         s.close()
@@ -196,10 +192,8 @@ def session_as_tenant(engine, tenant_id: str) -> Generator[Session, None, None]:
         yield session
         session.execute(text("ROLLBACK"))
     except Exception:
-        try:
+        with suppress(Exception):
             session.execute(text("ROLLBACK"))
-        except Exception:
-            pass
         raise
     finally:
         session.close()
@@ -232,10 +226,8 @@ def session_no_tenant(engine, *, commit: bool = False) -> Generator[Session, Non
         else:
             session.execute(text("ROLLBACK"))
     except Exception:
-        try:
+        with suppress(Exception):
             session.execute(text("ROLLBACK"))
-        except Exception:
-            pass
         raise
     finally:
         session.close()

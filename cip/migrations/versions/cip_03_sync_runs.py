@@ -11,14 +11,14 @@ Revision ID: cip_03_sync_runs
 Revises: cip_02_views
 """
 
-from typing import Sequence, Union
+from collections.abc import Sequence
 
 import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects import postgresql
 
 revision: str = "cip_03_sync_runs"
-down_revision: Union[str, Sequence[str], None] = "cip_02_views"
+down_revision: str | Sequence[str] | None = "cip_02_views"
 branch_labels = None
 depends_on = None
 

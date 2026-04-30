@@ -12,14 +12,14 @@ Revision ID: cip_07_deals
 Revises: cip_06_companies
 """
 
-from typing import Sequence, Union
+from collections.abc import Sequence
 
 import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects import postgresql
 
 revision: str = "cip_07_deals"
-down_revision: Union[str, Sequence[str], None] = "cip_06_companies"
+down_revision: str | Sequence[str] | None = "cip_06_companies"
 branch_labels = None
 depends_on = None
 

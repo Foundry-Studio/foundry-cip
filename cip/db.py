@@ -19,15 +19,14 @@ If they don't match, raises SchemaMismatchError with both revisions named
 + the exact upgrade command.
 """
 from __future__ import annotations
+
 import os
 import threading
-from typing import Optional
 
-from sqlalchemy import create_engine, text
-from sqlalchemy.engine import Connection, Engine
 from alembic.runtime.migration import MigrationContext
 from alembic.script import ScriptDirectory
-
+from sqlalchemy import create_engine
+from sqlalchemy.engine import Connection, Engine
 
 CIP_VERSION_TABLE = "alembic_version_cip"
 
@@ -46,7 +45,7 @@ class SchemaMismatchError(RuntimeError):
     Always carries: db_revision, package_head, fix_command.
     """
 
-    def __init__(self, db_revision: Optional[str], package_head: str):
+    def __init__(self, db_revision: str | None, package_head: str):
         self.db_revision = db_revision
         self.package_head = package_head
         self.fix_command = (
@@ -61,7 +60,7 @@ class SchemaMismatchError(RuntimeError):
         )
 
 
-def _get_engine_from_url(url: Optional[str] = None) -> Engine:
+def _get_engine_from_url(url: str | None = None) -> Engine:
     if url is None:
         url = os.environ.get("DATABASE_URL")
     if not url:
@@ -73,7 +72,7 @@ def _get_engine_from_url(url: Optional[str] = None) -> Engine:
     return create_engine(url)
 
 
-def _get_db_revision(connection: Connection) -> Optional[str]:
+def _get_db_revision(connection: Connection) -> str | None:
     """Read current revision from the alembic_version_cip table."""
     ctx = MigrationContext.configure(
         connection,
@@ -127,7 +126,7 @@ _check_lock = threading.Lock()
 _check_cache: dict[tuple[str, str], str] = {}
 
 
-def check_schema_compatibility(database_url: Optional[str] = None) -> str:
+def check_schema_compatibility(database_url: str | None = None) -> str:
     """Verify DB schema matches the package's expected head.
 
     Args:

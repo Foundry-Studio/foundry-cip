@@ -114,3 +114,4 @@ ignore = []
 [tool.ruff.lint.per-file-ignores]
 "tests/**/*.py" = ["S101", "PLR2004"]
 "cip/migrations/versions/*.py" = ["E501"]
+"cip/migrations/env.py" = ["E501"]   # operator warning messages — readable beats wrapped

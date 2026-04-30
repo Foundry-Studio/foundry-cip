@@ -1,0 +1,13 @@
+# CODEOWNERS for foundry-cip
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default owner — Tim is auto-assigned reviewer for all PRs
+*       @timjordan-foundry-studio
+
+# Schema migrations need extra care
+migrations/   @timjordan-foundry-studio
+cip/integration_mesh/base.py    @timjordan-foundry-studio
+
+# Documentation
+docs/    @timjordan-foundry-studio
+CHANGELOG.md   @timjordan-foundry-studio

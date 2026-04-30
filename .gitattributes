@@ -1,0 +1,41 @@
+* text=auto eol=lf
+
+# Python source — always LF, normalized at commit
+*.py text eol=lf diff=python
+
+# Documentation
+*.md text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.toml text eol=lf
+*.ini text eol=lf
+*.cfg text eol=lf
+*.txt text eol=lf
+
+# Shell scripts — must be LF on Unix; CRLF would break them
+*.sh text eol=lf
+
+# JSON — text with LF
+*.json text eol=lf
+
+# License + readme
+LICENSE text eol=lf
+README* text eol=lf
+CONTRIBUTING* text eol=lf
+SECURITY* text eol=lf
+CHANGELOG* text eol=lf
+
+# Binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.zip binary
+*.tar binary
+*.tar.gz binary
+*.gz binary
+
+# Lockfiles — generated, but should diff cleanly when regenerated
+poetry.lock text eol=lf
+Pipfile.lock text eol=lf

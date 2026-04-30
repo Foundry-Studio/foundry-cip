@@ -1,0 +1,177 @@
+name: test
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+  schedule:
+    - cron: "0 7 * * 1"   # Monday 7am UTC nightly drift catch
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # v4: drop <3.13 cap, add 3.13 + 3.14 (ITEM 3 / Senior CONC-10)
+        python-version: ["3.11", "3.12", "3.13", "3.14"]
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: foundry_cip_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+        ports:
+          - 5432:5432
+    env:
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/foundry_cip_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+      - name: Install (editable)
+        run: pip install -e ".[dev]"
+      - name: Alembic upgrade head
+        run: alembic upgrade head
+      # v5.2 (Round-6 Senior CONC-9): the v4 `alembic check` step was a no-op
+      # because target_metadata=None in env.py (foundry-cip migrations are
+      # explicit op.create_table calls, not autogenerate). A no-op gate is
+      # worse than no gate — creates false confidence. Removed.
+      - name: pytest
+        run: pytest -v
+      - name: mypy
+        run: mypy cip/
+      - name: ruff
+        run: ruff check cip/ tests/
+
+  # v4 fix (Senior CONC-17 / Gap GAP-23): wheel-install job. Catches the
+  # "wheel doesn't actually ship migrations" regression class which is the
+  # single most likely real-world breakage post-extraction. Round-2 panel
+  # UNANIMOUS on the package-data fix made package_data load-bearing; this
+  # job is the regression guard for it.
+  wheel-install:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: foundry_cip_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+        ports:
+          - 5432:5432
+    env:
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/foundry_cip_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install build tools
+        run: pip install build
+      - name: Build wheel
+        run: python -m build --wheel
+      - name: Install from wheel (NOT editable)
+        run: pip install dist/foundry_cip-*.whl
+      - name: Wheel content audit (v5.2 Round-6 BLOCKER 2)
+        # Inspect wheel contents BEFORE install. Asserts all 8 cip_*.py
+        # migrations + env.py + script.py.mako + the package code ship.
+        # This catches package_data misconfiguration that would silently
+        # break consumer-side `alembic upgrade head` after pip install.
+        run: |
+          unzip -l dist/foundry_cip-*.whl > /tmp/wheel-contents.txt
+          cat /tmp/wheel-contents.txt
+          # Assert all 8 cip migrations
+          MIG_COUNT=$(grep -cE 'cip/migrations/versions/cip_[0-9]+_.*\.py$' /tmp/wheel-contents.txt || echo 0)
+          [ "${MIG_COUNT}" -ge 8 ] || { echo "FAIL: wheel ships ${MIG_COUNT} cip_*.py migrations, expected ≥8"; exit 1; }
+          # Assert env.py + script.py.mako
+          grep -qE 'cip/migrations/env\.py$' /tmp/wheel-contents.txt || { echo "FAIL: env.py missing from wheel"; exit 1; }
+          grep -qE 'cip/migrations/script\.py\.mako$' /tmp/wheel-contents.txt || { echo "FAIL: script.py.mako missing from wheel"; exit 1; }
+          # Assert __init__.py files (script_location resolution depends on these)
+          grep -qE 'cip/migrations/__init__\.py$' /tmp/wheel-contents.txt || { echo "FAIL: cip/migrations/__init__.py missing from wheel"; exit 1; }
+          grep -qE 'cip/migrations/versions/__init__\.py$' /tmp/wheel-contents.txt || { echo "FAIL: cip/migrations/versions/__init__.py missing from wheel"; exit 1; }
+          echo "Wheel content audit: PASS (${MIG_COUNT} migrations + env.py + script.py.mako + __init__.py files)"
+      - name: importlib.resources verification (wheel-installed)
+        # Re-verifies via the same import path consumers will use.
+        run: |
+          python -c "from importlib import resources; m = resources.files('cip').joinpath('migrations/versions/cip_01_clients.py'); assert m.is_file(), f'cip_01 missing: {m}'"
+          python -c "from importlib import resources; m = resources.files('cip').joinpath('migrations/script.py.mako'); assert m.is_file(), f'script.py.mako missing: {m}'"
+          python -c "from importlib import resources; m = resources.files('cip').joinpath('migrations/env.py'); assert m.is_file(), f'env.py missing: {m}'"
+      - name: Module CLI wired (v5.2 Round-6 Call B)
+        # Verifies `python -m cip.db check` is callable post-wheel-install.
+        # No console_scripts entry point in v5.2 — the module CLI replaces it.
+        run: |
+          python -m cip.db 2>&1 | grep -q "Usage:" || (python -m cip.db; exit 1)
+      - name: Apply migrations against fresh Postgres (wheel path, OUTSIDE repo checkout)
+        # v5.2 Round-6 BLOCKER 2: run from /tmp so any source-tree fallback
+        # in alembic resolution would fail loudly instead of masking a wheel bug.
+        run: |
+          # Copy alembic.ini to /tmp because we're running from outside the repo
+          cp alembic.ini /tmp/alembic.ini
+          cd /tmp
+          alembic -c /tmp/alembic.ini upgrade head
+      - name: Schema-compat check (wheel-installed, OUTSIDE repo checkout)
+        run: |
+          cd /tmp
+          python -m cip.db check
+
+  # v4 fix (Gap GAP-16): cross-pollution guard regression test. Asserts that
+  # foundry-cip refuses to run against a DB with foreign Alembic chains,
+  # AND that the FOUNDRY_CIP_ALLOW_CROSS_CHAIN=1 escape hatch works.
+  cross-pollution-guard:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: foundry_cip_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+        ports:
+          - 5432:5432
+    env:
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/foundry_cip_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e ".[dev]"
+      - name: Seed foreign alembic_version row
+        run: |
+          PGPASSWORD=postgres psql -h localhost -U postgres -d foundry_cip_test -c "
+            CREATE TABLE alembic_version (version_num VARCHAR(32) NOT NULL);
+            INSERT INTO alembic_version VALUES ('foreign_chain_001');
+          "
+      - name: alembic upgrade head MUST FAIL with cross-pollution error
+        run: |
+          if alembic upgrade head 2>&1 | grep -q "Cross-chain pollution risk detected"; then
+            echo "PASS: cross-pollution guard fired"
+          else
+            echo "FAIL: cross-pollution guard did NOT fire"
+            exit 1
+          fi
+      - name: Override env var must allow upgrade
+        env:
+          FOUNDRY_CIP_ALLOW_CROSS_CHAIN: "1"
+        run: alembic upgrade head

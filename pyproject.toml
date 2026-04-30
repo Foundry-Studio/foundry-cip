@@ -1,0 +1,116 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "foundry-cip"
+version = "0.1.0"
+description = "Foundry Client Intelligence Platform — generic connector framework + tenant-partitioned data layer."
+readme = "README.md"
+requires-python = ">=3.11"  # v4: drop upper bound per PyPA anti-pattern guidance (Senior CONC-10)
+license = { file = "LICENSE" }
+authors = [{ name = "Foundry Studio", email = "tim@foundry-studio.com" }]
+keywords = ["client-intelligence", "data-platform", "connector-framework", "scd-type-2", "multi-tenant", "rls"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Database",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+dependencies = [
+    "sqlalchemy[mypy]>=2.0,<3.0",
+    "alembic>=1.18,<2.0",            # >=1.18 per Round-2 panel: multi-env `alembic check` fix
+    "psycopg[binary]>=3.1,<4.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-cov>=4.0",
+    "mypy>=1.8",
+    "testcontainers[postgres]>=4.0",
+    "ruff>=0.4",
+]
+
+[project.urls]
+Homepage = "https://github.com/Foundry-Studio/foundry-cip"
+Documentation = "https://github.com/Foundry-Studio/foundry-cip/tree/master/docs"
+Repository = "https://github.com/Foundry-Studio/foundry-cip"
+Issues = "https://github.com/Foundry-Studio/foundry-cip/issues"
+Changelog = "https://github.com/Foundry-Studio/foundry-cip/blob/master/CHANGELOG.md"
+
+# v5.2 (Round-6 Call B 2026-04-29): NO console script. The previous v4
+# `foundry-cip-migrate check` wrapper is retired. 5/6 panel models flagged
+# the wrapper as a leaky abstraction earning nothing the underlying upstream
+# `alembic` CLI doesn't already do; the schema-compat check ships as
+# `python -m cip.db check` (matching `python -m pip`, `python -m uv`).
+# Industry pattern. No `[project.scripts]` block needed.
+
+[tool.setuptools]
+# Migrations live INSIDE the cip package per v3 Q1 fix (Round-2 panel UNANIMOUS).
+# Top-level migrations/ would not ship in the wheel — `setuptools.package-data`
+# only attaches files inside declared packages. PEP 517 + setuptools >= 70
+# tightened this; MANIFEST.in is sdist-only and wheel-fragile.
+packages = ["cip", "cip.integration_mesh", "cip.migrations", "cip.migrations.versions"]
+include-package-data = true
+
+[tool.setuptools.package-data]
+cip = [
+    "py.typed",
+    "migrations/env.py",
+    "migrations/script.py.mako",
+    "migrations/versions/*.py",
+    "migrations/versions/*.md",     # _RESERVED.md placeholder
+]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_unreachable = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+plugins = ["sqlalchemy.ext.mypy.plugin"]
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+addopts = ["-v", "--strict-markers", "--strict-config"]
+markers = [
+    "requires_postgres: test needs a real Postgres (testcontainers) — not SQLite",
+    "rls: RLS-policy correctness tests; require real Postgres",
+    "slow: tests that take >5s",
+]
+
+[tool.coverage.run]
+source = ["cip"]
+branch = true
+omit = ["cip/integration_mesh/__init__.py"]
+
+[tool.coverage.report]
+fail_under = 0  # raise to 90 once M2 framework code lands
+show_missing = true
+skip_covered = true
+exclude_lines = [
+    "pragma: no cover",
+    "raise NotImplementedError",
+    "if TYPE_CHECKING:",
+    "@abstractmethod",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "C4", "SIM"]
+ignore = []
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["S101", "PLR2004"]
+"cip/migrations/versions/*.py" = ["E501"]

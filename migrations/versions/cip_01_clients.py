@@ -8,7 +8,7 @@ are the *objects* CIP collects intelligence about; tenants are the *owners*.
 History table: SCD Type 2 — every overwritten record gets one row here.
 
 Revision ID: cip_01_clients
-Revises: async_03_agents_cols, infra_disks_01, pm_06
+Revises: None (foundry-cip alembic chain root)
 """
 
 from typing import Sequence, Union
@@ -18,7 +18,7 @@ from alembic import op
 from sqlalchemy.dialects import postgresql
 
 revision: str = "cip_01_clients"
-down_revision: Union[str, Sequence[str], None] = "async_03_agents_cols"
+down_revision: Union[str, Sequence[str], None] = None
 branch_labels = None
 depends_on = None
 

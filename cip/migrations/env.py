@@ -14,6 +14,7 @@ escape-hatch for known-safe transitional scenarios).
 from __future__ import annotations
 import os
 import sys
+from typing import Any
 from logging.config import fileConfig
 from alembic import context
 from sqlalchemy import engine_from_config, inspect, pool, text
@@ -47,7 +48,7 @@ def get_url() -> str:
     return url
 
 
-def assert_no_cross_pollution(connection) -> None:
+def assert_no_cross_pollution(connection: Any) -> None:
     """v3 Q3 cross-pollution guard.
 
     If the target DB has a default `alembic_version` table containing
@@ -150,7 +151,7 @@ def run_migrations_offline() -> None:
 
 
 def run_migrations_online() -> None:
-    config_dict = config.get_section(config.config_ini_section)
+    config_dict = config.get_section(config.config_ini_section) or {}
     config_dict["sqlalchemy.url"] = get_url()
     connectable = engine_from_config(config_dict, prefix="sqlalchemy.", poolclass=pool.NullPool)
     with connectable.connect() as connection:

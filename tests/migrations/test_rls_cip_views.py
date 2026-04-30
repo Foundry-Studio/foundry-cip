@@ -6,7 +6,6 @@ Validates SPEC §7: SET LOCAL scopes rows; cross-tenant returns zero.
 
 import uuid
 
-import pytest
 from sqlalchemy import text
 
 from tests.migrations.conftest import (

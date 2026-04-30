@@ -9,12 +9,9 @@ cip_sync_runs has no history table (SPEC §3). Validates:
 
 import uuid
 
-import pytest
 from sqlalchemy import text
 
 from tests.migrations.conftest import (
-    FIXTURE_BATCH_A,
-    FIXTURE_BATCH_B,
     TENANT_A,
     TENANT_B,
     session_as_tenant,

@@ -7,7 +7,6 @@ cip_tickets is the primary fixture data table — the SPEC requires 500 tickets.
 
 import uuid
 
-import pytest
 from sqlalchemy import text
 
 from tests.migrations.conftest import (
@@ -77,7 +76,7 @@ def test_rls_cip_tickets_cross_tenant_returns_zero(engine):
 def test_rls_cip_tickets_tenant_a_sees_own_rows(engine):
     """Tenant A context sees its own cip_tickets rows, not Tenant B's."""
     with session_no_tenant(engine, commit=True) as setup:
-        id_a = _insert_ticket(setup, TENANT_A, "Password reset A")
+        _insert_ticket(setup, TENANT_A, "Password reset A")
         _insert_ticket(setup, TENANT_B, "Password reset B")
 
     with session_as_tenant(engine, TENANT_A) as s:

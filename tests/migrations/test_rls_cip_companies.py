@@ -7,7 +7,6 @@ Also validates the region column used by Lens-B is present and RLS-scoped.
 
 import uuid
 
-import pytest
 from sqlalchemy import text
 
 from tests.migrations.conftest import (
@@ -75,7 +74,7 @@ def test_rls_cip_companies_cross_tenant_returns_zero(engine):
 def test_rls_cip_companies_tenant_a_sees_own_rows(engine):
     """Tenant A context sees its own company rows (with region dimension)."""
     with session_no_tenant(engine, commit=True) as setup:
-        id_a = _insert_company(setup, TENANT_A, "EMEA Corp A", region="EMEA")
+        _insert_company(setup, TENANT_A, "EMEA Corp A", region="EMEA")
         _insert_company(setup, TENANT_B, "AMER Corp B", region="AMER")
 
     with session_as_tenant(engine, TENANT_A) as s:

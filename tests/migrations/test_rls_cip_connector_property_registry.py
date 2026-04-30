@@ -7,7 +7,6 @@ return zero rows. The registry has no history table.
 
 import uuid
 
-import pytest
 from sqlalchemy import text
 
 from tests.migrations.conftest import (
@@ -63,7 +62,7 @@ def test_rls_cip_registry_cross_tenant_returns_zero(engine):
 def test_rls_cip_registry_tenant_a_sees_own_rows(engine):
     """Tenant A context sees its own registry rows."""
     with session_no_tenant(engine, commit=True) as setup:
-        rid_a = _insert_registry_row(
+        _insert_registry_row(
             setup, TENANT_A, "fixture", "companies", "rls_own_region"
         )
         _insert_registry_row(setup, TENANT_B, "fixture", "companies", "rls_own_language")

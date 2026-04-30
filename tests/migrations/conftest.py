@@ -35,11 +35,10 @@ Implementation note — BYPASSRLS on the superuser role:
 
 import os
 import uuid
+from collections.abc import Generator
 from contextlib import contextmanager
-from typing import Generator
 
 import pytest
-import sqlalchemy as sa
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -70,12 +69,14 @@ def _get_engine():
     if not url:
         pytest.skip("DATABASE_URL not set — skipping RLS smoke tests (no live DB)")
 
-    # Use psycopg2 dialect (sync) for RLS tests — SET LOCAL is transaction-scoped
-    # and we need explicit transaction control.
-    if url.startswith("postgresql+psycopg://") or url.startswith("postgresql+asyncpg://"):
-        url = url.replace("postgresql+psycopg://", "postgresql://").replace(
-            "postgresql+asyncpg://", "postgresql://"
-        )
+    # Normalize URL to psycopg3 dialect (sync). foundry-cip ships only
+    # psycopg[binary]>=3 (no psycopg2). psycopg3 sync supports SET LOCAL with
+    # explicit BEGIN/COMMIT exactly like psycopg2 did, so transaction shape is
+    # unchanged. Forward-conversion: bare postgresql:// + +asyncpg → +psycopg.
+    if url.startswith("postgresql://"):
+        url = url.replace("postgresql://", "postgresql+psycopg://", 1)
+    elif url.startswith("postgresql+asyncpg://"):
+        url = url.replace("postgresql+asyncpg://", "postgresql+psycopg://", 1)
     return create_engine(url, pool_pre_ping=True, isolation_level="AUTOCOMMIT")
 
 
@@ -85,8 +86,8 @@ def _ensure_rls_test_role(engine) -> None:
     This role is NOSUPERUSER NOBYPASSRLS so PostgreSQL applies RLS policies
     to it.  Grants are re-applied idempotently on every module load.
     """
-    Session = sessionmaker(bind=engine)
-    s = Session()
+    session_factory = sessionmaker(bind=engine)
+    s = session_factory()
     try:
         s.execute(text("BEGIN"))
         existing = s.execute(
@@ -125,8 +126,8 @@ def _purge_cip_test_data(engine) -> None:
     cip_views uses view_name patterns with ' Test' or 'Lens-'.
     Registry uses property_name patterns starting with 'rls_'.
     """
-    Session = sessionmaker(bind=engine)
-    s = Session()
+    session_factory = sessionmaker(bind=engine)
+    s = session_factory()
     try:
         s.execute(text("BEGIN"))
         s.execute(text("DELETE FROM cip_clients_history WHERE changed_by = 'test'"))
@@ -183,8 +184,8 @@ def session_as_tenant(engine, tenant_id: str) -> Generator[Session, None, None]:
     SET LOCAL app.current_tenant scopes all reads to the given tenant.
     Both role and tenant are transaction-local — auto-reset on ROLLBACK.
     """
-    Session = sessionmaker(bind=engine)
-    session = Session()
+    session_factory = sessionmaker(bind=engine)
+    session = session_factory()
     try:
         session.execute(text("BEGIN"))
         # SET LOCAL does not accept parameters — embed values directly.
@@ -218,8 +219,8 @@ def session_no_tenant(engine, *, commit: bool = False) -> Generator[Session, Non
     raises UndefinedObject — PostgreSQL's RLS evaluates the USING expression
     to NULL and blocks all rows (for non-BYPASSRLS roles).
     """
-    Session = sessionmaker(bind=engine)
-    session = Session()
+    session_factory = sessionmaker(bind=engine)
+    session = session_factory()
     try:
         session.execute(text("BEGIN"))
         if not commit:

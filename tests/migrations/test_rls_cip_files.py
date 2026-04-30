@@ -7,7 +7,6 @@ main cip_files table and its SCD-2 history table.
 
 import uuid
 
-import pytest
 from sqlalchemy import text
 
 from tests.migrations.conftest import (

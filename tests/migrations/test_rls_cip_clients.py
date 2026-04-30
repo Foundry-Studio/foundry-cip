@@ -9,7 +9,6 @@ Validates SPEC §7 guarantee:
 
 import uuid
 
-import pytest
 from sqlalchemy import text
 
 from tests.migrations.conftest import (
@@ -20,7 +19,6 @@ from tests.migrations.conftest import (
     session_as_tenant,
     session_no_tenant,
 )
-
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
 

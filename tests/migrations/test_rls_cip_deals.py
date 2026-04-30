@@ -6,7 +6,6 @@ Validates SPEC §7: cross-tenant queries return zero rows.
 
 import uuid
 
-import pytest
 from sqlalchemy import text
 
 from tests.migrations.conftest import (
@@ -67,7 +66,7 @@ def test_rls_cip_deals_cross_tenant_returns_zero(engine):
 def test_rls_cip_deals_tenant_a_sees_own_rows(engine):
     """Tenant A context sees its own cip_deals rows."""
     with session_no_tenant(engine, commit=True) as setup:
-        id_a = _insert_deal(setup, TENANT_A, "Deal Own A")
+        _insert_deal(setup, TENANT_A, "Deal Own A")
         _insert_deal(setup, TENANT_B, "Deal Own B")
 
     with session_as_tenant(engine, TENANT_A) as s:

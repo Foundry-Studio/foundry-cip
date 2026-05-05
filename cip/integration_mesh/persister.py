@@ -1,0 +1,427 @@
+# foundry: kind=service domain=client-intelligence-platform touches=integration,storage
+"""CIP row persister with bitemporal SCD-2 history (M2 §4.5 binding).
+
+Writes a ``CIPRow`` to ``cip_{entity}`` and (on change) ``cip_{entity}_history``.
+Caller responsibilities:
+  - ``apply_tenant_context()`` before ``persist()``.
+  - Hold the transaction (persister does NOT commit).
+"""
+from __future__ import annotations
+
+import json
+import re
+from dataclasses import dataclass
+from uuid import UUID
+
+import sqlalchemy as sa
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session
+
+from .base import (
+    ALLOWED_CIP_TABLES,
+    HISTORY_TABLE_BY_CURRENT,
+    CIPRow,
+    _assert_tz_aware,
+)
+from .exceptions import PersistenceError
+from .scd_differ import SCDDiffer
+
+# v5.3 PLAN-VS-REALITY RECONCILIATION (Delta 4, 2026-04-29)
+# Plan §4.5/§4.6 specifies: uniform `properties` overflow column across all 7 tables.
+# Deployed schema (cip_03/04/05): cip_clients uses `metadata`, cip_views has none,
+# the other 5 (cip_files/contacts/companies/deals/tickets) use `properties`.
+# Reconciliation: per-table mapping driving the INSERT/UPDATE column list.
+# Rationale: P-22 / D-123 — migrations are authoritative.
+# Atlas v5.4 TODO: update plan §4.5/§4.6 to document per-table extras column.
+EXTRAS_COLUMN_BY_TABLE: dict[str, str | None] = {
+    "cip_clients": "metadata",
+    "cip_views": None,
+    "cip_files": "properties",
+    "cip_contacts": "properties",
+    "cip_companies": "properties",
+    "cip_deals": "properties",
+    "cip_tickets": "properties",
+}
+
+
+# ── Identifier safety ──────────────────────────────────────────────────────
+
+_COLUMN_NAME_RE = re.compile(r"^[a-z_][a-z0-9_]*$")
+
+
+def _safe_column_name(name: str) -> str:
+    """Defense-in-depth identifier validator. Domain column names go into
+    INSERT/UPDATE column lists via f-string interpolation (parameterized SQL
+    can't bind identifiers); this guard rejects anything that doesn't match
+    a snake_case identifier pattern.
+    """
+    if not _COLUMN_NAME_RE.match(name):
+        raise PersistenceError(
+            f"Unsafe column name {name!r}; CIP column names must match "
+            f"[a-z_][a-z0-9_]*"
+        )
+    return name
+
+
+@dataclass
+class PersistResult:
+    created: int = 0
+    updated: int = 0
+    skipped: int = 0
+    history: int = 0
+
+
+class CIPRowPersister:
+    """Writes a CIPRow into ``cip_{entity}`` and (on change) ``cip_{entity}_history``.
+
+    Caller responsibilities (NOT this class's):
+      - ``apply_tenant_context()`` BEFORE ``persist()``.
+      - Hold the transaction (persister does NOT commit).
+    """
+
+    def __init__(self, db: Session, differ: SCDDiffer) -> None:
+        self.db = db
+        self.differ = differ
+        # Lazy column-list cache — populated via reflection on first use.
+        # Tests pre-populate with stub schemas to avoid DB roundtrips.
+        self._col_cache: dict[str, list[str]] = {}
+
+    # ── public API ─────────────────────────────────────────────────────────
+
+    def persist(
+        self,
+        row: CIPRow,
+        *,
+        tenant_id: UUID,
+        connector_id: str,
+        batch_id: UUID,
+    ) -> PersistResult:
+        # M-18 / Senior #5: closed-enum allowlist. Refuse unknown table names
+        # BEFORE any SQL interpolation. Stops a buggy or malicious mapper
+        # writing to arbitrary tables.
+        if row.target_table not in ALLOWED_CIP_TABLES:
+            raise PersistenceError(
+                f"Unknown target_table {row.target_table!r}; "
+                f"allowed: {sorted(ALLOWED_CIP_TABLES)}"
+            )
+
+        # PATCH-NR-7: tz-naive datetime guard on every value in fields.
+        for k, v in row.fields.items():
+            _assert_tz_aware(v, f"CIPRow.fields[{k!r}]")
+
+        # Defense-in-depth identifier validation on every domain column.
+        domain_cols = [_safe_column_name(k) for k in row.fields]
+
+        # v5.3 PLAN-VS-REALITY RECONCILIATION (Delta 5, 2026-04-29)
+        # Plan §4.5 specifies: every table has an `overflow` JSONB column.
+        # Deployed schema (cip_02_views): cip_views has no extras column.
+        # Reconciliation: fail loud when mapper emits overflow into a target
+        # that has no extras column — catches mapper bugs the moment a real
+        # connector hits it; M2's mock doesn't exercise this path.
+        # Rationale: P-22 / D-123 — migrations are authoritative.
+        # Atlas v5.4 TODO: update plan §4.5 to document the no-extras case.
+        extras_col = EXTRAS_COLUMN_BY_TABLE.get(row.target_table)
+        if row.overflow and extras_col is None:
+            raise PersistenceError(
+                f"table {row.target_table} has no overflow column but mapper "
+                f"produced overflow keys: {sorted(row.overflow.keys())}"
+            )
+
+        history_table = HISTORY_TABLE_BY_CURRENT.get(row.target_table)
+
+        try:
+            return self._persist_with_scd(
+                row=row,
+                tenant_id=tenant_id,
+                connector_id=connector_id,
+                batch_id=batch_id,
+                domain_cols=domain_cols,
+                extras_col=extras_col,
+                history_table=history_table,
+            )
+        except SQLAlchemyError as sqle:
+            # H-8: translate SQLAlchemy errors so the orchestrator's
+            # ``except PersistenceError`` block catches them.
+            raise PersistenceError(str(sqle)) from sqle
+
+    # ── internals ─────────────────────────────────────────────────────────
+
+    def _persist_with_scd(
+        self,
+        *,
+        row: CIPRow,
+        tenant_id: UUID,
+        connector_id: str,
+        batch_id: UUID,
+        domain_cols: list[str],
+        extras_col: str | None,
+        history_table: str | None,
+    ) -> PersistResult:
+        target_table = row.target_table
+
+        # 1. SELECT FOR UPDATE the current row (locked).
+        # v4 (Round-3 panel CRIT-2): explicit ORDER BY source_id ensures
+        # concurrent batches that touch overlapping records acquire row
+        # locks in the same order — prevents the deadlock class entirely.
+        # v5.3 PLAN-VS-REALITY RECONCILIATION (Delta 6, 2026-04-29)
+        # Plan §4.5 SQL: WHERE source_id = :source_id (assumes NOT NULL).
+        # Deployed schema (cip_04_files): source_id is nullable on cip_files.
+        # Reconciliation: IS NOT DISTINCT FROM uniformly across all 7 tables;
+        # standard Postgres idiom for SCD lookups against nullable natural keys.
+        # The (tenant_id, source_connector, source_id) index handles either way.
+        # Rationale: P-22 / D-123 — migrations are authoritative.
+        # Atlas v5.4 TODO: update plan §4.5 to use IS NOT DISTINCT FROM.
+        select_sql = (
+            f"SELECT * FROM {target_table} "
+            f"WHERE tenant_id = :tenant_id "
+            f"  AND source_connector = :source_connector "
+            f"  AND source_id IS NOT DISTINCT FROM :source_id "
+            f"ORDER BY source_id "
+            f"FOR UPDATE"
+        )
+        select_params: dict[str, object] = {
+            "tenant_id": str(tenant_id),
+            "source_connector": connector_id,
+            "source_id": row.source_id,
+        }
+        current_full = (
+            self.db.execute(sa.text(select_sql), select_params)
+            .mappings()
+            .first()
+        )
+
+        if current_full is None:
+            return self._insert_new(
+                row=row,
+                tenant_id=tenant_id,
+                connector_id=connector_id,
+                batch_id=batch_id,
+                domain_cols=domain_cols,
+                extras_col=extras_col,
+            )
+
+        # 2. Diff new fields/overflow against current.
+        current_dict = dict(current_full)
+        current_id = current_dict["id"]
+
+        # The SCDDiffer expects ``current_row["overflow"]`` as the framework
+        # name; remap from the deployed extras column name.
+        current_extras = current_dict.get(extras_col) if extras_col else {}
+        current_for_diff = {**current_dict, "overflow": current_extras}
+        diff = self.differ.diff(
+            target_table=target_table,
+            current_row=current_for_diff,
+            new_fields=row.fields,
+            new_overflow=row.overflow,
+        )
+
+        if not diff.changed:
+            # 3a. Refresh-only update.
+            self.db.execute(
+                sa.text(
+                    f"UPDATE {target_table} "
+                    f"SET refreshed_at = now() "
+                    f"WHERE id = :id"
+                ),
+                {"id": str(current_id)},
+            )
+            return PersistResult(skipped=1)
+
+        # 3b. Changed — archive to history if applicable.
+        history_id: UUID | None = None
+        if diff.write_history and history_table is not None:
+            history_id = self._archive_to_history(
+                target_table=target_table,
+                history_table=history_table,
+                current_id=current_id,
+                connector_id=connector_id,
+            )
+
+        # 3c. Update current with new values.
+        self._update_current(
+            row=row,
+            target_table=target_table,
+            current_id=current_id,
+            batch_id=batch_id,
+            domain_cols=domain_cols,
+            extras_col=extras_col,
+            new_history_id=history_id,
+        )
+        return PersistResult(
+            updated=1,
+            history=1 if history_id is not None else 0,
+        )
+
+    def _insert_new(
+        self,
+        *,
+        row: CIPRow,
+        tenant_id: UUID,
+        connector_id: str,
+        batch_id: UUID,
+        domain_cols: list[str],
+        extras_col: str | None,
+    ) -> PersistResult:
+        target_table = row.target_table
+
+        # Provenance + scoping columns the persister always sets.
+        col_list: list[str] = [
+            "tenant_id",
+            "client_id",
+            "source_connector",
+            "source_id",
+            "ingestion_batch_id",
+            "authority",
+        ]
+        val_list: list[str] = [
+            ":tenant_id",
+            ":client_id",
+            ":source_connector",
+            ":source_id",
+            ":batch_id",
+            ":authority",
+        ]
+        params: dict[str, object] = {
+            "tenant_id": str(tenant_id),
+            "client_id": str(row.client_id) if row.client_id else None,
+            "source_connector": connector_id,
+            "source_id": row.source_id,
+            "batch_id": str(batch_id),
+            "authority": row.authority,
+        }
+        # Domain columns the mapper emitted.
+        for c in domain_cols:
+            col_list.append(c)
+            val_list.append(f":{c}")
+            params[c] = row.fields[c]
+        # Extras column — bound to whichever name the deployed table uses.
+        if extras_col is not None:
+            col_list.append(extras_col)
+            val_list.append("CAST(:_extras AS jsonb)")
+            params["_extras"] = json.dumps(row.overflow, default=str)
+
+        insert_sql = (
+            f"INSERT INTO {target_table} ({', '.join(col_list)}) "
+            f"VALUES ({', '.join(val_list)})"
+        )
+        self.db.execute(sa.text(insert_sql), params)
+        return PersistResult(created=1)
+
+    def _update_current(
+        self,
+        *,
+        row: CIPRow,
+        target_table: str,
+        current_id: object,
+        batch_id: UUID,
+        domain_cols: list[str],
+        extras_col: str | None,
+        new_history_id: UUID | None,
+    ) -> None:
+        set_parts: list[str] = [
+            "refreshed_at = now()",
+            "ingestion_batch_id = :batch_id",
+        ]
+        params: dict[str, object] = {
+            "id": str(current_id),
+            "batch_id": str(batch_id),
+        }
+        for c in domain_cols:
+            set_parts.append(f"{c} = :{c}")
+            params[c] = row.fields[c]
+        if extras_col is not None:
+            set_parts.append(f"{extras_col} = CAST(:_extras AS jsonb)")
+            params["_extras"] = json.dumps(row.overflow, default=str)
+        if new_history_id is not None:
+            set_parts.append("previous_version_id = :prev_id")
+            params["prev_id"] = str(new_history_id)
+        update_sql = (
+            f"UPDATE {target_table} "
+            f"SET {', '.join(set_parts)} "
+            f"WHERE id = :id"
+        )
+        self.db.execute(sa.text(update_sql), params)
+
+    def _archive_to_history(
+        self,
+        *,
+        target_table: str,
+        history_table: str,
+        current_id: object,
+        connector_id: str,
+    ) -> UUID:
+        """Bitemporal SCD-2 archive: copy current → history.
+
+        v5.3 PLAN-VS-REALITY RECONCILIATION (Delta 2, 2026-04-29)
+        Plan §4.5: simple ``archived_at`` history pattern.
+        Deployed schema (cip_*_history): bitemporal SCD-2 with ``valid_from``,
+        ``valid_to``, ``changed_by`` (NOT NULL), ``change_reason`` (nullable),
+        ``record_id`` (FK → current.id, NOT ``id``). No ``client_id`` /
+        ``created_at`` / ``updated_at`` in history.
+        Reconciliation:
+          - history_id   ← gen_random_uuid()
+          - record_id    ← current.id
+          - valid_from   ← current.refreshed_at (when it became current)
+          - valid_to     ← now() (when it stops being current)
+          - changed_by   ← :changed_by (the connector_id)
+          - change_reason ← NULL (M2 leaves blank; Phase 3+ may populate)
+          - everything else (provenance + domain + extras) ← copy from current
+        Rationale: P-22 / D-123 — migrations are authoritative; the
+        bitemporal model is the deployed truth.
+        Atlas v5.4 TODO: update plan §4.5 to match deployed bitemporal SCD-2.
+        """
+        history_cols = self._get_table_columns(history_table)
+        target_col_set = set(self._get_table_columns(target_table))
+
+        select_exprs: list[str] = []
+        for h in history_cols:
+            if h == "history_id":
+                select_exprs.append("gen_random_uuid()")
+            elif h == "record_id":
+                select_exprs.append("id")
+            elif h == "valid_from":
+                # When this revision became current — its refreshed_at on
+                # the row we are about to supersede.
+                select_exprs.append("refreshed_at")
+            elif h == "valid_to":
+                # When it stops being current — exactly now.
+                select_exprs.append("now()")
+            elif h == "changed_by":
+                select_exprs.append(":changed_by")
+            elif h == "change_reason":
+                select_exprs.append("NULL")
+            elif h in target_col_set:
+                select_exprs.append(h)
+            else:
+                raise PersistenceError(
+                    f"History table {history_table} has column {h!r} "
+                    f"with no matching source in {target_table}"
+                )
+
+        sql = (
+            f"INSERT INTO {history_table} ({', '.join(history_cols)}) "
+            f"SELECT {', '.join(select_exprs)} "
+            f"FROM {target_table} "
+            f"WHERE id = :current_id "
+            f"RETURNING history_id"
+        )
+        params: dict[str, object] = {
+            "current_id": str(current_id),
+            "changed_by": connector_id,
+        }
+        result = self.db.execute(sa.text(sql), params)
+        # Defensive cast: scalar_one() returns Any; psycopg returns UUID
+        # for as_uuid=True columns, but accept str fallback.
+        return UUID(str(result.scalar_one()))
+
+    def _get_table_columns(self, table_name: str) -> list[str]:
+        """Return ordered column names of ``table_name``, lazily reflecting
+        + caching. Tests pre-populate ``self._col_cache[table_name]`` to
+        avoid DB roundtrips."""
+        if table_name not in self._col_cache:
+            bind = self.db.get_bind()
+            inspector = sa.inspect(bind)
+            self._col_cache[table_name] = [
+                str(c["name"]) for c in inspector.get_columns(table_name)
+            ]
+        return self._col_cache[table_name]

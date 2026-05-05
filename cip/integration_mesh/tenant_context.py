@@ -60,7 +60,19 @@ def apply_tenant_context(db: SessionOrConnection, tenant_id: UUID) -> None:
     exists for Phase 2+ ventures that want it as a backstop. Conformance
     Test 7 (post-commit RLS isolation) catches missed call sites either way.
     """
+    # v5.3 PLAN-VS-REALITY RECONCILIATION (Delta 14, 2026-05-05)
+    # Plan §4.4: ``text("SET LOCAL app.current_tenant = :tid")`` with bind param.
+    # Deployed reality: Postgres ``SET LOCAL`` does NOT support parameterized
+    # values — ``SET LOCAL`` accepts only literal values. With a bind, psycopg
+    # sends ``SET LOCAL app.current_tenant = $1`` and Postgres rejects:
+    # ``syntax error at or near "$1"``.
+    # Reconciliation: ``SELECT set_config('app.current_tenant', :tid, true)`` —
+    # the Postgres-documented equivalent that DOES accept bind parameters.
+    # The third arg ``true`` makes it transaction-local (matches SET LOCAL
+    # scope semantics — auto-clears at txn boundary, RLS-safe).
+    # Rationale: P-22 / D-123 — Postgres SQL grammar is the authority.
+    # Atlas v5.4 TODO: plan §4.4 SQL should use ``set_config(...)``.
     db.execute(
-        text("SET LOCAL app.current_tenant = :tid"),
+        text("SELECT set_config('app.current_tenant', :tid, true)"),
         {"tid": str(tenant_id)},
     )

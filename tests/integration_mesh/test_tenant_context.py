@@ -13,7 +13,7 @@ from uuid import uuid4
 from cip.integration_mesh.tenant_context import apply_tenant_context
 
 
-def test_executes_set_local_with_uuid_str() -> None:
+def test_executes_set_config_with_uuid_str() -> None:
     db = MagicMock()
     tid = uuid4()
     apply_tenant_context(db, tid)
@@ -22,8 +22,13 @@ def test_executes_set_local_with_uuid_str() -> None:
     args, _ = db.execute.call_args
     sql_arg, params = args[0], args[1]
     sql_str = str(sql_arg)
-    assert "SET LOCAL app.current_tenant" in sql_str
+    # Delta 14 (2026-05-05): SET LOCAL doesn't accept bind params; use
+    # set_config(...) which does. ``true`` third arg = transaction-local.
+    assert "set_config" in sql_str
+    assert "app.current_tenant" in sql_str
     assert ":tid" in sql_str
+    # Verify transaction-local (third arg true).
+    assert "true" in sql_str
     # UUID is cast to str for Postgres GUC.
     assert params == {"tid": str(tid)}
 

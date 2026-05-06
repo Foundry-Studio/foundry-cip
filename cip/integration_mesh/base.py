@@ -69,7 +69,12 @@ class PropertyDescriptor:
     connector: str
     object_type: str
     property_name: str
-    data_type: str  # v3 R2-C5: matches the SQL column name
+    # Python attribute name preserved as public API. SQL column name is
+    # ``property_type`` (Δ11) — orchestrator's
+    # ``_register_properties_best_effort`` maps ``p.data_type`` → ``:property_type``
+    # at bind time. Deployed CHECK enum:
+    # {string, number, datetime, enumeration, reference, boolean, array, object} (Δ12).
+    data_type: str
     storage_location: Literal["column", "overflow"]
     column_name: str | None
     cip_table: str

@@ -22,6 +22,7 @@ flow:
 """
 from __future__ import annotations
 
+import contextlib
 from collections.abc import Iterator
 from datetime import UTC, datetime
 from typing import Any, Literal, cast
@@ -182,10 +183,30 @@ def _stub_session_and_persister(
     persist_result: PersistResult | list[PersistResult] | None = None,
     persist_raises: list[Exception | None] | None = None,
 ) -> MagicMock:
-    """Patch ``Session`` and ``CIPRowPersister`` at the orchestrator module
-    level so per-batch DB ops are no-ops. Returns the persister instance
+    """Patch ``Session`` + ``CIPRowPersister`` + the M3 advisory-lock helpers
+    at the orchestrator module level so per-batch DB ops are no-ops AND the
+    lock-acquire entry guard is bypassed. Returns the persister instance
     mock so tests can inspect call args.
+
+    M3 NOTE: ``run_sync`` now wraps body in ``_AdvisoryLockHeld`` against a
+    NullPool engine constructed via ``_make_lock_holder_engine``. With a
+    MagicMock engine, both helpers must be stubbed for the body to execute.
+    Real-DB advisory-lock behaviour is exercised in
+    ``test_advisory_lock.py`` (mocked Connection) and
+    ``tests/fixtures/connector_conformance/test_concurrent_sync_advisory_lock.py``
+    (real Postgres testcontainer + multi-process race).
     """
+    # M3 lock-helper stubs.
+    monkeypatch.setattr(
+        orch_module, "_make_lock_holder_engine", lambda url: MagicMock()
+    )
+
+    @contextlib.contextmanager
+    def _noop_lock(lock_engine: object, tenant_id: object, connector_id: object):  # type: ignore[no-untyped-def]
+        yield MagicMock()
+
+    monkeypatch.setattr(orch_module, "_AdvisoryLockHeld", _noop_lock)
+
     fake_session_cls = MagicMock()
     fake_session_instance = MagicMock()
     fake_session_cls.return_value.__enter__.return_value = fake_session_instance
@@ -859,6 +880,18 @@ class TestCursorAdvance:
         # The orchestrator writes UPDATE cip_sync_runs SET cursor_state ...
         # within the per-batch Session. Verify by inspecting the patched
         # session's execute calls.
+        # M3: also stub the advisory-lock helpers (run_sync now wraps body
+        # in _AdvisoryLockHeld against a NullPool engine).
+        monkeypatch.setattr(
+            orch_module, "_make_lock_holder_engine", lambda url: MagicMock()
+        )
+
+        @contextlib.contextmanager
+        def _noop_lock(*args: object, **kwargs: object) -> Iterator[MagicMock]:
+            yield MagicMock()
+
+        monkeypatch.setattr(orch_module, "_AdvisoryLockHeld", _noop_lock)
+
         fake_session_cls = MagicMock()
         fake_session_instance = MagicMock()
         fake_session_cls.return_value.__enter__.return_value = fake_session_instance
@@ -917,4 +950,186 @@ class TestPersistenceErrorPassthrough:
         # propagated out of run_sync).
         assert state.status == "partial"
         assert state.error_detail is not None
+
+
+# ── M3 §4.8 advisory-lock entry-guard behavior ───────────────────────────
+
+
+class TestAdvisoryLockEntryGuard:
+    """run_sync acquires the advisory lock AFTER validate_connector_shape
+    and BEFORE recorder construction, with a database_url override path."""
+
+    def test_validate_shape_failure_does_not_burn_lock_acquire(
+        self, engine: MagicMock, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # Plan §4.8 critical-ordering: shape validation runs before lock acquire.
+        # If shape fails, _make_lock_holder_engine should NEVER be called.
+        from cip.integration_mesh.validation import ProtocolShapeError
+
+        called = {"lock_engine": False, "lock_held": False}
+
+        def _spy_make(url: str) -> MagicMock:
+            called["lock_engine"] = True
+            return MagicMock()
+
+        @contextlib.contextmanager
+        def _spy_lock(*args: object, **kwargs: object) -> Iterator[MagicMock]:
+            called["lock_held"] = True
+            yield MagicMock()
+
+        monkeypatch.setattr(orch_module, "_make_lock_holder_engine", _spy_make)
+        monkeypatch.setattr(orch_module, "_AdvisoryLockHeld", _spy_lock)
+
+        bad_connector: Any = object()
+        with pytest.raises(ProtocolShapeError):
+            run_sync(bad_connector, MockMapper(), engine, tenant_id=uuid4())
+        assert called["lock_engine"] is False
+        assert called["lock_held"] is False
+
+    def test_acquires_advisory_lock_after_validate_shape(
+        self, engine: MagicMock, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # Order verification: validate_connector_shape called BEFORE lock acquire.
+        order: list[str] = []
+        from cip.integration_mesh import validation as validation_module
+
+        original_validate = validation_module.validate_connector_shape
+
+        def _spy_validate(connector: Any, mapper: Any) -> None:
+            order.append("validate")
+            original_validate(connector, mapper)
+
+        def _spy_make(url: str) -> MagicMock:
+            order.append("make_lock_engine")
+            return MagicMock()
+
+        @contextlib.contextmanager
+        def _spy_lock(*args: object, **kwargs: object) -> Iterator[MagicMock]:
+            order.append("lock_held")
+            yield MagicMock()
+
+        # Stub Session + persister FIRST (helper installs its own lock stubs);
+        # then OVERRIDE the lock stubs with our spies so monkeypatch's
+        # last-write-wins keeps our spies active.
+        _stub_session_and_persister(monkeypatch)
+        monkeypatch.setattr(
+            orch_module, "validate_connector_shape", _spy_validate
+        )
+        monkeypatch.setattr(orch_module, "_make_lock_holder_engine", _spy_make)
+        monkeypatch.setattr(orch_module, "_AdvisoryLockHeld", _spy_lock)
+
+        run_sync(
+            _connector_with(_baseline_records(1)),
+            MockMapper(),
+            engine,
+            tenant_id=uuid4(),
+        )
+        assert order[0] == "validate"
+        assert order.index("make_lock_engine") > order.index("validate")
+        assert order.index("lock_held") > order.index("make_lock_engine")
+
+    def test_disposes_lock_engine_on_normal_exit(
+        self, engine: MagicMock, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # The lock-holder engine MUST be disposed when run_sync returns
+        # (lifecycle hygiene; a fresh engine per run avoids accidental reuse).
+        # Stub helper installs its own lock stubs; override AFTER so our
+        # custom mock is the active one.
+        _stub_session_and_persister(monkeypatch)
+        lock_engine_mock = MagicMock()
+        monkeypatch.setattr(
+            orch_module, "_make_lock_holder_engine", lambda url: lock_engine_mock
+        )
+
+        run_sync(
+            _connector_with(_baseline_records(1)),
+            MockMapper(),
+            engine,
+            tenant_id=uuid4(),
+        )
+        lock_engine_mock.dispose.assert_called_once()
+
+    def test_disposes_lock_engine_on_exception(
+        self, engine: MagicMock, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # Even when run_sync raises (e.g., SyncAlreadyRunningError), the
+        # lock-holder engine MUST be disposed — try/finally guarantees this.
+        from cip.integration_mesh.exceptions import SyncAlreadyRunningError
+
+        lock_engine_mock = MagicMock()
+        monkeypatch.setattr(
+            orch_module, "_make_lock_holder_engine", lambda url: lock_engine_mock
+        )
+
+        def _blocking_lock(
+            *args: object, **kwargs: object
+        ) -> Any:
+            raise SyncAlreadyRunningError("simulated concurrent run")
+
+        monkeypatch.setattr(orch_module, "_AdvisoryLockHeld", _blocking_lock)
+
+        with pytest.raises(SyncAlreadyRunningError):
+            run_sync(
+                _connector_with(_baseline_records(1)),
+                MockMapper(),
+                engine,
+                tenant_id=uuid4(),
+            )
+        lock_engine_mock.dispose.assert_called_once()
+
+    def test_database_url_override_passed_to_make_lock_engine(
+        self, engine: MagicMock, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # Plan §4.8: explicit database_url kwarg overrides str(engine.url).
+        # Stub-helper installs default lock stubs FIRST; override after.
+        _stub_session_and_persister(monkeypatch)
+        captured_urls: list[str] = []
+
+        def _capture_make(url: str) -> MagicMock:
+            captured_urls.append(url)
+            return MagicMock()
+
+        monkeypatch.setattr(orch_module, "_make_lock_holder_engine", _capture_make)
+
+        explicit_url = "postgresql+psycopg://u:p@direct:5432/db"
+        run_sync(
+            _connector_with(_baseline_records(1)),
+            MockMapper(),
+            engine,
+            tenant_id=uuid4(),
+            database_url=explicit_url,
+        )
+        assert captured_urls == [explicit_url]
+
+
+# ── Sequential runs same-process (Senior #13 / Acceptance #27) ───────────
+
+
+class TestSequentialRunsSameProcess:
+    def test_sequential_runs_on_same_engine_both_succeed(
+        self, engine: MagicMock, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # Acceptance #27: two sequential run_sync calls on same (tenant, connector)
+        # both succeed. Advisory lock is released between runs (auto on conn close);
+        # the second acquire succeeds.
+        _stub_session_and_persister(monkeypatch)
+        tid = uuid4()
+        records = _baseline_records(2)
+
+        state1 = run_sync(
+            _connector_with(records),
+            MockMapper(),
+            engine,
+            tenant_id=tid,
+        )
+        state2 = run_sync(
+            _connector_with(records),
+            MockMapper(),
+            engine,
+            tenant_id=tid,
+        )
+        assert state1.status == "success"
+        assert state2.status == "success"
+        # Distinct run_ids prove these were separate runs.
+        assert state1.run_id != state2.run_id
 

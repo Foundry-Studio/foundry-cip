@@ -70,3 +70,33 @@ class KnowledgeMetadataValidationError(ValueError):
     only know ``source_id``; the orchestrator finalizes the rest at
     boundary-crossing time. Non-retryable.
     """
+
+
+class SyncAlreadyRunningError(ConnectorError):
+    """M3 §4.7 — A run_sync for the same ``(tenant_id, connector_id)`` is
+    already in flight.
+
+    Raised by ``run_sync`` at entry when ``pg_try_advisory_lock`` returns
+    false. The error is **run-fatal** — the second process should NOT retry;
+    the first process is already producing the output the second would have
+    produced. Operators can decide to wait + retry or alert; the caller of
+    ``run_sync`` surfaces this to its caller (e.g., a scheduler).
+
+    The advisory lock is session-scoped on a dedicated lock-holder
+    connection; Postgres auto-releases the lock when the connection closes
+    (orphan-safe under crash). No explicit cleanup procedure is needed for
+    stale locks under graceful exits; SIGKILL relies on TCP keepalive
+    timeouts (M3 §8.9).
+    """
+
+
+class SyncLockUnavailableError(ConnectorError):
+    """M3 §4.7 — The lock-holder engine couldn't acquire a connection.
+
+    Raised by ``run_sync`` when ``engine.connect()`` on the dedicated
+    NullPool lock-holder engine fails (pool exhaustion, network failure,
+    Postgres unreachable). Distinct from ``SyncAlreadyRunningError`` —
+    THIS error is a transient infrastructure condition; callers MAY retry.
+
+    The wrapped exception is preserved as ``__cause__`` for diagnosis.
+    """

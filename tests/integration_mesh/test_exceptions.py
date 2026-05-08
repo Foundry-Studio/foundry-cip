@@ -11,6 +11,8 @@ from cip.integration_mesh.exceptions import (
     PersistenceError,
     RateLimitExceeded,
     SchemaDriftError,
+    SyncAlreadyRunningError,
+    SyncLockUnavailableError,
     TimezoneNaiveError,
 )
 
@@ -24,6 +26,9 @@ class TestHierarchy:
             SchemaDriftError,
             PersistenceError,
             TimezoneNaiveError,
+            # M3 §4.7 — both inherit from ConnectorError; distinct retry semantics.
+            SyncAlreadyRunningError,
+            SyncLockUnavailableError,
         ],
     )
     def test_inherit_connector_error(self, cls: type[Exception]) -> None:
@@ -38,6 +43,14 @@ class TestHierarchy:
         # Inherits from ValueError, NOT ConnectorError.
         assert issubclass(KnowledgeMetadataValidationError, ValueError)
         assert not issubclass(KnowledgeMetadataValidationError, ConnectorError)
+
+    def test_sync_already_running_distinct_from_lock_unavailable(self) -> None:
+        # M3 §2.6: distinct retry semantics — SyncAlreadyRunningError is
+        # NOT retryable (first sync is already producing the output);
+        # SyncLockUnavailableError is transient infra and IS retryable.
+        # They must be separate classes so callers can branch on type.
+        assert not issubclass(SyncAlreadyRunningError, SyncLockUnavailableError)
+        assert not issubclass(SyncLockUnavailableError, SyncAlreadyRunningError)
 
 
 class TestRateLimitExceeded:

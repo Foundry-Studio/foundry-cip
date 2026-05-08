@@ -34,16 +34,20 @@ Key v3/v4/v5 fixes baked in:
 from __future__ import annotations
 
 import contextlib
+import hashlib
 import json
 import logging
 import time
 from collections.abc import Generator, Iterator
+from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta
 from typing import Literal, cast
 from uuid import UUID
 
 import sqlalchemy as sa
+from sqlalchemy.engine import Connection, Engine
 from sqlalchemy.orm import Session
+from sqlalchemy.pool import NullPool
 
 from .base import (
     DEFAULT_CURSOR_SAFETY_WINDOW_SECONDS,  # noqa: F401  # reference-import for documentation
@@ -63,6 +67,8 @@ from .exceptions import (
     PersistenceError,
     RateLimitExceeded,
     SchemaDriftError,
+    SyncAlreadyRunningError,
+    SyncLockUnavailableError,
     TimezoneNaiveError,
 )
 from .knowledge_hook import ingest_texts_noop
@@ -117,10 +123,121 @@ def _redact(d: dict[str, object]) -> dict[str, object]:
     return cast(dict[str, object], _scrub(d))
 
 
+# ── Advisory-lock helpers (M3 §4.8) ──────────────────────────────────────
+
+
+def _advisory_lock_key(tenant_id: UUID, connector_id: str) -> int:
+    """Stable signed bigint key for ``pg_try_advisory_lock`` (M3 §2.5).
+
+    SHA-256 of ``"{tenant_id}:{connector_id}"``, first 8 bytes, big-endian,
+    signed. Postgres advisory locks accept BIGINT (signed 8-byte int).
+
+    Stability: same input always produces same key. Different code paths
+    that need to take the same lock use this same helper.
+    """
+    h = hashlib.sha256(f"{tenant_id}:{connector_id}".encode()).digest()
+    return int.from_bytes(h[:8], byteorder="big", signed=True)
+
+
+def _make_lock_holder_engine(database_url: str) -> Engine:
+    """Construct the dedicated NullPool lock-holder engine (M3 §2.4 / §4.8).
+
+    NullPool: each connection is fresh + closed when released. No pool reuse.
+    This bypasses any pool / PgBouncer routing — the lock acquisition + release
+    happen on the same physical Postgres backend. Critical: PgBouncer in
+    transaction-pooling mode silently breaks session-scoped advisory locks
+    because pgbouncer multiplexes sessions across backends; NullPool with a
+    direct Postgres URL eliminates this class of bug.
+
+    TCP keepalive params defeat cloud-Postgres idle-disconnect reaping
+    (Railway, RDS Proxy, Aurora, Cloud SQL — most reap idle conns after
+    5-10 min). Without these, a long sync (>5 min) could see its lock-holder
+    connection silently dropped, releasing the lock mid-run.
+
+    Tests can monkeypatch ``cip.integration_mesh.orchestrator._make_lock_holder_engine``
+    to return a stub when DB-less unit-testing the orchestrator entry path.
+    """
+    return sa.create_engine(
+        database_url,
+        poolclass=NullPool,
+        connect_args={
+            "keepalives": 1,
+            "keepalives_idle": 30,
+            "keepalives_interval": 10,
+            "keepalives_count": 3,
+        },
+    )
+
+
+@contextmanager
+def _AdvisoryLockHeld(  # noqa: N802  # Plan §4.8 names this with PascalCase to read as a class-like ctxmgr.
+    lock_engine: Engine,
+    tenant_id: UUID,
+    connector_id: str,
+) -> Iterator[Connection]:
+    """Session-scoped advisory lock for the duration of one ``run_sync``
+    (M3 §4.8).
+
+    Uses ``pg_try_advisory_lock(key)`` on a dedicated short-lived connection
+    from the NullPool ``lock_engine`` (constructed via
+    ``_make_lock_holder_engine``). Lock auto-releases when the connection
+    closes (orphan-safe under crash).
+
+    Raises:
+        SyncAlreadyRunningError: ``pg_try_advisory_lock`` returned ``false``
+            (another sync holds the lock). Run-fatal; caller should NOT retry.
+        SyncLockUnavailableError: ``lock_engine.connect()`` failed (pool
+            exhaustion, network, Postgres unreachable) OR
+            ``pg_try_advisory_lock`` returned NULL (Postgres misconfiguration).
+            Caller MAY retry on this transient condition.
+    """
+    key = _advisory_lock_key(tenant_id, connector_id)
+    try:
+        conn = lock_engine.connect()
+    except sa.exc.SQLAlchemyError as connect_err:
+        raise SyncLockUnavailableError(
+            f"failed to open lock-holder connection for tenant_id={tenant_id} "
+            f"connector_id={connector_id!r}: {connect_err}"
+        ) from connect_err
+
+    try:
+        result = conn.execute(
+            sa.text("SELECT pg_try_advisory_lock(:key) AS got"),
+            {"key": key},
+        ).scalar()
+        if result is None:
+            raise SyncLockUnavailableError(
+                f"pg_try_advisory_lock returned NULL for tenant_id={tenant_id} "
+                f"connector_id={connector_id!r} — Postgres misconfiguration"
+            )
+        if not result:
+            raise SyncAlreadyRunningError(
+                f"sync for tenant_id={tenant_id} connector_id={connector_id!r} "
+                f"is already in flight (advisory lock held); refusing to run a "
+                f"second concurrent instance"
+            )
+        try:
+            yield conn
+        finally:
+            # Explicit unlock for hygiene; Postgres also auto-releases on close.
+            try:
+                conn.execute(
+                    sa.text("SELECT pg_advisory_unlock(:key)"),
+                    {"key": key},
+                )
+            except Exception as unlock_err:
+                log.warning(
+                    "advisory unlock failed (non-fatal; conn close will GC): %s",
+                    unlock_err,
+                )
+    finally:
+        conn.close()
+
+
 # ── Top-level entry point ─────────────────────────────────────────────────
 
 
-def run_sync(  # noqa: C901, PLR0912, PLR0915  # Orchestrator main loop is intentionally one function per plan §4.8.
+def run_sync(
     connector: CIPConnector,
     mapper: CIPMapper,
     engine: sa.Engine,
@@ -131,6 +248,7 @@ def run_sync(  # noqa: C901, PLR0912, PLR0915  # Orchestrator main loop is inten
     batch_size: int = 500,
     initial_cursor: dict[str, object] | None = None,
     cursor_safety_window_seconds: int | None = None,
+    database_url: str | None = None,
 ) -> SyncRunState:
     """Drive one connector end-to-end.
 
@@ -165,14 +283,85 @@ def run_sync(  # noqa: C901, PLR0912, PLR0915  # Orchestrator main loop is inten
             mapper attempted to override an orchestrator-owned key like
             ``tenant_id`` / ``ingestion_batch_id``). Run-fatal.
 
+    M3 §4.8 additions:
+        database_url: Optional explicit URL for the lock-holder engine. If
+            None, extracted from ``engine.url``. Pass an explicit URL ONLY if
+            ``engine`` routes through PgBouncer and you need to point the
+            lock-holder at a direct Postgres URL (NullPool bypass).
+
+    M3 acquires a session-level Postgres advisory lock keyed on
+    ``(tenant_id, connector_id)`` AFTER ``validate_connector_shape`` and
+    BEFORE any other state. Lock is held for the entire run; auto-releases
+    on connection close (orphan-safe under crash). Raises
+    ``SyncAlreadyRunningError`` if a concurrent run is already in flight;
+    raises ``SyncLockUnavailableError`` if the lock-holder engine cannot
+    connect.
+
     Does NOT raise on partial failures — those are recorded as
     ``cip_sync_runs.status='partial'``.
     """
-    # ── 0. Validate connector shape (C-5). Fails fast before we write a
-    #    sync_run row. Raises ProtocolShapeError; orchestrator does NOT
-    #    catch — entry-shape failures are caller bugs, not run failures.
+    # ── 0. Validate connector shape (C-5). Fails fast before we burn a
+    #    lock-acquire round-trip on caller-bug input.
     validate_connector_shape(connector, mapper)
 
+    # ── 0.1 (M3 §4.8). Acquire session-level advisory lock around the
+    #    entire run. NullPool lock-holder engine bypasses any PgBouncer
+    #    transaction-pooling that would silently break session locks.
+    lock_db_url = (
+        database_url if database_url is not None else str(engine.url)
+    )
+    lock_engine = _make_lock_holder_engine(lock_db_url)
+    try:
+        with _AdvisoryLockHeld(lock_engine, tenant_id, connector.connector_id):
+            return _run_sync_body(
+                connector=connector,
+                mapper=mapper,
+                engine=engine,
+                tenant_id=tenant_id,
+                client_id=client_id,
+                sync_mode=sync_mode,
+                batch_size=batch_size,
+                initial_cursor=initial_cursor,
+                cursor_safety_window_seconds=cursor_safety_window_seconds,
+            )
+    finally:
+        lock_engine.dispose()
+
+
+def _run_sync_body(  # noqa: C901, PLR0912, PLR0915  # Orchestrator main loop is intentionally one function per plan §4.8.
+    *,
+    connector: CIPConnector,
+    mapper: CIPMapper,
+    engine: sa.Engine,
+    tenant_id: UUID,
+    client_id: UUID | None,
+    sync_mode: Literal["full", "incremental"],
+    batch_size: int,
+    initial_cursor: dict[str, object] | None,
+    cursor_safety_window_seconds: int | None,
+) -> SyncRunState:
+    """M2 ``run_sync`` body, hoisted into a private helper so the M3
+    advisory-lock context wraps cleanly.
+
+    Why a separate function vs. inlined within ``run_sync`` (Tim-approved
+    deviation, M3 build 2026-05-08):
+    - Behaviour is identical to the M2-era body; only the call site moved.
+    - Wrapping the entire ~150-line body in another ``with`` block would
+      require re-indenting the whole thing — a noisy diff that obscures
+      the semantic change (lock acquisition).
+    - All M2 unit tests in ``test_orchestrator.py`` patch module-level
+      names (``Session``, ``CIPRowPersister``, ``ingest_texts_noop``,
+      ``time.sleep``, etc.). Extracting the body into a sibling function
+      that resolves those same names from module scope at call time
+      preserves every existing monkeypatch surface — no test rewrites
+      needed when the lock wrapper landed in M3.
+    - Private (single leading underscore) signals "internal helper, not
+      a stable public seam"; callers must use ``run_sync`` which guarantees
+      the lock + lock-engine lifecycle.
+
+    Atlas v3.1 plan-hygiene at M3 close will note this as an Atlas-approved
+    enhancement (not a plan-vs-reality reconciliation).
+    """
     bucket = TokenBucket(connector.rate_limit_policy)
     differ = SCDDiffer()
 

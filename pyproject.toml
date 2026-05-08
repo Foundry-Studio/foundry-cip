@@ -30,7 +30,16 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# M3 §4.10: Faker as OPTIONAL extra (Atlas CTO call). Phase 2+ ventures that
+# consume foundry-cip without using FixtureConnector don't pay the ~2.4 MB
+# Faker install cost. Pinned EXACT for byte-identical corpus determinism
+# (M3 §2.2). Bumping Faker requires updating the corpus-determinism snapshot
+# intentionally (test_fixture_corpus_determinism.py is the regression guard).
+fixture = [
+    "faker==40.15.0",
+]
 dev = [
+    "foundry-cip[fixture]",
     "pytest>=8.0",
     "pytest-cov>=4.0",
     "mypy>=1.8",
@@ -57,7 +66,14 @@ Changelog = "https://github.com/Foundry-Studio/foundry-cip/blob/master/CHANGELOG
 # Top-level migrations/ would not ship in the wheel — `setuptools.package-data`
 # only attaches files inside declared packages. PEP 517 + setuptools >= 70
 # tightened this; MANIFEST.in is sdist-only and wheel-fragile.
-packages = ["cip", "cip.integration_mesh", "cip.migrations", "cip.migrations.versions"]
+packages = [
+    "cip",
+    "cip.integration_mesh",
+    "cip.integration_mesh.connectors",
+    "cip.integration_mesh.connectors.fixture",
+    "cip.migrations",
+    "cip.migrations.versions",
+]
 include-package-data = true
 
 [tool.setuptools.package-data]

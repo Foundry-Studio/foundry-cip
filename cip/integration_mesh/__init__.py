@@ -32,6 +32,7 @@ from .base import (
     SyncRunState,
     validate_knowledge_text_metadata,
 )
+from .connectors.fixture import CorpusSize, FixtureConnector, FixtureMapper
 from .exceptions import (
     AuthenticationError,
     ConnectorError,
@@ -39,6 +40,8 @@ from .exceptions import (
     PersistenceError,
     RateLimitExceeded,
     SchemaDriftError,
+    SyncAlreadyRunningError,
+    SyncLockUnavailableError,
     TimezoneNaiveError,
 )
 from .orchestrator import run_sync
@@ -77,6 +80,13 @@ __all__ = [
     "RateLimitExceeded",
     "SchemaDriftError",
     "TimezoneNaiveError",
+    # M3 §4.7 — advisory-lock dual-run prevention
+    "SyncAlreadyRunningError",
+    "SyncLockUnavailableError",
+    # M3 §4.1-§4.6 — canonical reference connector
+    "FixtureConnector",
+    "FixtureMapper",
+    "CorpusSize",
     # Orchestrator entry point
     "run_sync",
 ]

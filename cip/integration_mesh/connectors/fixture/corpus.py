@@ -221,10 +221,13 @@ def _generate_deals(
         }
         if companies:
             rec["company_source_id"] = rng.choice(companies)["source_id"]
+            # Reference base ``_T0`` (not ``datetime.now()``) so the corpus
+            # is byte-identical across days. Wall-clock time would shift
+            # ``expected_close_date`` daily, breaking the snapshot guard.
             close_offset = rng.randint(7, 365)
             rec["expected_close_date"] = (
-                datetime.now(UTC) + timedelta(days=close_offset)
-            ).date().isoformat()
+                (_T0 + timedelta(days=close_offset)).date().isoformat()
+            )
             rec["owner"] = faker.name()
         corpus["deals"].append(rec)
 

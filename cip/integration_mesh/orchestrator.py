@@ -307,9 +307,19 @@ def run_sync(
     # ── 0.1 (M3 §4.8). Acquire session-level advisory lock around the
     #    entire run. NullPool lock-holder engine bypasses any PgBouncer
     #    transaction-pooling that would silently break session locks.
-    lock_db_url = (
-        database_url if database_url is not None else str(engine.url)
-    )
+    #
+    # M3 Δ2 (2026-05-08, plan-vs-reality): plan §4.8 specifies
+    # ``lock_db_url = ... else str(engine.url)`` for URL extraction.
+    # SQLAlchemy 2.0+ ``str(URL)`` obfuscates the password as ``***`` (security
+    # default); the lock-holder engine constructed from that masked string
+    # then fails psycopg authentication. Use ``url.render_as_string(
+    # hide_password=False)`` — the documented full-URL serializer — to get
+    # the credentials needed for the dedicated lock connection.
+    # Atlas v3.1 plan-hygiene TODO: update plan §4.8 URL extraction.
+    if database_url is not None:
+        lock_db_url = database_url
+    else:
+        lock_db_url = engine.url.render_as_string(hide_password=False)
     lock_engine = _make_lock_holder_engine(lock_db_url)
     try:
         with _AdvisoryLockHeld(lock_engine, tenant_id, connector.connector_id):

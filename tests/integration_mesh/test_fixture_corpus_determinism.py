@@ -87,11 +87,14 @@ class TestCorpusSnapshot:
     """
 
     # Snapshot SHA-256 of the canonical-JSON corpus.
-    # Recorded 2026-05-07 on Python 3.12.10 + faker==40.15.0 + PYTHONHASHSEED=0.
-    # Bumping Faker requires intentional update of this constant + a
+    # Re-recorded 2026-05-08 after M3 Δ3 fix (corpus.py used datetime.now(UTC)
+    # for deal.expected_close_date, breaking byte-identical determinism across
+    # days; replaced with _T0 reference base). Captured on Python 3.12.10 +
+    # faker==40.15.0 + PYTHONHASHSEED=0; verified stable across two consecutive
+    # runs. Bumping Faker requires intentional update of this constant + a
     # commit-message note explaining the bump.
     _STANDARD_SEED42_SHA256 = (
-        "9f06b2f77ef054bea435ab597571c4bb8f87a4b81d6d9b160862fb363f03b533"
+        "6ba30d6c8532ce463b7b3246b7b8a12ad574591fb218ff9a7560cedafcaa0fac"
     )
 
     def test_record_snapshot_matches(self) -> None:

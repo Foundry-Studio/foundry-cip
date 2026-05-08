@@ -196,6 +196,45 @@ def cleanup_tenant(
             )
 
 
+@pytest.fixture(scope="function", autouse=True)
+def truncate_cip_tables(
+    seeded_engine: Engine,
+) -> Generator[None, None, None]:
+    """M3 §5.1 / v2 #11: autouse function-scope cleanup for cross-test
+    isolation in the 8th conformance test (``test_concurrent_sync_advisory_lock``).
+
+    The 8th test's 4 base + 4 lock-property sub-tests share the
+    session-scoped Postgres testcontainer; without TRUNCATE between
+    sub-tests, state from earlier sub-tests cascades into later ones
+    (rows persist; sync-runs accumulate; advisory locks unwind cleanly
+    but committed data does not).
+
+    Runs at TEARDOWN (yield → TRUNCATE) so the test itself sees whatever
+    initial state the test author seeded. Subsequent tests see a clean
+    DB. Idempotent + cheap: TRUNCATE on empty tables is near-instant;
+    the 22 existing conformance tests pay <1s of cumulative overhead.
+
+    TRUNCATE … CASCADE handles the cip_*_history → cip_* FK chains.
+    """
+    yield
+    with seeded_engine.begin() as conn:
+        # Order intentional: history tables first (FK children), then current,
+        # then independent audit/registry tables. CASCADE on the current
+        # tables would also handle history; explicit list keeps it readable.
+        conn.execute(
+            text(
+                "TRUNCATE TABLE "
+                "cip_clients_history, cip_views_history, cip_files_history, "
+                "cip_contacts_history, cip_companies_history, "
+                "cip_deals_history, cip_tickets_history, "
+                "cip_clients, cip_views, cip_files, cip_contacts, "
+                "cip_companies, cip_deals, cip_tickets, "
+                "cip_sync_runs, cip_connector_property_registry "
+                "RESTART IDENTITY CASCADE"
+            )
+        )
+
+
 @pytest.fixture(scope="function")
 def cleanup_tenants(
     seeded_engine: Engine,

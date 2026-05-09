@@ -44,6 +44,16 @@ from .exceptions import (
     SyncLockUnavailableError,
     TimezoneNaiveError,
 )
+from .lens_engine import (
+    Lens,
+    LensCompilationError,
+    LensNotFoundError,
+    LensSecurityError,
+    apply_lens,
+    compile_filter,
+    lens_query_for_table,
+    load_lens,
+)
 from .orchestrator import run_sync
 from .validation import ProtocolShapeError, validate_connector_shape
 
@@ -87,6 +97,15 @@ __all__ = [
     "FixtureConnector",
     "FixtureMapper",
     "CorpusSize",
+    # M4 §4.1-§4.5 — Lens Engine (P-21 Multi-Lens by Default)
+    "Lens",
+    "LensCompilationError",
+    "LensNotFoundError",
+    "LensSecurityError",
+    "apply_lens",
+    "compile_filter",
+    "lens_query_for_table",
+    "load_lens",
     # Orchestrator entry point
     "run_sync",
 ]

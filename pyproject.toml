@@ -45,6 +45,8 @@ dev = [
     "mypy>=1.8",
     "testcontainers[postgres]>=4.0",
     "ruff>=0.4",
+    # M4 §5.1 acceptance #28: Hypothesis fuzz of compile_filter.
+    "hypothesis>=6.0,<7.0",
 ]
 
 [project.urls]
@@ -71,6 +73,7 @@ packages = [
     "cip.integration_mesh",
     "cip.integration_mesh.connectors",
     "cip.integration_mesh.connectors.fixture",
+    "cip.integration_mesh.lens_engine",
     "cip.migrations",
     "cip.migrations.versions",
 ]

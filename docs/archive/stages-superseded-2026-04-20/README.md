@@ -1,5 +1,7 @@
 ---
-doc_type: archive-note
+kind: doc
+domain: client-intelligence-platform
+status: archived
 archived_on: 2026-04-20
 archived_by: atlas (Tim-authorized hardening sweep)
 supersedes: ../../stages/

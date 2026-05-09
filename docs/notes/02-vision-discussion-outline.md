@@ -1,3 +1,10 @@
+---
+kind: doc
+domain: client-intelligence-platform
+status: note
+created: 2026-04-06
+---
+
 # Vision Discussion Outline — Foundry Knowledge Base Product
 
 > **Purpose:** Structure the conversation between Tim and Claude to lock the product vision before architecture design.

@@ -1,3 +1,10 @@
+---
+kind: doc
+domain: client-intelligence-platform
+status: note
+created: 2026-04-06
+---
+
 # Vision Conversation Log — 2026-04-06
 
 > Working notes from the Tim + Claude Code vision session that defined the CIP product.

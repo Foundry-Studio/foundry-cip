@@ -1,15 +1,14 @@
 ---
 kind: doc
 domain: client-intelligence-platform
-status: skeleton
-last_updated: 2026-04-20
-milestone: Phase-1-M0
+status: draft
+last_updated: 2026-05-09
+milestone: Phase-1-M3
 ---
 
 # CIP CSS Classification Contract
 
-> **Status:** skeleton stub — authored Phase 1 M0, populated as Phase 1 milestones land.
-> Once final, this contract defines how every CIP file carries a CSS (Kind/Domain/Touches) classification so that D-122 domain-ownership-by-CSS-tag (not folder) holds across the product.
+> **Status:** draft — populated 2026-05-09 during the post-M3 hardening sweep with the permitted-`kind:` enumeration. The monorepo's `docs/subsystems/meta/classification-contract.md` is the canonical CSS contract; this doc is foundry-cip's local instantiation: which `kind:` slugs apply *here*, plus the resolved `domain:` (always `client-intelligence-platform`).
 
 ## Purpose
 
@@ -39,11 +38,31 @@ TBD (M1) — D-122 domain-ownership-by-tag lets `cip_*` files live anywhere in t
 
 ### 2. Allowed `kind` values in CIP
 
-TBD (M1) — `migration`, `connector`, `mapper`, `orchestrator`, `lens`, `service`, `route`, `doc`, `test`, `fixture`, `script`.
+The 8 permitted `kind:` slugs for foundry-cip files (subset of the monorepo's component-type guide; only the kinds actually instantiated in this repo):
+
+| `kind` | Where it applies | Example artifacts |
+|---|---|---|
+| `service` | Framework code under `cip/integration_mesh/` (orchestrator, persister, recorder, scd_differ, etc.) | `cip/integration_mesh/orchestrator.py`, `cip/integration_mesh/persister.py` |
+| `fixture` | Reference-implementation connectors + mappers + corpus generators under `cip/integration_mesh/connectors/fixture/` | `cip/integration_mesh/connectors/fixture/connector.py` |
+| `migration` | Alembic migrations under `cip/migrations/versions/` | `cip/migrations/versions/cip_01_clients.py` |
+| `schema` | Migration env / script template — schema infrastructure, not data DDL | `cip/migrations/env.py`, `cip/migrations/script.py.mako` |
+| `test` | Everything under `tests/` (unit, integration, conformance, e2e, RLS) | `tests/integration_mesh/test_orchestrator.py` |
+| `doc` | Everything under `docs/` (vision, architecture, runbooks, notes, archive, research) + root `*.md` | `docs/vision/VISION.md`, `CLAUDE.md`, `README.md` |
+| `config` | Build / lint / CI / pre-commit / governance config files | `pyproject.toml`, `.pre-commit-config.yaml`, `.gitleaks.toml`, `.github/workflows/test.yml`, `requirements-dev.txt`, `alembic.ini` |
+| `script` | Standalone executable scripts (none currently — kind reserved for future operational scripts) | (reserved) |
+
+The monorepo's classification contract may permit additional kinds (`engine`, `tool`, `agent`, `module`, etc.) — those don't apply in foundry-cip because the library shape doesn't host engines, tools, or agents.
+
+**Declaration mechanism:**
+- **Python source:** inline `# foundry: kind=X domain=client-intelligence-platform [touches=...]` comment in the first 10 lines of the file.
+- **Markdown docs:** YAML frontmatter with `kind:` and `domain:` keys.
+- **Config files** (no comment/frontmatter syntax): inferred by directory + filename per the monorepo's classification-contract sidecar pattern (no sidecar deployed yet for foundry-cip — `safe: false` warnings are acceptable for now).
 
 ### 3. Allowed `domain` values in CIP
 
-TBD (M1) — start with `client-intelligence-platform`; finer-grained subdomains (e.g. `cip-structured`, `cip-unstructured`, `cip-lenses`) to be locked if and when a D-number authorizes them.
+**Single value: `client-intelligence-platform`.** Every artifact in this repo declares `domain: client-intelligence-platform`. There is no second-level domain split inside the library — finer-grained subdomain slugs (`cip-structured`, `cip-unstructured`, `cip-lenses`) are deferred until a D-number authorizes them.
+
+`Touches` MAY reference adjacent monorepo subsystems (`integration`, `knowledge`, `graph`, etc.) when a CIP file connects to them — see §4.
 
 ### 4. `touches` rules
 

@@ -1,4 +1,6 @@
 ---
+kind: doc
+domain: client-intelligence-platform
 status: stub
 purpose: "Incident-response playbook: what fails, how it surfaces, how to recover."
 owner: tim

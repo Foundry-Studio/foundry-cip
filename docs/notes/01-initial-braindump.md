@@ -1,3 +1,10 @@
+---
+kind: doc
+domain: client-intelligence-platform
+status: note
+created: 2026-04-06
+---
+
 # Foundry Knowledge Base — Product Braindump
 
 > **Status:** Pre-vision. Collecting patterns, research, and lessons before designing.

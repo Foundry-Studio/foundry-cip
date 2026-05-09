@@ -1,0 +1,44 @@
+# foundry-cip pre-commit hooks
+#
+# FND-S13 §CVE incident playbook companion: gitleaks secret scan + ruff +
+# mypy as fast-fail checks before commit. FND-S14 Tier B equivalent for a
+# library repo (per FND-S14 adoption table: "needs pytest + uv pip compile
+# --check discipline as the equivalent of Tier B/C").
+#
+# Setup:
+#   pip install pre-commit
+#   pre-commit install
+#
+# Bypass (FND-S14 Rule 5 escape hatch):
+#   SKIP=<hook-id> git commit ...
+# When skipping, include 'Local-Verify-Bypass: <reason>' in the commit body.
+
+repos:
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.18.4
+    hooks:
+      - id: gitleaks
+        name: gitleaks (FND-S13 secret scan)
+        # Uses the repo's .gitleaks.toml allowlists.
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.4.10
+    hooks:
+      - id: ruff
+        name: ruff (FND-S14 Tier B fast-fail lint)
+        args: [--fix]
+        files: ^(cip|tests)/.*\.py$
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.10.0
+    hooks:
+      - id: mypy
+        name: mypy strict (FND-S14 Tier B type check, cip/ scope)
+        # Library scope only; tests use less-strict mypy by repo convention.
+        files: ^cip/.*\.py$
+        # mypy needs SQLAlchemy + alembic + psycopg + faker stubs/runtime.
+        additional_dependencies:
+          - "sqlalchemy[mypy]>=2.0,<3.0"
+          - "alembic>=1.18,<2.0"
+          - "psycopg[binary]>=3.1,<4.0"
+          - "faker==40.15.0"

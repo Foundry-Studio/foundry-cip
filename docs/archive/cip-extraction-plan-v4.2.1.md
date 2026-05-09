@@ -1,8 +1,9 @@
 ---
-doc_type: plan
+kind: doc
+domain: client-intelligence-platform
 project_id: client-intelligence-platform
 pm_project_id: 596825db-61bc-4899-bc6c-e207489ca35d
-status: draft
+status: archived
 owner: tim
 author: Atlas (Cowork)
 executor: Claude Code (terminal CLI)

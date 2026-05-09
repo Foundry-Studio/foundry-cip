@@ -1,3 +1,11 @@
+---
+kind: doc
+domain: client-intelligence-platform
+status: archived
+archived_on: 2026-04-20
+supersedes: superseded by docs/vision/ROADMAP.md + docs/vision/PHASE-1-PLAN.md
+---
+
 # phase-7-intelligence-layer — Stage Plan
 
 > **Status:** Not started. Decisions needed before implementation.

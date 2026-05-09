@@ -1,5 +1,6 @@
 ---
-doc_type: product_root
+kind: doc
+domain: client-intelligence-platform
 product: client-intelligence-platform
 pm_project_id: 596825db-61bc-4899-bc6c-e207489ca35d
 taxonomy: product

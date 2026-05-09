@@ -1,5 +1,6 @@
 ---
-doc_type: handoff-spec
+kind: doc
+domain: client-intelligence-platform
 project_id: client-intelligence-platform
 phase: 1
 intended_audience: claude-code-architect

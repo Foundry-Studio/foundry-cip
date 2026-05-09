@@ -1,3 +1,9 @@
+---
+kind: doc
+domain: client-intelligence-platform
+status: reference
+---
+
 # CIP Extraction Reference
 
 This file documents the extraction of CIP from the Foundry-Agent-System

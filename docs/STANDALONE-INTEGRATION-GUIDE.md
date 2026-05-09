@@ -1,4 +1,6 @@
 ---
+kind: doc
+domain: client-intelligence-platform
 status: stub
 purpose: "Bare-minimum integration guide for an external developer using foundry-cip without Foundry's runtime."
 owner: tim

@@ -1,4 +1,6 @@
 ---
+kind: doc
+domain: client-intelligence-platform
 status: stub
 purpose: "Start-to-finish playbook for deploying foundry-cip on behalf of a new venture tenant."
 owner: tim

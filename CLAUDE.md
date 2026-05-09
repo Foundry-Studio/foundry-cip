@@ -128,3 +128,70 @@ console_scripts entry point. Matches `python -m pip`, `python -m uv` —
 industry pattern, zero entry-point maintenance burden.
 
 The previous `foundry-cip-migrate` console script (v4) is retired.
+
+## FND-S13 — Dependency Pinning (library-shape pattern)
+
+foundry-cip is a published library (`pip install foundry-cip`), not a Railway-deployed application. FND-S13 Rule 4 says: *"Foundry libraries (anything published for `pip install`): pyproject.toml declares ranges (PyPA convention: libraries declare ranges, applications pin exact)."* So foundry-cip uses the **library-shape** of the standard, not the application-shape:
+
+- **`pyproject.toml`** is the human-edited intent file. Runtime + extras dependencies are declared with **compatible-release ranges** (`>=`, `<`). Consumers need this flexibility — pinning exact at the library level forces every downstream resolver fight.
+- **`requirements-dev.txt`** is the **uv-compiled lockfile**, exact-pinned for reproducible CI + local dev. Committed alongside `pyproject.toml`. Every direct AND transitive dev/test dependency pinned (`==`).
+
+**Adding or bumping a dev/test dep:**
+```bash
+# 1. Edit pyproject.toml's [project.optional-dependencies] (dev or fixture).
+# 2. Recompile the lockfile:
+uv pip compile pyproject.toml --extra dev --extra fixture \
+    -o requirements-dev.txt --python-version 3.12
+# 3. Verify locally + commit BOTH pyproject.toml and requirements-dev.txt together.
+```
+
+CI installs editable + lockfile-pinned: `pip install -e ".[dev]" -c requirements-dev.txt`. The matrix runs across Python 3.11/3.12/3.13/3.14 with the lockfile as a constraints file (so wheels resolve per-Python-version while staying pinned where compatible). The dedicated `lockfile-freshness` CI job runs `uv pip compile --check`-equivalent and fails if the committed lockfile diverges from a fresh recompile.
+
+**CVE override path** (FND-S13 Rule 5): an active CVE pre-authorizes bumping the affected dep without committee debate. Edit pyproject.toml → recompile lockfile → commit + push.
+
+## FND-S14 — Local-Verified discipline
+
+Master is live on this repo (no branches, no PRs per Foundry convention) — every push is effectively a release of the library. FND-S14 tier discipline applies, adapted to library shape (no Railway runtime → no Tier D in practice):
+
+| Tier | Change class | Required check before push |
+|---|---|---|
+| **A** | Doc-only, frontmatter, README, governance prose, CHANGELOG | None — push freely |
+| **B** | `cip/`, `tests/`, scripts, config (pyproject.toml, ruff/mypy config) | `pytest` clean + `mypy cip/` + `ruff check` |
+| **C** | `cip/migrations/`, `pyproject.toml` runtime deps, `alembic.ini`, `requirements-dev.txt` | Tier B + `alembic upgrade head` against local Postgres + `uv pip compile --check` |
+| **D** | (Not applicable to library shape — no Railway env / OAuth surface here.) | Defer to consumer-repo discipline. |
+
+When a change spans tiers, take the higher one. **Every commit on master MUST carry a trailer:**
+
+```
+Local-Verified: <tier> (<short evidence>)
+```
+
+Examples:
+```
+Local-Verified: A (docs frontmatter; pytest sanity-checked locally)
+Local-Verified: B (pytest tests/integration_mesh + tests/fixtures clean; mypy strict; ruff clean)
+Local-Verified: C (alembic upgrade head clean against local pg:16-alpine; pytest green; uv pip compile --check clean)
+```
+
+**Bypass** (FND-S14 Rule 5 escape hatch — surfaces in PM weekly review; >2 in 7 days = yellow flag):
+```
+Local-Verify-Bypass: <one-line reason>
+```
+
+**CI enforcement.** `.github/workflows/test.yml` includes a `trailer-check` job that runs on every push to master, inspects HEAD's commit message, and fails the workflow if neither trailer is present. Forward-only: only HEAD is checked, so prior history isn't retroactively gated. Bypass-trailer commits pass the check but are flagged for review.
+
+## Pre-commit hooks
+
+`.pre-commit-config.yaml` wires three fast-fail hooks:
+
+- **gitleaks** (FND-S13 §CVE incident playbook companion) — secret scan against the working tree, using `.gitleaks.toml` for project allowlists.
+- **ruff** (FND-S14 Tier B fast-fail lint) — auto-fix on `cip/`, `tests/`.
+- **mypy strict** (FND-S14 Tier B type check) — `cip/` scope only; tests use less-strict typing by repo convention.
+
+Setup:
+```bash
+pip install pre-commit
+pre-commit install
+```
+
+Bypass (with `Local-Verify-Bypass: <reason>` trailer required in the commit body): `SKIP=<hook-id> git commit ...`

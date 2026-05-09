@@ -1,3 +1,10 @@
+---
+kind: doc
+domain: client-intelligence-platform
+status: note
+created: 2026-04-06
+---
+
 # Industry Research — Knowledge Base / Client Intelligence Products
 
 > Collected 2026-04-06. Sources linked.

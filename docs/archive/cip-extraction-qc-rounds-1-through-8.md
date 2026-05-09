@@ -1,7 +1,8 @@
 ---
-doc_type: qc-archive
+kind: doc
+domain: client-intelligence-platform
 project_id: client-intelligence-platform
-status: archive
+status: archived
 owner: tim
 author: Atlas (Cowork)
 created: 2026-04-29

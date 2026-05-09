@@ -1,0 +1,53 @@
+# foundry-cip — gitleaks config
+#
+# FND-S13 §CVE incident playbook companion: scans the working tree + history
+# for accidentally committed credentials. Inherits the upstream default rule
+# pack (GitHub PATs, AWS keys, OpenAI keys, generic-api-key, all
+# cloud-provider-specific rules) and adds project-specific allowlists.
+#
+# Authored 2026-05-09 during the post-M3 hardening sweep. Adapted from
+# Foundry-Agent-System/.gitleaks.toml. foundry-cip is a library and ships
+# no production secrets — this config is conservative.
+#
+# Run scan: gitleaks detect --no-banner
+# Pre-commit: enforced via .pre-commit-config.yaml hook (gitleaks-precommit).
+
+title = "foundry-cip gitleaks config"
+
+[extend]
+# Inherit the upstream default rule pack (every cloud-provider rule, generic
+# API-key heuristics, cryptographic key patterns, etc.).
+useDefault = true
+
+# ── Documentation placeholders (all-caps templates). ────────────────────────
+# CONNECTOR-AUTHORING-GUIDE.md, runbooks, and other docs use placeholder
+# tokens like YOUR_*_API_KEY in connector configuration examples.
+[[allowlists]]
+description = "All-caps placeholder tokens in docs (YOUR_*_API_KEY pattern)"
+regexes = [
+  '''YOUR_[A-Z_]+_(API_)?KEY''',
+  '''YOUR_[A-Z_]+_TOKEN''',
+  '''<your[-_].*[-_](key|token|secret)>''',
+]
+
+# ── Test fixtures with explicit-fake credentials. ───────────────────────────
+# tests/integration_mesh/test_advisory_lock.py and similar mock-based unit
+# tests use literal "u:p" / "test:test" / "user:pass" Postgres URL fragments
+# to assert URL-rendering / mock-engine behaviour. Not real credentials.
+[[allowlists]]
+description = "Mock Postgres credentials in unit tests (u:p, test:test, user:pass)"
+regexes = [
+  '''postgresql\+psycopg://u:p@''',
+  '''postgresql\+psycopg://test:test@''',
+  '''postgresql\+psycopg://user:pass@''',
+]
+
+# ── Determinism snapshot (corpus SHA, not a credential). ────────────────────
+# tests/integration_mesh/test_fixture_corpus_determinism.py pins a SHA-256
+# of the canonical-JSON corpus as a regression guard. The default
+# generic-api-key heuristic occasionally flags 64-char hex strings.
+[[allowlists]]
+description = "Corpus determinism SHA-256 snapshot (M3 §2.2 regression guard)"
+paths = [
+  '''tests/integration_mesh/test_fixture_corpus_determinism\.py''',
+]

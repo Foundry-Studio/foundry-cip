@@ -1,4 +1,6 @@
 ---
+kind: doc
+domain: client-intelligence-platform
 status: stub
 purpose: "Procedure for moving a venture-specific connector out of foundry-cip into the venture's own repo at graduation."
 owner: tim

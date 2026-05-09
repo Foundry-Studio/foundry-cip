@@ -45,17 +45,38 @@ _TARGET_TABLE_BY_TYPE: dict[str, str] = {
 # ``test_fixture_mapper.py::test_domain_fields_match_describe_schema_column_descriptors``
 # enforces the consistency. Drift in either source-of-truth fails the test.
 #
-# Keys here are CIPRow.fields keys (record-side names). Persister maps these
-# to deployed SQL columns; ``ticket.body`` → SQL column ``description`` per
-# the deployed cip_08_tickets_and_registry migration; ``document.title`` →
-# SQL column ``filename``; etc. The mapper doesn't track that translation —
-# the persister + describe_schema do.
+# Keys here are RECORD-SIDE names (matching the record dict's keys). The
+# mapper translates these to deployed SQL column names via
+# ``_RECORD_TO_SQL_COLUMN`` below before yielding ``CIPRow.fields``.
 _DOMAIN_FIELDS_BY_TYPE: dict[str, set[str]] = {
     "company": {"name", "industry", "region", "domain"},
     "contact": {"first_name", "last_name", "email", "title", "phone"},
     "deal": {"name", "amount", "stage"},
     "ticket": {"subject", "body", "status", "priority", "assignee"},
     "document": {"title", "mime_type", "file_size_bytes"},
+}
+
+# M3 Δ5 PLAN-VS-REALITY RECONCILIATION (2026-05-08, M3 step 7).
+# Plan v3 §4.6 docstring states "the persister + describe_schema do" the
+# record-side→SQL-column translation. The deployed M2 persister doesn't
+# consult ``describe_schema`` at write time — it builds INSERTs directly
+# from ``CIPRow.fields`` keys. Without translation, ``cip_tickets`` /
+# ``cip_files`` writes hit ``UndefinedColumn`` on first record (M2 only
+# exercised cip_contacts where record-side names matched SQL columns).
+#
+# Resolution: mapper-side translation. ``CIPRow.fields`` keys are now SQL
+# column names; the descriptor list in ``connector.py`` remains the
+# source-of-truth for the mapping (see PropertyDescriptor.column_name).
+# ``company`` / ``contact`` / ``deal`` need no translation (record-side
+# names already match SQL columns); only ``ticket`` and ``document`` do.
+#
+# Atlas v3.1 plan-hygiene TODO: either (a) expand the persister API to
+# consume PropertyDescriptor.column_name at write time (broader fix), or
+# (b) update §4.6 docstring to specify mapper owns the translation
+# (current implementation).
+_RECORD_TO_SQL_COLUMN: dict[str, dict[str, str]] = {
+    "ticket": {"body": "description", "assignee": "assignee_name"},
+    "document": {"title": "filename", "file_size_bytes": "size_bytes"},
 }
 
 # Knowledge-emitting types — types whose records produce KnowledgeText for M5.
@@ -87,15 +108,36 @@ class FixtureMapper(CIPMapperBase):
         rec_type = rec_type_obj
         target = _TARGET_TABLE_BY_TYPE[rec_type]
         domain_keys = _DOMAIN_FIELDS_BY_TYPE[rec_type]
+        translation = _RECORD_TO_SQL_COLUMN.get(rec_type, {})
 
+        # Δ5: rename record-side keys to SQL column names where they differ.
+        # Most record_types have identity translation; only ticket/document
+        # have entries in ``_RECORD_TO_SQL_COLUMN``.
         fields: dict[str, object] = {
-            k: v for k, v in record.items() if k in domain_keys
+            translation.get(k, k): v
+            for k, v in record.items()
+            if k in domain_keys
         }
         overflow: dict[str, object] = {
             k: v
             for k, v in record.items()
             if k not in domain_keys and k not in _RESERVED
         }
+
+        # M3 Δ6 PLAN-VS-REALITY RECONCILIATION (2026-05-08, M3 step 7).
+        # cip_files has a NOT NULL ``r2_path`` column (canonical R2 storage
+        # path per cip_04_files migration line 65) that isn't in the
+        # FixtureConnector descriptor list — it's a deployed infrastructure
+        # column, not a connector-source field. Real connectors populate
+        # r2_path from their actual R2 upload; FixtureMapper injects a
+        # synthetic, stable-per-source_id value so the bitemporal SCD-2
+        # differ sees no spurious churn across re-runs.
+        # Atlas v3.1 plan-hygiene TODO: §4.6 should enumerate the deployed
+        # NOT NULL columns that require synthetic injection (currently just
+        # cip_files.r2_path; cip_companies / contacts / deals / tickets
+        # have no such gaps).
+        if rec_type == "document":
+            fields["r2_path"] = f"fixture://{record['source_id']}"
 
         yield CIPRow(
             target_table=target,

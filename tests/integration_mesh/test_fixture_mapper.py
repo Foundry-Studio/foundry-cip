@@ -81,7 +81,12 @@ class TestPerTypeMap:
         rows = list(mapper.map(rec))
         assert rows[0].target_table == "cip_tickets"
         assert "subject" in rows[0].fields
-        assert "body" in rows[0].fields
+        # Δ5: record-side ``body`` → SQL column ``description`` (cip_08
+        # migration uses ``description`` for ticket body); ``assignee`` →
+        # ``assignee_name``. The translation lives in mapper._RECORD_TO_SQL_COLUMN.
+        assert "description" in rows[0].fields
+        assert "body" not in rows[0].fields
+        assert "assignee_name" in rows[0].fields
 
     def test_document_maps_to_cip_files(
         self, mapper: FixtureMapper, connector: FixtureConnector
@@ -89,7 +94,11 @@ class TestPerTypeMap:
         rec = connector.corpus["documents"][0]
         rows = list(mapper.map(rec))
         assert rows[0].target_table == "cip_files"
-        assert "title" in rows[0].fields
+        # Δ5: ``title`` → SQL column ``filename`` (cip_04_files migration);
+        # ``file_size_bytes`` → ``size_bytes``.
+        assert "filename" in rows[0].fields
+        assert "title" not in rows[0].fields
+        assert "size_bytes" in rows[0].fields
 
     def test_authority_is_ingested(
         self, mapper: FixtureMapper, connector: FixtureConnector

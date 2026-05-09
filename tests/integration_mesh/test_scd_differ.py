@@ -7,6 +7,8 @@ keys treated as no change, type/canonical normalisation, list value.
 """
 from __future__ import annotations
 
+from decimal import Decimal
+
 import pytest
 
 from cip.integration_mesh.scd_differ import (
@@ -165,3 +167,63 @@ def test_metadata_columns_constant_shape() -> None:
 def test_no_history_tables_constant_shape() -> None:
     assert "cip_connector_property_registry" in NO_HISTORY_TABLES
     assert "cip_sync_runs" in NO_HISTORY_TABLES
+
+
+# ── Δ7 numeric normalization (NUMERIC column round-trip) ────────────────
+
+
+class TestDiffNumericNormalization:
+    """M3 Δ7: ``Decimal == float`` is False in Python for non-binary-exact
+    values (e.g., 12345.67 ≠ Decimal('12345.67')); the differ must
+    canonicalize numeric scalars so DB-NUMERIC ↔ Python-float comparisons
+    don't spuriously archive every row on re-sync. Regression guard for
+    the cip_deals.amount issue surfaced by M3 STANDARD e2e."""
+
+    def test_decimal_vs_float_same_value_is_unchanged(
+        self, differ: SCDDiffer
+    ) -> None:
+        # Simulates psycopg returning NUMERIC as Decimal while the mapper
+        # emits float — pre-Δ7 this flagged 'amount' as changed.
+        result = differ.diff(
+            target_table="cip_deals",
+            current_row={"id": "x", "amount": Decimal("12345.67")},
+            new_fields={"amount": 12345.67},
+            new_overflow={},
+        )
+        assert result.changed is False
+        assert result.changed_columns == []
+
+    def test_int_vs_float_same_value_is_unchanged(
+        self, differ: SCDDiffer
+    ) -> None:
+        result = differ.diff(
+            target_table="cip_deals",
+            current_row={"id": "x", "amount": 100},
+            new_fields={"amount": 100.0},
+            new_overflow={},
+        )
+        assert result.changed is False
+
+    def test_numeric_actual_change_still_detected(
+        self, differ: SCDDiffer
+    ) -> None:
+        result = differ.diff(
+            target_table="cip_deals",
+            current_row={"id": "x", "amount": Decimal("12345.67")},
+            new_fields={"amount": 12345.68},
+            new_overflow={},
+        )
+        assert result.changed is True
+        assert "amount" in result.changed_columns
+
+    def test_bool_not_coerced_to_decimal(self, differ: SCDDiffer) -> None:
+        # ``isinstance(True, int)`` is True; differ must guard so True/False
+        # stay as bool (a True→1 coercion would mask real changes).
+        result = differ.diff(
+            target_table="cip_deals",
+            current_row={"id": "x", "is_won": True},
+            new_fields={"is_won": False},
+            new_overflow={},
+        )
+        assert result.changed is True
+        assert "is_won" in result.changed_columns

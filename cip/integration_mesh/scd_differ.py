@@ -9,11 +9,24 @@ Decides:
 Per D-135, SCD Type 2 diffing is performed at the application layer — not
 via a Postgres trigger — because app-layer is testable against the canonical
 fixture corpus and doesn't require per-table DDL.
+
+M3 Δ7 PLAN-VS-REALITY RECONCILIATION (2026-05-08, M3 step 7).
+The original ``_normalize`` returned non-container primitives untouched,
+which causes ``Decimal != float`` comparisons to spuriously flag NUMERIC
+columns as changed on every re-sync (Python disables Decimal-vs-float
+equality for non-binary-exact values like 12345.67). M2 didn't surface
+this because cip_contacts has no NUMERIC columns; M3's cip_deals.amount
+(NUMERIC) trips it on ~95% of records. ``_normalize`` now coerces all
+numeric primitives (int/float/Decimal — excluding bool) to ``Decimal(str(v))``
+so DB round-trips compare semantically, not by Python type identity.
+Atlas v3.1 plan-hygiene TODO: M3 §4.6 should call out the numeric-equality
+contract for the differ when DB columns are NUMERIC/BIGINT.
 """
 from __future__ import annotations
 
 import json
 from dataclasses import dataclass
+from decimal import Decimal
 
 # Tables updated in-place — no history sibling.
 NO_HISTORY_TABLES: frozenset[str] = frozenset(
@@ -96,9 +109,16 @@ class SCDDiffer:
 
     @staticmethod
     def _normalize(v: object) -> object:
-        # Normalize containers via canonical JSON; primitives untouched.
+        # Containers → canonical JSON.
         if isinstance(v, (dict, list)):
             return json.dumps(v, sort_keys=True, default=str)
+        # Δ7: numeric scalars → Decimal(str(v)) for cross-type comparability.
+        # ``str()`` avoids float-binary loss (str(0.1) == '0.1', not '0.1000...').
+        # ``isinstance(True, int)`` is True, so guard against bool first.
+        if isinstance(v, bool):
+            return v
+        if isinstance(v, (int, float, Decimal)):
+            return Decimal(str(v))
         return v
 
     @staticmethod

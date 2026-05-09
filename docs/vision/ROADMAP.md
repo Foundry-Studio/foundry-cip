@@ -12,6 +12,7 @@ supersedes: >
   (2) 2026-04-20 M0 Vision Revisit — inserted Phase 2.5 (Foundry Self-Tenant + Early Write-Back) between Phase 2 and Phase 3 per Tim's directive "sooner rather than later" on write-back readiness. Pillar 1 description extended with explicit connector-agnostic posture. Added Related-products pointer at `products/foundry-chatbot/`.
   (3) 2026-04-20 Plain-Jane Reshape — Phase 1 rewired to a blank-slate tenant-neutral product validated against a synthetic FixtureConnector, not Wayward. Wayward onboarding pulled into Phase 2 (now "Wayward Onboarding — Full Round-Trip") so Wayward is its own end-to-end proof instead of a Phase 1 ingredient. cip_09 (cross_tenant_grants) migration moved from Phase 1 to Phase 3 so schema + runtime ship together. Phase 2.5 trimmed to write-back only (push stays in Phase 2). All week-based appetites dropped — phases are session-bound and milestone-ordered, not calendar-bound. Phase 1 now explicitly ships 10 documentation artifacts alongside the plain-jane product.
   (4) 2026-05-09 connector posture refresh — QBO removed from planned connector inventory; Plaid replaces it as the planned financial connector. Bob (current QBO-using app) is being rebuilt against Plaid by Tim; rebuilt Bob is its own product line, not a CIP tenant. CIP framework still connector-agnostic per D-118.
+  (5) 2026-05-09 — added Procedures section capturing "Add a Use Case" onboarding ritual (PM scope 0e9b06e6, vision-pending). Cross-phase deliverable surfaced during M4 closeout discussion.
 ---
 
 # CIP Roadmap — Pillar-Aligned Phases
@@ -295,6 +296,48 @@ Phase 8:   Scale & Extract                               [when load justifies]
 ```
 
 Phases 0 and 1 are LOCKED. Phase 2, Phase 2.5, and Phase 3 shapes are the current commit (will sharpen at kickoff). Phase 4+ shapes remain provisional. No week-based appetites are committed — phases are session-bound and milestone-ordered. **Phase 5 is big enough that it gets its own internal Vision → Architecture → Implementation sequence** (stages 5A / 5B / 5C).
+
+---
+
+## Procedures (Cross-Phase Operational Rituals)
+
+Procedures are reusable operational rituals that fire across phases, not one-time deliverables. They live alongside phase work but follow their own lifecycle (vision → draft → first invocation → hardening → promotion). Phases ship pillar capability; procedures ship the operating rhythm that keeps capability productive across many tenants.
+
+### "Add a Use Case" — New-Tenant Onboarding Ritual (Vision-pending)
+
+**Status:** Vision-pending. Kickoff notes at monorepo `WORKBENCH/tim/cip-add-a-use-case-procedure-kickoff.md`. PM scope: `0e9b06e6-f193-49a9-a105-c5b30b1f9cdc`.
+
+**The bet:** every new venture/tenant adopting CIP is more than a config exercise. Each onboarding becomes a triple-purpose ritual:
+
+1. Get the new tenant inserted correctly.
+2. Extract feature opportunities from the new tenant's needs (what was missing? rough? what did the venture's data shape teach us?).
+3. Blast-radius the changes to existing tenants (does this make CIP better for them too? does it introduce drift?).
+
+Use each use case as an opportunity to add features, improve, AND propagate to existing tenants. The procedure is connector-onboarding-adjacent — every Phase 2/3+ tenant onboarding triggers it.
+
+**Atlas's 5-phase ritual expansion (vision-pending):**
+
+1. **Phase 1 — Pre-onboarding survey (gather):** capture Tenant Profile (entities, lenses, outputs, scale, data shape weirdness, authority model).
+2. **Phase 2 — Gap audit (compare):** Tenant Profile vs current CIP capabilities. Route each gap to (a) build now, (b) build before next onboarding, (c) defer + workaround.
+3. **Phase 3 — Build / configure (deliver):** execute build-now items + standard tenant onboarding (connectors authored, migrations landed, lenses seeded, sync running).
+4. **Phase 4 — Blast-radius check (propagate):** for every change shipped, ask P-21/P-22/FND-S14 questions. Universal-scope changes propagate to existing tenants OR get formally exempted.
+5. **Phase 5 — Hardening cycle (lock):** after 30 days, review profile vs lived reality, deferred items, blast-radius outcomes, procedure itself. Update procedure with lessons learned.
+
+**Deliverables ultimately ship as:**
+
+- `docs/cip/ADD-A-USE-CASE.md` — the executable procedure (foundry-cip).
+- 4 templates (Tenant Profile, Gap Audit, Blast-Radius Report, Lessons-Learned ledger).
+- Governance-side mirror in monorepo at `products/client-intelligence-platform/procedures/ADD-A-USE-CASE.md`.
+
+**Recommended kickoff sequence:** vision discussion (Tim + Atlas) → Atlas draft v1 → first invocation alongside Wayward Phase 2 onboarding → v2 hardening pass → v3 promotion. Authoring the procedure DURING the first real tenant onboarding (rather than upfront) keeps it grounded in lived reality, not academic templates.
+
+**Blocked on:** Tim + Atlas vision discussion. Recommended invocation timing: Wayward Phase 2.
+
+**Cross-references:**
+
+- Kickoff notes: monorepo `WORKBENCH/tim/cip-add-a-use-case-procedure-kickoff.md`.
+- PM scope: `0e9b06e6-f193-49a9-a105-c5b30b1f9cdc`.
+- Related principles: P-21 (Multi-Lens by Default — every new tenant tests this); P-22 (Schema Authority — every new entity tests this); D-117 (8 pillars); FND-S14 (local verification).
 
 ---
 

@@ -42,6 +42,11 @@ import pytest
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import Session, sessionmaker
 
+from tests._helpers.rls import (
+    _RLS_TEST_ROLE,
+    provision_cip_rls_test_role,
+)
+
 # ── Constants ────────────────────────────────────────────────────────────────
 
 TENANT_A = "a0000000-0000-0000-0000-000000000001"
@@ -49,10 +54,6 @@ TENANT_B = "b0000000-0000-0000-0000-000000000002"
 
 FIXTURE_BATCH_A = str(uuid.uuid4())
 FIXTURE_BATCH_B = str(uuid.uuid4())
-
-# Restricted non-superuser role used for RLS query sessions.
-# Created once (see conftest setup) with NOSUPERUSER NOBYPASSRLS.
-_RLS_TEST_ROLE = "cip_rls_test_role"
 
 
 # ── Engine setup ─────────────────────────────────────────────────────────────
@@ -80,39 +81,16 @@ def _get_engine():
     return create_engine(url, pool_pre_ping=True, isolation_level="AUTOCOMMIT")
 
 
-def _ensure_rls_test_role(engine) -> None:
-    """Create cip_rls_test_role if it does not exist.
-
-    This role is NOSUPERUSER NOBYPASSRLS so PostgreSQL applies RLS policies
-    to it.  Grants are re-applied idempotently on every module load.
-    """
-    session_factory = sessionmaker(bind=engine)
-    s = session_factory()
-    try:
-        s.execute(text("BEGIN"))
-        existing = s.execute(
-            text("SELECT 1 FROM pg_roles WHERE rolname = :r"),
-            {"r": _RLS_TEST_ROLE},
-        ).fetchone()
-        if not existing:
-            # CREATE ROLE does not accept params; name is a known constant.
-            s.execute(text(
-                f"CREATE ROLE {_RLS_TEST_ROLE} NOSUPERUSER NOBYPASSRLS "
-                f"NOCREATEDB NOCREATEROLE NOINHERIT NOREPLICATION"
-            ))
-        # Idempotent grants
-        s.execute(text(f"GRANT USAGE ON SCHEMA public TO {_RLS_TEST_ROLE}"))
-        s.execute(text(
-            f"GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public "
-            f"TO {_RLS_TEST_ROLE}"
-        ))
-        s.execute(text("COMMIT"))
-    except Exception:
-        with suppress(Exception):
-            s.execute(text("ROLLBACK"))
-        raise
-    finally:
-        s.close()
+# ``_ensure_rls_test_role`` was extracted to ``tests/_helpers/rls.py`` as
+# ``provision_cip_rls_test_role`` (post-M4 hygiene pass). Callers below
+# call the shared function. Note: this conftest's session helpers
+# (``session_as_tenant`` / ``session_no_tenant``) intentionally stay
+# inline — they yield ``Session`` objects (not ``Connection``) and use
+# ``SET LOCAL app.current_tenant = '{literal}'`` rather than the post-v5.4
+# ``set_config()`` pattern. The tests/migrations/test_rls_*.py callers
+# depend on the Session-typed API; converging is out of scope for the
+# RLS-helper extraction. See ``tests/_helpers/rls.py`` module docstring
+# for the full rationale.
 
 
 def _purge_cip_test_data(engine) -> None:
@@ -161,7 +139,7 @@ def engine():
     tests run clean even after a previous interrupted run left committed rows.
     """
     eng = _get_engine()
-    _ensure_rls_test_role(eng)
+    provision_cip_rls_test_role(eng)
     _purge_cip_test_data(eng)  # clean up any leftover data from previous run
     yield eng
     _purge_cip_test_data(eng)  # clean up after this run

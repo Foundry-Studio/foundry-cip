@@ -12,7 +12,6 @@ from __future__ import annotations
 
 import os
 from collections.abc import Generator, Iterator
-from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Literal, cast
@@ -33,26 +32,18 @@ from cip.integration_mesh import (
     PropertyDescriptor,
     RateLimitPolicy,
 )
+from tests._helpers.rls import (
+    provision_cip_rls_test_role,
+    session_as_role_and_tenant,  # noqa: F401  # re-exported for test_tenant_scoping.py
+)
 
 # ── Constants ─────────────────────────────────────────────────────────────
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 
 # Restricted non-superuser role used for RLS verification queries (§5.7, §5.8).
-# Postgres superusers have BYPASSRLS so even FORCE ROW LEVEL SECURITY is
-# inert against them. We need a NOSUPERUSER NOBYPASSRLS role so RLS policies
-# actually enforce.
-#
-# v5.3 SYNC NOTE (2026-05-05): the role name + provisioning logic below are
-# DUPLICATED FROM ``tests/migrations/conftest.py``. Per Tim's Phase 2 dispatch
-# (2026-05-05): "If extraction-to-helper is ≤30 LOC of work, do that. Otherwise,
-# duplicate the SQL with a 'synced from tests/migrations/conftest.py' comment
-# and capture consolidation as a v5.4 TODO."
-# Extraction would touch 3 files (new helper module + 2 import-update sites)
-# and shift the existing migration tests' import shape — chose duplicate.
-# v5.4 TODO: extract _RLS_TEST_ROLE + _ensure_rls_test_role to a shared
-# ``tests/_helpers/rls.py`` module; update both conftests to import.
-_RLS_TEST_ROLE = "cip_rls_test_role"
+# Provisioning + session helper imported from ``tests/_helpers/rls.py`` per
+# the post-M4 extraction (resolves the v5.4 TODO).
 
 
 # ── Postgres testcontainer ────────────────────────────────────────────────
@@ -122,46 +113,10 @@ def seeded_engine(
             cur.close()
 
     # Provision the non-superuser role for §5.7 + §5.8 RLS verification queries.
-    _ensure_rls_test_role(eng)
+    provision_cip_rls_test_role(eng)
 
     yield eng
     eng.dispose()
-
-
-def _ensure_rls_test_role(engine: Engine) -> None:
-    """Create cip_rls_test_role if it does not exist.
-
-    NOSUPERUSER NOBYPASSRLS so PostgreSQL applies RLS policies to it.
-    Idempotent — safe to call across sessions.
-
-    SYNCED FROM ``tests/migrations/conftest.py`` (per Tim's Phase 2 dispatch
-    2026-05-05). v5.4 TODO: consolidate to ``tests/_helpers/rls.py``.
-    """
-    # Postgres allows CREATE ROLE inside a regular transaction; no
-    # AUTOCOMMIT-juggling needed. The session-scoped fixture calls this once.
-    with engine.begin() as conn:
-        existing = conn.execute(
-            text("SELECT 1 FROM pg_roles WHERE rolname = :r"),
-            {"r": _RLS_TEST_ROLE},
-        ).fetchone()
-        if not existing:
-            # CREATE ROLE does not accept params; name is a known constant.
-            conn.execute(
-                text(
-                    f"CREATE ROLE {_RLS_TEST_ROLE} NOSUPERUSER NOBYPASSRLS "
-                    f"NOCREATEDB NOCREATEROLE NOINHERIT NOREPLICATION"
-                )
-            )
-        # Idempotent grants (re-applied each session).
-        conn.execute(
-            text(f"GRANT USAGE ON SCHEMA public TO {_RLS_TEST_ROLE}")
-        )
-        conn.execute(
-            text(
-                f"GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN "
-                f"SCHEMA public TO {_RLS_TEST_ROLE}"
-            )
-        )
 
 
 @pytest.fixture(scope="function")
@@ -262,31 +217,8 @@ def cleanup_tenants(
                 )
 
 
-@contextmanager
-def session_as_role_and_tenant(
-    engine: Engine, tenant_id: UUID | None
-) -> Generator[Any, None, None]:
-    """Open a connection AS ``cip_rls_test_role`` (RLS-enforcing) with the
-    given tenant context. ``tenant_id=None`` = no SET tenant; useful for
-    asserting "no tenant context → zero rows" semantics.
-
-    Used by §5.7 + §5.8 verification queries. Within this context the
-    Postgres BYPASSRLS bit is gone, so RLS policies actually filter.
-    """
-    with engine.connect() as conn:
-        try:
-            conn.execute(text("BEGIN"))
-            conn.execute(text(f"SET LOCAL ROLE {_RLS_TEST_ROLE}"))
-            if tenant_id is not None:
-                conn.execute(
-                    text(
-                        "SELECT set_config('app.current_tenant', :t, true)"
-                    ),
-                    {"t": str(tenant_id)},
-                )
-            yield conn
-        finally:
-            conn.execute(text("ROLLBACK"))
+# ``session_as_role_and_tenant`` imported from ``tests/_helpers/rls.py``
+# (post-M4 extraction; resolves the v5.4 TODO).
 
 
 # ── Mock connector / mapper (plan §5.1) ───────────────────────────────────

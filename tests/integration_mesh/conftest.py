@@ -25,7 +25,6 @@ the testcontainer doesn't spin up unless a lens-engine test asks for it.
 from __future__ import annotations
 
 from collections.abc import Generator
-from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
 from uuid import UUID, uuid4
@@ -34,6 +33,11 @@ import pytest
 from sqlalchemy import text
 from sqlalchemy.engine import Connection, Engine
 from sqlalchemy.orm import Session
+
+from tests._helpers.rls import (
+    provision_cip_rls_test_role,
+    session_as_role_and_tenant,  # noqa: F401  # re-exported for test_lens_*.py
+)
 
 # ── Re-export Postgres testcontainer fixtures from the conformance conftest ──
 # Pytest's fixture-resolution walks up parent dirs but not across siblings;
@@ -47,11 +51,9 @@ from sqlalchemy.orm import Session
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
-# M4 Δ3: the testcontainer's default user is a Postgres superuser with
-# BYPASSRLS — RLS policies are inert against it. To honestly exercise RLS
-# (acceptance #16 cross-tenant blocking), we need a NOSUPERUSER NOBYPASSRLS
-# role. Mirrors ``tests/fixtures/connector_conformance/conftest.py``'s pattern.
-_RLS_TEST_ROLE = "cip_rls_test_role"
+# M4 Δ3 (post-extraction): role provisioning + ``session_as_role_and_tenant``
+# now live in ``tests/_helpers/rls.py`` — see imports above. Local copies
+# removed in the post-M4 RLS-helpers extraction pass.
 
 
 @pytest.fixture(scope="session")
@@ -111,39 +113,10 @@ def seeded_engine(database_url: str) -> Generator[Engine, None, None]:
             cur.close()
 
     # M4 Δ3: provision cip_rls_test_role for read-side RLS verification.
-    _ensure_rls_test_role(eng)
+    provision_cip_rls_test_role(eng)
 
     yield eng
     eng.dispose()
-
-
-def _ensure_rls_test_role(engine: Engine) -> None:
-    """Create ``cip_rls_test_role`` if it does not exist.
-
-    NOSUPERUSER NOBYPASSRLS so PostgreSQL applies RLS policies to it. Idempotent.
-    Mirrors ``tests/fixtures/connector_conformance/conftest.py::_ensure_rls_test_role``.
-    """
-    with engine.begin() as conn:
-        existing = conn.execute(
-            text("SELECT 1 FROM pg_roles WHERE rolname = :r"),
-            {"r": _RLS_TEST_ROLE},
-        ).fetchone()
-        if not existing:
-            conn.execute(
-                text(
-                    f"CREATE ROLE {_RLS_TEST_ROLE} NOSUPERUSER NOBYPASSRLS "
-                    f"NOCREATEDB NOCREATEROLE NOINHERIT NOREPLICATION"
-                )
-            )
-        conn.execute(
-            text(f"GRANT USAGE ON SCHEMA public TO {_RLS_TEST_ROLE}")
-        )
-        conn.execute(
-            text(
-                f"GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN "
-                f"SCHEMA public TO {_RLS_TEST_ROLE}"
-            )
-        )
 
 
 # ── Demo lens filter-config constants (Gap [1] + Gap [17]) ─────────────────
@@ -226,32 +199,6 @@ def seed_lens(
         },
     )
     return new_id
-
-
-@contextmanager
-def session_as_role_and_tenant(
-    engine: Engine, tenant_id: UUID
-) -> Generator[Connection, None, None]:
-    """Open a Connection AS ``cip_rls_test_role`` (RLS-enforcing) with the
-    given tenant context. Required for read-side queries that exercise RLS
-    (acceptance #16) — the testcontainer's default user has BYPASSRLS, so
-    RLS is inert against it.
-
-    Per M4 Δ3 (mirrors conformance harness's pattern). Within this context
-    the BYPASSRLS bit is gone, so RLS policies actually filter rows by
-    ``app.current_tenant``.
-    """
-    with engine.connect() as conn:
-        try:
-            conn.execute(text("BEGIN"))
-            conn.execute(text(f"SET LOCAL ROLE {_RLS_TEST_ROLE}"))
-            conn.execute(
-                text("SELECT set_config('app.current_tenant', :t, true)"),
-                {"t": str(tenant_id)},
-            )
-            yield conn
-        finally:
-            conn.execute(text("ROLLBACK"))
 
 
 def _json_dumps(obj: dict[str, Any]) -> str:

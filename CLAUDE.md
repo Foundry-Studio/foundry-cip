@@ -139,8 +139,10 @@ foundry-cip is a published library (`pip install foundry-cip`), not a Railway-de
 **Adding or bumping a dev/test dep:**
 ```bash
 # 1. Edit pyproject.toml's [project.optional-dependencies] (dev or fixture).
-# 2. Recompile the lockfile:
-uv pip compile pyproject.toml --extra dev --extra fixture \
+# 2. Recompile the lockfile (--universal keeps the lockfile cross-platform —
+#    sys_platform markers tag colorama/pywin32/tzdata as Windows-only so the
+#    same file works for Windows dev + Linux CI + macOS dev):
+uv pip compile pyproject.toml --extra dev --extra fixture --universal \
     -o requirements-dev.txt --python-version 3.12
 # 3. Verify locally + commit BOTH pyproject.toml and requirements-dev.txt together.
 ```

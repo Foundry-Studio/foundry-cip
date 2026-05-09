@@ -6,11 +6,12 @@ pm_project_id: 596825db-61bc-4899-bc6c-e207489ca35d
 status: active
 owner: tim
 created: 2026-04-13
-last_updated: 2026-04-20
+last_updated: 2026-05-09
 supersedes: >
   (1) Previous 8-phase release-shaped roadmap (pre-pillar-restructure) — superseded 2026-04-17 per D-117 + Shape D lock.
   (2) 2026-04-20 M0 Vision Revisit — inserted Phase 2.5 (Foundry Self-Tenant + Early Write-Back) between Phase 2 and Phase 3 per Tim's directive "sooner rather than later" on write-back readiness. Pillar 1 description extended with explicit connector-agnostic posture. Added Related-products pointer at `products/foundry-chatbot/`.
   (3) 2026-04-20 Plain-Jane Reshape — Phase 1 rewired to a blank-slate tenant-neutral product validated against a synthetic FixtureConnector, not Wayward. Wayward onboarding pulled into Phase 2 (now "Wayward Onboarding — Full Round-Trip") so Wayward is its own end-to-end proof instead of a Phase 1 ingredient. cip_09 (cross_tenant_grants) migration moved from Phase 1 to Phase 3 so schema + runtime ship together. Phase 2.5 trimmed to write-back only (push stays in Phase 2). All week-based appetites dropped — phases are session-bound and milestone-ordered, not calendar-bound. Phase 1 now explicitly ships 10 documentation artifacts alongside the plain-jane product.
+  (4) 2026-05-09 connector posture refresh — QBO removed from planned connector inventory; Plaid replaces it as the planned financial connector. Bob (current QBO-using app) is being rebuilt against Plaid by Tim; rebuilt Bob is its own product line, not a CIP tenant. CIP framework still connector-agnostic per D-118.
 ---
 
 # CIP Roadmap — Pillar-Aligned Phases
@@ -27,7 +28,7 @@ supersedes: >
 
 | # | Pillar | Status After Phase 1 (Plain Jane) |
 |---|--------|-----------------------------------|
-| 1 | Ingestion & Connectors | LIT (FixtureConnector only in Phase 1; framework inside Integration Mesh per D-118). **Connector-agnostic posture** — planned connectors queued (not elevated as pillars): Zendesk, HubSpot, QuickBooks Online, Stripe, Shopify, SEC EDGAR, news/RSS, WeChat/WhatsApp, Chatwoot (outbound), Gmail/Drive, manual upload. New connector = new `CIPConnector`/`CIPMapper` subclass + migration, not a new pillar. Zendesk + HubSpot ship in Phase 2 as part of Wayward onboarding. |
+| 1 | Ingestion & Connectors | LIT (FixtureConnector only in Phase 1; framework inside Integration Mesh per D-118). **Connector-agnostic posture** — planned connectors queued (not elevated as pillars): Zendesk, HubSpot, Plaid, Stripe, Shopify, SEC EDGAR, news/RSS, WeChat/WhatsApp, Chatwoot (outbound), Gmail/Drive, manual upload. New connector = new `CIPConnector`/`CIPMapper` subclass + migration, not a new pillar. Zendesk + HubSpot ship in Phase 2 as part of Wayward onboarding. Plaid lands Phase 2+ for venture/personal financial tenants (replaces earlier QBO-based plan, 2026-05-09). |
 | 2 | Structured Store | LIT (cip_01–08 migrations, SCD history, 9 provenance cols, `cip_files`, `cip_connector_property_registry`) |
 | 3 | Unstructured Store | LIT (Knowledge RAG + Graph GraphRAG consuming CIP content under `cip_fixture_*` source types) |
 | 4 | Lens Engine | LIT (two lenses on same fixture dataset — P-21 canonical example) |

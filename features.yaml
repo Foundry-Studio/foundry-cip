@@ -149,3 +149,25 @@ features:
     status: available
     path_to_more: "(monorepo: docs/governance/standards/)"
     depends_on: []
+
+  # ─── Future connectors (Pillar 1 — planned per VISION connector inventory) ─
+  - id: plaid-connector
+    name: "Plaid Financial Connector"
+    description: "Per-tenant financial data ingestion via Plaid — accounts, transactions, balances. Replaces earlier QBO-based plan (Tim 2026-05-09 lock); new Bob will be rebuilt against this connector pattern."
+    status: planned
+    path_to_more: "(Phase 2+ deliverable)"
+    depends_on: []
+
+  - id: hubspot-connector
+    name: "HubSpot CRM Connector"
+    description: "HubSpot ingestion for contacts, companies, deals, notes (incl. call transcripts). Phase 2 LOCKED per VISION — first instance alongside Zendesk for Wayward onboarding."
+    status: planned
+    path_to_more: "(Phase 2 deliverable)"
+    depends_on: []
+
+  - id: zendesk-connector
+    name: "Zendesk Connector"
+    description: "Zendesk ingestion for tickets, users, organizations, comments. Phase 2 LOCKED per VISION — first instance alongside HubSpot for Wayward onboarding."
+    status: planned
+    path_to_more: "(Phase 2 deliverable)"
+    depends_on: []

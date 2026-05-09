@@ -20,7 +20,7 @@ This runbook covers the operator playbook for taking a venture from "we want CIP
 
 1. **Pre-deployment checklist** — venture confirmed as a tenant, source-system credentials in hand, target Postgres ready.
 2. **Tenant provisioning** — create venture in `tenants` table, run TENANT-ONBOARDING-CHECKLIST.md.
-3. **Connector decision** — which connectors does this venture need? Map to existing connectors (HubSpot, Zendesk, QBO, etc.) or scope a new connector per CONNECTOR-AUTHORING-GUIDE.md.
+3. **Connector decision** — which connectors does this venture need? Map to existing connectors (HubSpot, Zendesk, Plaid, etc.) or scope a new connector per CONNECTOR-AUTHORING-GUIDE.md.
 4. **Initial sync** — first run, expect ramp-up, document any surprises.
 5. **Lens definition** — what slices of the data does each consumer team see?
 6. **Dashboards + reports** — Metabase setup per consumer.

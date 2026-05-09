@@ -6,11 +6,12 @@ pm_project_id: 596825db-61bc-4899-bc6c-e207489ca35d
 status: draft-under-revision
 owner: tim
 created: 2026-04-06
-last_updated: 2026-04-20
+last_updated: 2026-05-09
 supersedes: >
   Original §2 Two Data Layers simplified the storage model — superseded 2026-04-20 by D-120 Three Data Layers (Structured / Derived Knowledge / Originals). Original §4 Tenant Model showed a nested super-tenant → venture → client shape — superseded 2026-04-20 by flat peer-tenant model with first-class `cip_cross_tenant_grants`. Original §10 Roadmap was a 3-phase Wayward-scoped list — superseded 2026-04-20 to point at `ROADMAP.md` as authoritative source; this section is now a hand-synced summary.
 open_revision_items:
-  - "M0 Vision Revisit 2026-04-20 evening — six Tim directives applied (never-defer ethos, QBO/financial planned connector, peer-tenant model, early write-back pulled to Phase 2.5, per-client siloing inside venture tenant, Foundry Chatbot spinoff)."
+  - "M0 Vision Revisit 2026-04-20 evening — six Tim directives applied (never-defer ethos, Plaid/financial planned connector [updated 2026-05-09 from QBO; Bob rebuild will use Plaid], peer-tenant model, early write-back pulled to Phase 2.5, per-client siloing inside venture tenant, Foundry Chatbot spinoff)."
+  - "2026-05-09 connector posture refresh — QBO removed from connector inventory; Plaid replaces it as the planned financial connector. Reflected in §3, §4 connector inventory, §7g registry mention. Bob (current app) defunct; new Bob will be Plaid-based and treated as a separate product. CIP framework still connector-agnostic."
   - "Cross-tenant grant placement — Phase 1 schema or Phase 2+ addition? Leaning Phase 1 schema-only (table + RLS-aware view) with runtime behavior arriving Phase 3+. Confirm before Phase 1 M1 kickoff."
   - "Personal tenant not yet provisioned in `tenants` table — provisioning deferred until Tim has a concrete first use case."
   - "Foundry Chatbot spun out as separate product at `products/foundry-chatbot/` (stubbed, blocked by CIP Phase 5). Retrieval stack will be shared; consumer + branding + per-recipient scoping are the separation reasons. See `products/foundry-chatbot/README.md`."
@@ -44,9 +45,9 @@ A **Client Intelligence Platform** organized into three canonical data layers (D
 
 | Layer | Stores | Queries Via | Use Cases |
 |-------|--------|-------------|-----------|
-| **Structured** (PostgreSQL `cip_*`) | Contacts, companies, tickets, deals, call notes, invoices, financial records (QBO etc.), client-siloed records per `cip_clients` | SQL with RLS + `SET LOCAL app.current_tenant`, Metabase, `foundry_mcp_cip_query` | "All Chinese brands with overdue payments," "ticket volume by month," "Q1 revenue by client," "pipeline breakdown by lens." |
+| **Structured** (PostgreSQL `cip_*`) | Contacts, companies, tickets, deals, call notes, invoices, financial records (Plaid etc.), client-siloed records per `cip_clients` | SQL with RLS + `SET LOCAL app.current_tenant`, Metabase, `foundry_mcp_cip_query` | "All Chinese brands with overdue payments," "ticket volume by month," "Q1 revenue by client," "pipeline breakdown by lens." |
 | **Derived Knowledge** (Pinecone + FalkorDB) | Embeddings of ticket bodies, call transcripts, notes, docs, SOPs, research; graph nodes + edges for entity relationships | BM25 + vector retrieval (Knowledge Subsystem), GraphRAG (Graph Subsystem), `foundry_mcp_cip_search` | "What's our commission overlap policy?" "Summarize the last 3 calls with AEEZO," "Who else at this company has raised billing issues?" |
-| **Originals** (Cloudflare R2) | Raw source files (PDFs, Firefly transcripts, HubSpot note HTML, QBO exports, client uploads), indexed by `cip_files` | Storage Service; citations resolve through `cip_files` → signed R2 URL | "Open the PDF that sentence came from," "replay the original ticket payload," auditability, legal/compliance retrieval. |
+| **Originals** (Cloudflare R2) | Raw source files (PDFs, Firefly transcripts, HubSpot note HTML, Plaid exports, client uploads), indexed by `cip_files` | Storage Service; citations resolve through `cip_files` → signed R2 URL | "Open the PDF that sentence came from," "replay the original ticket payload," auditability, legal/compliance retrieval. |
 
 All three layers are wired from Phase 1. Consumers pick which they need — a dashboard-only deployment queries Structured; a chatbot needs all three (Structured for facts, Derived Knowledge for retrieval, Originals for citations).
 
@@ -103,13 +104,15 @@ All three layers are wired from Phase 1. Consumers pick which they need — a da
 
 **What CIP provides:** Connectors for SEC EDGAR, financial data APIs. Structured layer stores the numbers. Unstructured layer stores transcripts and analyst reports. Anomaly detection on structured data. Agent-generated thesis documents.
 
-### Planned: Financial Intelligence (QuickBooks Online + future financial sources)
+### Planned: Financial Intelligence (Plaid + future financial sources)
 
-**What's needed:** Every venture and personal business needs accessible financial data. Pull P&L, AR/AP, invoices, expense categories, chart-of-accounts history from QuickBooks Online (and equivalents — Xero, NetSuite, raw CSV imports) per tenant. Generate reports on demand ("show me Q1 margin by service line for Project Silk"), surface anomalies (unpaid invoices past 60 days, unusual expense categories), and give agents financial context when they're working on planning, pricing, or cash-flow questions.
+**What's needed:** Every venture and personal business needs accessible financial data. Pull accounts, transactions, balances, and (where available) categorized expenses from Plaid per tenant. Generate reports on demand ("show me Q1 margin by service line for Project Silk"), surface anomalies (unusual expense patterns, large transfers, low-balance alerts), and give agents financial context when they're working on planning, pricing, or cash-flow questions.
 
-**What CIP provides:** A QBO connector that obeys the same `CIPConnector`/`CIPMapper` Protocol contract as every other connector (D-118) — no bespoke financial-data pillar, just another source feeding the three data layers. Structured layer gains financial tables (`cip_accounts`, `cip_invoices`, `cip_transactions`, `cip_expenses` — schema locked during Phase 2 or later when QBO goes on the connector queue). Derived Knowledge layer embeds invoice memos and expense descriptions for semantic search. Originals layer preserves raw QBO JSON exports and any uploaded financial PDFs. Scoping: each business is typically its own tenant (Project Silk, EcomLever, Rocky Ridge, Personal, Foundry all have separate QBO orgs), so financial data stays inside each tenant — cross-tenant aggregation is explicit via `cip_cross_tenant_grants` (see §4), not implicit.
+**What CIP provides:** A Plaid connector that obeys the same `CIPConnector`/`CIPMapper` Protocol contract as every other connector (D-118) — no bespoke financial-data pillar, just another source feeding the three data layers. Structured layer gains financial tables (`cip_accounts`, `cip_invoices`, `cip_transactions`, `cip_expenses` — schema locked during Phase 2 or later when Plaid goes on the connector queue). Derived Knowledge layer embeds transaction memos and category descriptions for semantic search. Originals layer preserves raw Plaid JSON exports and any uploaded financial PDFs. Scoping: each business is typically its own tenant (Project Silk, EcomLever, Rocky Ridge, Personal, Foundry all have separate financial accounts), so financial data stays inside each tenant — cross-tenant aggregation is explicit via `cip_cross_tenant_grants` (see §4), not implicit.
 
-**Posture:** CIP is connector-agnostic. QBO is a named planned connector, not an elevated pillar. The connector framework must absorb it the same way it absorbs Zendesk, HubSpot, Stripe, Shopify, SEC EDGAR, news/RSS, and WhatsApp/WeChat — a new `CIPConnector` subclass, a new `CIPMapper`, a schema migration for new `cip_*` tables, registered in the connector registry. No financial-specific code paths outside the connector's mapper.
+**Posture:** CIP is connector-agnostic. Plaid is a named planned connector, not an elevated pillar. The connector framework must absorb it the same way it absorbs Zendesk, HubSpot, Stripe, Shopify, SEC EDGAR, news/RSS, and WhatsApp/WeChat — a new `CIPConnector` subclass, a new `CIPMapper`, a schema migration for new `cip_*` tables, registered in the connector registry. No financial-specific code paths outside the connector's mapper.
+
+**Note on Bob (related Foundry app, NOT a CIP tenant):** the current Bob app (household finance concierge) integrated QuickBooks Online directly. That app is being rebuilt by Tim against Plaid; the rebuilt Bob is its own product line, NOT a CIP tenant. CIP's Plaid connector serves *venture/personal-tenant* financial data; Bob serves *household-app* financial data. Different products, similar source.
 
 ---
 
@@ -237,8 +240,8 @@ CIP is **connector-agnostic by posture**. No connector gets pillar status; every
 |-----------|--------|---------------|-------|
 | **Zendesk** | Tickets, users, orgs, comments | **Phase 1 (LOCKED)** | First instance; validates the connector framework. |
 | **HubSpot** | Contacts, companies, deals, notes (incl. call transcripts) | **Phase 1 (LOCKED)** | 20-revision retention = history-capture urgency; validates JSONB overflow pattern. |
-| QuickBooks Online | Accounts, invoices, transactions, expenses, chart of accounts | Phase 2+ (per tenant) | Financial intelligence — see §3. Connector-agnostic implementation. |
-| Stripe | Payments, customers, subscriptions, invoices | Phase 2+ | Overlaps with QBO — dedupe via `source_connector` + provenance. |
+| Plaid | Accounts, transactions, balances, categorized expenses | Phase 2+ (per tenant) | Financial intelligence — see §3. Connector-agnostic implementation. Replaces earlier QBO-based plan (2026-05-09). |
+| Stripe | Payments, customers, subscriptions, invoices | Phase 2+ | Overlaps with Plaid for some flows — dedupe via `source_connector` + provenance. |
 | Shopify | Orders, products, customers, carts | Phase 2+ | Needed when an ecom-venture client uses Shopify as system of record. |
 | SEC EDGAR | Filings, earnings transcripts, financial data | Phase 2+ (Stock venture) | Read-only public data; no auth. |
 | News / RSS | Industry news, competitor announcements | Phase 2+ (AI Research Pipeline) | Agents-as-producers tenant (Foundry self-tenant); writes to Derived Knowledge layer. |
@@ -354,7 +357,7 @@ D-121 mandates registries exist so agents can discover CIP data. This subsection
 | 3 | **Derived Knowledge — graph** | FalkorDB nodes/edges for a tenant (entity relationships, mention graph) | Graph Subsystem retrieval (`graphrag_retriever_service`) | Phase 1 (raw), Phase 4 (wrapped into `foundry_mcp_cip_search` when graph boost is requested) |
 | 4 | **Originals** — signed R2 URLs | `cip_files` rows → R2 object paths → signed URL | Storage Service (starts from `cip_files.cip_file_id`) | Phase 1 (raw), Phase 4 (wrapped as `foundry_mcp_cip_files`) |
 
-**Discoverability registries (D-121):** Every path above is backed by a registry so an agent with only generic `foundry_mcp_*` tools can discover what exists without hard-coded table names. Examples: `cip_connector_property_registry` (names every HubSpot/Zendesk/QBO property and which column or JSONB path it lives at), `knowledge_sources` (names every `source_type` with its row shape), `graph_templates` (names every node/edge type + relationship pattern), `cip_files` metadata (names every file with its original connector + content-type). If an agent can't find a property/source/entity/file through these registries, it shouldn't exist.
+**Discoverability registries (D-121):** Every path above is backed by a registry so an agent with only generic `foundry_mcp_*` tools can discover what exists without hard-coded table names. Examples: `cip_connector_property_registry` (names every HubSpot/Zendesk/Plaid property and which column or JSONB path it lives at), `knowledge_sources` (names every `source_type` with its row shape), `graph_templates` (names every node/edge type + relationship pattern), `cip_files` metadata (names every file with its original connector + content-type). If an agent can't find a property/source/entity/file through these registries, it shouldn't exist.
 
 **Phase 1 M7 (Agent Discoverability Validation)** — the acceptance gate that proves all four paths light up against the **fixture tenant**. See `vision/PHASE-1-PLAN.md` Milestone 7 for the concrete validation procedure. Phase 2 re-validates the paths against Wayward as part of the full round-trip. **Phase 4 (Agent Access Surfaces)** ships the MCP tool wrappers referenced in the table.
 

@@ -398,14 +398,22 @@ CI runs the harness on every push across Python 3.11–3.14 with a Postgres 16 s
 
 **M2:** `tests/fixtures/connector_conformance/conftest.py` defines `MockConnector + MockMapper` — minimum-conformant Protocol implementations that pass all seven harness tests. Read these as the reference shape. Canonical fixture data lives in `tests/fixtures/connector_conformance/fixtures/records.py`.
 
-**M3 (next milestone):** `FixtureConnector` lands as the first non-mock reference implementation. It will demonstrate:
+**M3 (landed 2026-05-08):** `FixtureConnector` + `FixtureMapper` ship as the first non-mock reference implementation under `cip/integration_mesh/connectors/fixture/`. They demonstrate:
 
-- A real connector folder layout under `cip/integration_mesh/connectors/fixture/`.
-- File-based record fixtures (load from JSON / YAML rather than hardcoded lists).
-- Pagination semantics across multiple "API pages" of fixture data.
-- Per-source-system property mapping that covers all eight `data_type` enum values.
+- **Folder layout:** `connector.py`, `mapper.py`, `corpus.py`, `records.py`, `__init__.py` — copy this as your starting template for a new connector.
+- **Deterministic synthetic corpus:** `corpus.py` generates records via `Faker.seed_instance(int)` + a separate `random.Random(seed)` for selection draws (two-RNG split avoids state-coupling between shape and selection). `PYTHONHASHSEED=0` + pinned `faker==X.Y.Z` ⇒ byte-identical corpus across two same-seed runs (snapshot SHA in `tests/integration_mesh/test_fixture_corpus_determinism.py` is the regression guard).
+- **Three corpus presets (`CorpusSize`):** `STANDARD` (50/200/300/500/100/0 = 1150 rows across 6 object types), `COMPACT` (10× smaller for fast unit tests), `SMOKE` (10 contacts only — MockConnector-equivalent for e2e\_smoke).
+- **30 `PropertyDescriptor`s across 6 object types** (5 active + `note` forward-compat) covering `data_type` values `string`, `number`, `enumeration`, `datetime` (4 of the 8 deployed enum members; `reference`, `boolean`, `array`, `object` exercise paths a future connector should add).
+- **Advisory-lock dual-run prevention** (M3 §4.8): `run_sync` acquires a session-level Postgres advisory lock keyed on `(tenant_id, connector_id)` via a NullPool lock-holder engine; concurrent runs raise `SyncAlreadyRunningError`. Tested in `tests/fixtures/connector_conformance/test_concurrent_sync_advisory_lock.py` (8 sub-tests).
+- **End-to-end harness:** `test_fixture_connector_e2e_smoke.py` and `test_fixture_connector_e2e_standard.py` exercise the full chain (orchestrator → persister → SCD differ → recorder → knowledge-hook) against a real Postgres testcontainer, including 1150-row volume + ~600 KnowledgeText emissions + the validation contract for orchestrator-owned metadata keys.
 
-When you're authoring a new connector (Phase 2 onward), copy `cip/integration_mesh/connectors/fixture/` as the starting template, replace the file-loading with your source-system API client, and run the conformance harness with `connector_under_test=YourConnector` parametrization.
+**Mapper-side translation contract (M3 Δ5):** `CIPRow.fields` keys are SQL column names, NOT record-side names. Where the deployed migration's column name differs from the natural record field name, the mapper translates via a static `_RECORD_TO_SQL_COLUMN` map. In FixtureMapper this affects `ticket` (`body→description`, `assignee→assignee_name`) and `document` (`title→filename`, `file_size_bytes→size_bytes`). When authoring a new connector, build the equivalent mapping from your source-system field names to the deployed `cip_*` SQL columns; the mismatch is silent at INSERT time and surfaces as `UndefinedColumn` only when the table is first written to.
+
+**Deployed-only NOT NULL columns (M3 Δ6):** Some `cip_*` tables have NOT NULL columns that aren't in the connector's `describe_schema()` (they're infrastructure columns, not source fields). `cip_files.r2_path` is the current example — FixtureMapper synthesizes a stable `r2_path = "fixture://{source_id}"`. Real connectors fill it from their actual storage upload.
+
+**Numeric round-trip discipline (M3 Δ7):** Postgres NUMERIC columns return as `Decimal`; Python typically emits `float`. The SCD differ canonicalizes both via `Decimal(str(v))` so re-syncs don't spuriously archive every row. If you add a new connector with NUMERIC domain columns, test idempotency on a second run — the differ should report `rows_skipped_unchanged == row_count`.
+
+When authoring a new connector (Phase 2 onward), copy `cip/integration_mesh/connectors/fixture/` as the starting template, replace the corpus generator with your source-system API client (preserve the Protocol shape — `stream_records`, `incremental_key`, `describe_schema`, `authenticate`, `rate_limit_policy`, `cursor_safety_window_seconds`), and run the conformance harness against your connector instance.
 
 ---
 

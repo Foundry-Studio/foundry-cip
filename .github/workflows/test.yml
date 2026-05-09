@@ -22,7 +22,7 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 1
       - name: FND-S14 Local-Verified trailer check
@@ -47,7 +47,7 @@ jobs:
   lockfile-freshness:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -99,7 +99,7 @@ jobs:
       # `pytest_test_password_DO_NOT_USE_IN_PROD` default per plan v3 §2.10).
       METABASE_DB_PASSWORD: ci_password_test_only
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
@@ -152,7 +152,7 @@ jobs:
       # `pytest_test_password_DO_NOT_USE_IN_PROD` default per plan v3 §2.10).
       METABASE_DB_PASSWORD: ci_password_test_only
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -229,7 +229,7 @@ jobs:
       # `pytest_test_password_DO_NOT_USE_IN_PROD` default per plan v3 §2.10).
       METABASE_DB_PASSWORD: ci_password_test_only
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"

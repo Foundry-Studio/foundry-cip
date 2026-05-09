@@ -1,0 +1,151 @@
+# CIP Feature Registry
+# JOS-PM-schema-conformant. v0 authored 2026-05-09 post-M4.
+# Schema may tighten later (field additions only); shape is locked.
+
+layer: product
+product: cip
+last_updated: 2026-05-09
+auto_maintained: false  # future: commit-watching agent (M6 deliverable)
+
+features:
+  # ─── Pillar 1: Ingestion & Connectors ────────────────────────────────
+  - id: connector-framework
+    name: "Generic Connector Framework"
+    description: "CIPConnector + CIPMapper Protocols + sync orchestrator with session-level advisory locks for dual-run prevention"
+    status: available
+    path_to_more: "cip/integration_mesh/README.md"
+    depends_on: []
+
+  - id: fixture-connector
+    name: "Fixture (Deterministic Synthetic) Connector"
+    description: "Reference CIPConnector implementation. Generates 1150-row deterministic corpus from a single Faker seed for byte-identical reproducibility"
+    status: available
+    path_to_more: "cip/integration_mesh/connectors/fixture/README.md"
+    depends_on: []
+
+  - id: connector-conformance-harness
+    name: "Connector Conformance Test Suite"
+    description: "8-test harness validating any CIPConnector against framework contracts (Protocol shape, incremental sync, property registry, SCD history, sync run audit, tenant scoping, post-commit RLS isolation, concurrent-sync advisory lock)"
+    status: available
+    path_to_more: "tests/fixtures/connector_conformance/"
+    depends_on: []
+
+  # ─── Pillar 2: Structured Store ──────────────────────────────────────
+  - id: structured-store
+    name: "Multi-Tenant Structured Store"
+    description: "PostgreSQL tables (cip_companies, cip_contacts, cip_deals, cip_tickets, cip_files) with bitemporal SCD-2 history + 9 provenance columns + JSONB overflow + tenant-scoped RLS"
+    status: available
+    path_to_more: "cip/migrations/"
+    depends_on: []
+
+  - id: property-registry
+    name: "Connector Property Registry"
+    description: "cip_connector_property_registry table populated from each connector's describe_schema(); declares property shapes (column vs overflow, data_type enum, custom flags) before ingestion"
+    status: available
+    path_to_more: "cip/integration_mesh/persister.py"
+    depends_on: []
+
+  - id: scd-history
+    name: "Bitemporal SCD-2 History"
+    description: "Per-entity *_history tables capturing both valid-time (record's truth window) and transaction-time (when CIP knew about it) for full audit + point-in-time queries"
+    status: available
+    path_to_more: "cip/integration_mesh/scd.py"
+    depends_on: []
+
+  - id: tenant-isolation-rls
+    name: "Multi-Tenant RLS Enforcement"
+    description: "PostgreSQL Row-Level Security policies on every cip_* table keyed on app.current_tenant GUC; defense-in-depth via explicit tenant_id predicates"
+    status: available
+    path_to_more: "cip/integration_mesh/tenant_context.py"
+    depends_on: []
+
+  # ─── Pillar 3: Unstructured Store (PARTIAL — read-side hooks only) ───
+  - id: knowledge-ingestion-hook
+    name: "Knowledge Ingestion Hook"
+    description: "CIPMapper.ingest_as_knowledge() emits KnowledgeText for body-bearing types (tickets, documents); orchestrator dispatches to platform Knowledge service"
+    status: partial
+    path_to_more: "cip/integration_mesh/orchestrator.py"
+    depends_on: []
+
+  # ─── Pillar 4: Lens Engine ───────────────────────────────────────────
+  - id: lens-engine
+    name: "Lens Engine (P-21 Multi-Lens by Default)"
+    description: "Query-time predicate compilation from cip_views.filter_config JSONB → SQLAlchemy WHERE clause; AND-composes with tenant RLS; equality-only v1, operator extensibility deferred to v2"
+    status: available
+    path_to_more: "cip/integration_mesh/lens_engine/"
+    depends_on: []
+
+  - id: lens-authoring
+    name: "Lens Authoring (INSERT-only)"
+    description: "Add a new lens by INSERTing into cip_views — no schema or code change required (P-21 falsifiability test). Documented in LENS-AUTHORING-GUIDE."
+    status: available
+    path_to_more: "docs/LENS-AUTHORING-GUIDE.md"
+    depends_on: []
+
+  - id: golden-file-snapshot-harness
+    name: "Golden-File Snapshot Test Harness"
+    description: "Determinism guard: canonicalized JSON output of corpus + lens applications SHA-256-locked. Drift fails loud; intentional bumps require commit-explained intent. Pinned to Python 3.12 + PYTHONHASHSEED=0."
+    status: available
+    path_to_more: "tests/integration_mesh/test_lens_golden_snapshots.py"
+    depends_on: []
+
+  # ─── Pillar 5: Consumption Surfaces (PLANNED — M5+) ──────────────────
+  - id: metabase-platform-service
+    name: "Metabase Dashboards"
+    description: "Self-service dashboards over CIP structured store for tenant operators"
+    status: planned
+    path_to_more: "(M5 deliverable — TBD)"
+    depends_on: []
+
+  - id: rest-api-endpoints
+    name: "Read-Side REST API"
+    description: "HTTP endpoints over lenses for external consumers"
+    status: planned
+    path_to_more: "(Phase 4 deliverable — TBD)"
+    depends_on: []
+
+  - id: mcp-tool-surface
+    name: "MCP Tool Surface for Agents"
+    description: "Agent-callable MCP tools wrapping common CIP queries"
+    status: planned
+    path_to_more: "(Phase 4 deliverable — TBD)"
+    depends_on: []
+
+  # ─── Pillar 6: Push & Sync (PLANNED — Phase 2 / 2.5) ─────────────────
+  - id: outbound-push
+    name: "Outbound Push to External Systems"
+    description: "Write-back from CIP to source-of-truth systems (Chatwoot, etc.)"
+    status: planned
+    path_to_more: "(Phase 2 / 2.5 deliverable — TBD)"
+    depends_on: []
+
+  # ─── Pillar 7: Intelligence & Alerts (PLANNED — Phase 6+) ────────────
+  - id: anomaly-detection
+    name: "Anomaly Detection & Alerts"
+    description: "Statistical + rule-based detection of unusual patterns in tenant data"
+    status: planned
+    path_to_more: "(Phase 6 deliverable — TBD)"
+    depends_on: []
+
+  # ─── Pillar 8: Access & Operations ────────────────────────────────────
+  - id: cross-tenant-grants
+    name: "Cross-Tenant Grants Runtime"
+    description: "Schema + runtime for explicit tenant-to-tenant data sharing (e.g., partner portal access)"
+    status: planned
+    path_to_more: "(Phase 3 deliverable — TBD; cip_09 migration)"
+    depends_on: []
+
+  # ─── Cross-cutting capabilities ──────────────────────────────────────
+  - id: deterministic-corpus
+    name: "Deterministic Synthetic Corpus"
+    description: "FixtureConnector seeded corpus reproducible byte-for-byte under same Python version + Faker pin + PYTHONHASHSEED=0. Snapshot SHA encoded in test."
+    status: available
+    path_to_more: "tests/integration_mesh/test_fixture_corpus_determinism.py"
+    depends_on: []
+
+  - id: governance-conformance
+    name: "Governance Conformance (FND-S13 + FND-S14)"
+    description: "Dependency pinning discipline (FND-S13) + tier-based local verification (FND-S14) enforced via commit trailers + CI lint hooks"
+    status: available
+    path_to_more: "(monorepo: docs/governance/standards/)"
+    depends_on: []

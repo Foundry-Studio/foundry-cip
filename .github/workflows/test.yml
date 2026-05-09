@@ -94,6 +94,10 @@ jobs:
           - 5432:5432
     env:
       DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/foundry_cip_test
+      # M5 cip_09: cip_metabase_role password fallback (test-only sentinel
+      # belt-and-suspenders alongside the migration's
+      # `pytest_test_password_DO_NOT_USE_IN_PROD` default per plan v3 §2.10).
+      METABASE_DB_PASSWORD: ci_password_test_only
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -143,6 +147,10 @@ jobs:
           - 5432:5432
     env:
       DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/foundry_cip_test
+      # M5 cip_09: cip_metabase_role password fallback (test-only sentinel
+      # belt-and-suspenders alongside the migration's
+      # `pytest_test_password_DO_NOT_USE_IN_PROD` default per plan v3 §2.10).
+      METABASE_DB_PASSWORD: ci_password_test_only
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -216,6 +224,10 @@ jobs:
           - 5432:5432
     env:
       DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/foundry_cip_test
+      # M5 cip_09: cip_metabase_role password fallback (test-only sentinel
+      # belt-and-suspenders alongside the migration's
+      # `pytest_test_password_DO_NOT_USE_IN_PROD` default per plan v3 §2.10).
+      METABASE_DB_PASSWORD: ci_password_test_only
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

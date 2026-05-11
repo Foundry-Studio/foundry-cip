@@ -2,14 +2,14 @@
 kind: doc
 domain: client-intelligence-platform
 status: draft
-last_updated: 2026-04-21
-milestone: Phase-1-M1
+last_updated: 2026-05-11
+milestone: Phase-1-M7
 ---
 
 # RLS + `SET LOCAL` Operator Guide
 
-> **Status:** draft — M1 policies live 2026-04-21. All TBD(M1) sections populated.
-> Once final, this guide is the authoritative reference for tenant scoping in CIP — how RLS policies and `SET LOCAL app.current_tenant` combine to guarantee D-026 isolation.
+> **Status:** draft — M1 policies live 2026-04-21; M5 added the `cip_metabase_role` + lens-view grant matrix; M7 read-through 2026-05-11 populated §6 (cross-tenant probe — was TBD(M7)) and corrected §7's cip_09 reference (Phase 3 cross-tenant grants now chain at cip_10+).
+> This guide is the authoritative reference for tenant scoping in CIP — how RLS policies and `SET LOCAL app.current_tenant` combine to guarantee D-026 isolation.
 
 ## Purpose
 
@@ -200,19 +200,58 @@ Cause: old policy without NULLIF — `current_setting('app.current_tenant', true
 
 ### 6. Cross-tenant probe
 
-> **TBD (M7)** — The four-access-paths validation milestone will add the full cross-tenant probe script here, covering all 4 access paths (GraphRAG, direct SQL, REST API, Lens Engine) and asserting zero cross-tenant rows in each path.
+**Status:** populated in M7 (was TBD(M7) placeholder).
 
-Placeholder — M1 partial coverage:
+Phase 1 has four access paths into CIP data per `docs/FOUR-ACCESS-PATHS.md`. The cross-tenant probe asserts zero leakage on each path that's currently testable in foundry-cip standalone (Paths 1 + 4); Paths 2 + 3 are monorepo platform-service scope and are validated there.
 
-The RLS smoke tests at `tests/migrations/` cover the database-layer isolation for all 17 CIP tables. Run them with `pytest tests/migrations/ -v` to confirm zero cross-tenant rows in all 36 test cases.
+**Automated probe (Path 1 + Path 4):**
+
+```bash
+pytest tests/integration_mesh/test_four_access_paths_validation.py::test_path_1_via_postgres_lens_views_as_metabase_role -v
+pytest tests/integration_mesh/test_discoverability_completeness.py::test_cross_tenant_isolation_through_cip_views -v
+pytest tests/integration_mesh/test_lens_apply_e2e.py -v  # RLS-composing lens tests
+pytest tests/migrations/ -v                              # 36 per-table RLS smoke tests
+```
+
+All four suites must be green at HEAD. Together they cover:
+
+- Path 1 — Structured SQL: lens views queried under `cip_metabase_role` with tenant context; cross-tenant `cip_views` row leakage; per-table RLS policies on all 17 CIP tables.
+- Path 4 — Originals: `cip_files` row visibility scoped by tenant (covered by the M6 + M7 cip_files tests).
+
+**Manual probe (when debugging a suspected leak in production):**
+
+```sql
+-- Run as a non-superuser, non-BYPASSRLS role
+BEGIN;
+SET LOCAL ROLE cip_rls_test_role;             -- or cip_metabase_role in prod-shape
+
+-- Probe under Tenant A
+SET LOCAL app.current_tenant = '<tenant_a_uuid>';
+SELECT 'a' AS who, count(*) FROM cip_clients;
+SELECT 'a' AS who, count(*) FROM cip_views;
+SELECT 'a' AS who, count(*) FROM cip_files;
+
+-- Switch to Tenant B (same transaction — SET LOCAL is replaceable)
+SET LOCAL app.current_tenant = '<tenant_b_uuid>';
+SELECT 'b' AS who, count(*) FROM cip_clients;
+
+-- Probe under NO tenant — must return 0 across the board
+SET LOCAL app.current_tenant = '';
+SELECT 'none' AS who, count(*) FROM cip_clients;
+ROLLBACK;
+```
+
+Expected: Tenant A and Tenant B counts are independent; `none` row reads 0 (NULLIF blocks). Any non-zero `none` row is a P-0 RLS regression — file an inbox note immediately.
+
+Paths 2 + 3 (vector+BM25 / graph) live in the monorepo platform service. The monorepo's M7-equivalent verification scope (`458fb208-...`) is the home for those probes.
 
 ---
 
 ### 7. Phase 3 preview — cross-tenant grants
 
-> **TBD (M1)** — This section will be populated when Phase 3 (cip_09) is scoped.
+Phase 3 cross-tenant grants will allow Tenant A to explicitly grant read access to specific `client_id` rows to Tenant B. The RLS policy will be extended to also permit rows where `tenant_id = <granting_tenant>` AND a grant row exists for the requesting tenant. Default isolation (D-026) is maintained — grants are opt-in.
 
-Planned `cip_09_cross_tenant_grants` table will allow Tenant A to explicitly grant read access to specific `client_id` rows to Tenant B. The RLS policy will be extended to also permit rows where `tenant_id = <granting_tenant>` AND a grant row exists for the requesting tenant. Default isolation (D-026) is maintained — grants are opt-in.
+**Migration numbering note:** the original plan sketched the grants table at `cip_09`. cip_09 was used by M5 for the Metabase role + lens views (2026-05-09), so the cross-tenant grants migration moved to `cip_10_cross_tenant_grants` (see `MIGRATION-RUNBOOK.md §8`).
 
 ---
 

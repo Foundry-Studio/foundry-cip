@@ -2,13 +2,13 @@
 kind: doc
 domain: client-intelligence-platform
 status: draft
-last_updated: 2026-05-05
-milestone: Phase-1-M2
+last_updated: 2026-05-11
+milestone: Phase-1-M7
 ---
 
 # Connector Authoring Guide
 
-> **Status:** draft — M2 framework live 2026-05-05. Sections §§1–5, 7–8, 10–12 populated; §6 (`describe_schema()` → registry full semantics) deferred to M6; §9 (`ingest_as_knowledge` real Knowledge+Graph wiring) deferred to M5. Both deferred sections include forward-pointers to the M2-implemented surface.
+> **Status:** draft — M2 framework live 2026-05-05; M7 read-through 2026-05-11 corrected the M5/M6 forward-pointers. Sections §§1–5, 7–8, 10–12 populated. §6 (`describe_schema()` → registry full semantics) was authored in M2 and verified registry-complete by M6; the M2 forward-pointer text now IS the deployed semantics. §9 (`ingest_as_knowledge` real Knowledge+Graph wiring) lives in the monorepo platform service, NOT in foundry-cip — the Protocol contract documented here is the foundry-cip surface; downstream wiring (Pinecone embedding + FalkorDB ingestion) is consumed via `cip_consumer.knowledge_retriever_service` / `graphrag_retriever_service` (cross-link: `docs/FOUR-ACCESS-PATHS.md` §§2-3).
 > Once final, this guide is the authoritative reference for writing any new `CIPConnector` + `CIPMapper` pair (Zendesk, HubSpot, Chatwoot, Twenty, Drive, etc.). M2 validates the framework against `MockConnector + MockMapper` in the conformance harness; M3 lands the `FixtureConnector` reference implementation.
 
 ## Purpose
@@ -28,8 +28,9 @@ Define the minimum surface area an engineer must implement to bring a new data s
 | M0 — Doc skeleton | Created the original skeleton. |
 | M2 — Connector framework + conformance harness | Populates this guide §§1–5, 7–8, 10–12 (current). |
 | M3 — FixtureConnector reference implementation | Populates §12 with copy-and-adapt walkthrough. |
-| M5 — Knowledge + Graph wiring | Populates §9 with real Pinecone+FalkorDB ingestion semantics. |
-| M6 — Discoverability registry | Populates §6 `describe_schema()` → `cip_connector_property_registry` flow. |
+| M5 — Metabase platform service | Lights up Path 1 read-side consumption — orthogonal to connector authoring. Knowledge+Graph wiring (the original §9 deferral target) is a monorepo platform-service concern, NOT a foundry-cip milestone. |
+| M6 — Discoverability registry completeness pass | Verified §6's `describe_schema()` → `cip_connector_property_registry` flow at fixture-tenant scale. |
+| M7 — Four Access Paths Validation + Doc Suite Harden | M5/M6 marker corrections in this doc; cross-link to FOUR-ACCESS-PATHS.md §§2-3 for the consumer-side surface §9 describes. |
 
 Cross-ref: [`PHASE-1-PLAIN-SPEC.md §4`](vision/PHASE-1-PLAIN-SPEC.md) for the binding Protocol shapes; [`SYNC-ORCHESTRATOR-GUIDE.md`](SYNC-ORCHESTRATOR-GUIDE.md) for the run-loop side of the contract.
 
@@ -191,9 +192,9 @@ def incremental_key(self, record: dict[str, object]) -> datetime:
 
 ### 6. `describe_schema()` → property registry
 
-**TBD (M6).** The full discoverability-registry semantics — connector authors emitting per-tenant property catalogs that downstream agents and operators query — land with M6.
+**Status (M7 read-through):** M2 wired the descriptor flow; M6 verified registry completeness at fixture-tenant scale (`tests/integration_mesh/test_discoverability_completeness.py` Test 1 asserts ≥22 rows + per-`object_type` coverage). The forward-pointer text below IS the deployed semantics — no further milestone is required to "complete" this section.
 
-**M2 forward-pointer (what's already wired):**
+**Deployed surface:**
 
 `describe_schema()` returns a `list[PropertyDescriptor]`. The orchestrator calls it once per run as part of `_register_properties_best_effort()` and upserts each descriptor into `cip_connector_property_registry`. Failures here are **non-fatal** (log + continue) — registry write errors do NOT abort the sync.
 
@@ -223,7 +224,7 @@ Values outside this set will violate the CHECK constraint and the registry inser
 
 **`is_custom = True` once-true-stays-true:** the orchestrator's upsert preserves `is_custom = True` even if a later sync emits the same property with `is_custom = False`. Treat this as the trust contract — don't downgrade custom flags via re-emit.
 
-M6 expands this section with: tenant-aware property discovery, downstream query patterns, custom-field operator UX, schema drift between source-system property changes and existing registry rows.
+Cross-link: the M6 discoverability verification suite (`tests/integration_mesh/test_discoverability_completeness.py`) is the regression guard for this section.
 
 ---
 
@@ -284,9 +285,9 @@ For M2 / M3 / Phase 2 connectors: emit `authority="ingested"` on every row. The 
 
 ### 9. `ingest_as_knowledge(record)`
 
-**TBD (M5).** The full Knowledge+Graph wiring (real Pinecone embedding + FalkorDB ingestion) lands with M5.
+**Status (M7 read-through):** The Knowledge+Graph WIRING (real Pinecone embedding + FalkorDB ingestion) lives in the monorepo platform service — NOT in foundry-cip. M5 was the **Metabase platform service** milestone, not Knowledge+Graph wiring (an early-draft pointer of this section misattributed the wiring to M5). foundry-cip owns the Protocol contract documented below; consumers read the resulting knowledge via `cip_consumer.knowledge_retriever_service` (vector+BM25) and `cip_consumer.graphrag_retriever_service` (graph hops). See `docs/FOUR-ACCESS-PATHS.md` §§2-3 for the downstream consumption surfaces.
 
-**M2 forward-pointer (what's already wired + the contract you must respect):**
+**Deployed contract (what your mapper must respect):**
 
 `ingest_as_knowledge(record)` returns `list[KnowledgeText]` — text chunks the framework will hand off to the Knowledge+Graph layer. Per D-067, **knowledge-extraction failures are non-fatal**: any exception your method raises (other than `KnowledgeMetadataValidationError` or `TimezoneNaiveError`) is logged at WARNING and the run continues.
 
@@ -324,7 +325,7 @@ class KnowledgeTextMetadata(TypedDict, total=False):
 
 **Empty-list return:** legal. Means "no knowledge to ingest from this record" (e.g., a record with no email or text body). Orchestrator skips the hook for that record.
 
-M5 replaces the `ingest_texts_noop` body in [`cip/integration_mesh/knowledge_hook.py`](../cip/integration_mesh/knowledge_hook.py) with real Pinecone+FalkorDB writes. The Protocol shape — your `ingest_as_knowledge` return type and the `KnowledgeTextMetadata` contract — does NOT change. Your M5-era code path stays valid.
+The downstream platform service replaces the `ingest_texts_noop` body in [`cip/integration_mesh/knowledge_hook.py`](../cip/integration_mesh/knowledge_hook.py) with real Pinecone+FalkorDB writes (monorepo concern; Phase 2+). The Protocol shape — your `ingest_as_knowledge` return type and the `KnowledgeTextMetadata` contract — does NOT change.
 
 ---
 

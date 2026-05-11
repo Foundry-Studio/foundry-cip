@@ -2,13 +2,13 @@
 kind: doc
 domain: client-intelligence-platform
 status: draft
-last_updated: 2026-05-09
-milestone: Phase-1-M4
+last_updated: 2026-05-11
+milestone: Phase-1-M7
 ---
 
 # Lens Authoring Guide
 
-> **Status:** draft — populated 2026-05-09 alongside the M4 Lens Engine landing. Reflects the deployed lens engine surface at foundry-cip HEAD post-M4-CP#3. Filter operator extensibility (M6+), cross-table joins (M6+), and JSONB-overflow filtering (M6+) are documented as forward-compat in §7 but not buildable today.
+> **Status:** draft — populated 2026-05-09 alongside the M4 Lens Engine landing; M7 read-through 2026-05-11 corrected the M5/M6 milestone-row descriptions in §Related (M5 was Metabase platform service, NOT knowledge-text materialization; M6 was discoverability verification, NOT operator extensibility — operator extensibility is a Phase 2 lift). Reflects the deployed lens engine surface. Filter operator extensibility (Phase 2+), cross-table joins (Phase 2+), and JSONB-overflow filtering (Phase 2+) are documented as forward-compat in §7 but not buildable today.
 
 ## Purpose
 
@@ -26,8 +26,9 @@ Teach an engineer how to author a new Lens against `cip_*` structured data: row 
 |-----------|--------------|
 | M0 — Doc skeleton | Created this stub. |
 | M4 — Lens Engine | Defines `cip_views` row anatomy + `compile_filter` + `apply_lens`. **This guide reflects M4-deployed reality.** |
-| M5 — Knowledge-text materialization | First non-test lens consumer — agent retrieval flows through the engine. |
-| M6 — Discoverability registry | Adds operator extensibility (`$eq`/`$in`/`$gt` superset) + lens registry (lookup-by-purpose, not just `view_name`). |
+| M5 — Metabase platform service | First operator-facing lens consumer: M5's `cip_09` migration mirrors Lens-A + Lens-B as Postgres views (`lens_all_companies` / `lens_eu_west_companies`) and enforces P-21 via the `cip_metabase_role` grant matrix (REVOKE on `cip_*`, GRANT only on `lens_*`). |
+| M6 — Discoverability registry completeness pass | Verified the `cip_views` lens catalog is queryable + cross-tenant-isolated (`tests/integration_mesh/test_discoverability_completeness.py` Tests 2 + 7). |
+| M7 — Four Access Paths Validation + Doc Suite Harden | M5/M6 row corrections in this guide. Operator extensibility ($eq/$in/$gt) and cross-table joins are Phase 2+, NOT M6 deliverables. |
 | Phase 2 — Wayward Onboarding | First venture-specific lenses authored against real (non-fixture) data. |
 
 Cross-ref: `docs/architecture/principles/DESIGN-PRINCIPLES.md` §P-21 (Multi-Lens by Default), `docs/vision/VISION.md` §7g, `cip/migrations/versions/cip_02_views.py` (deployed schema).
@@ -202,9 +203,9 @@ What's deferred and where each item lights up:
 
 | Feature | Deferred to | Reason |
 |---|---|---|
-| Operator extensibility (`$eq`, `$ne`, `$in`, `$gt`, range, `LIKE`) | M6 (registries) or Phase 2 (Wayward) | M4 ships equality-only TSP; v2 superset is dict-shaped (`{"region": {"$eq": "eu-west"}}`) and fully compatible with v1 (`{"region": "eu-west"}` reads identically). |
-| Cross-entity joins (e.g., `cip_deals` filtered by `cip_companies.region`) | M6 (registries) or Phase 2 (Wayward) | Single-table only in M4; would require a join compiler in the lens engine OR materialized denormalized views OR graph-layer query plan — none fit Phase 1 scope. |
-| JSONB-overflow filtering (e.g., `properties->>'industry_region'`) | M6+ | M4 filters domain columns only; overflow lives in the per-table `properties` / `metadata` JSONB column. |
+| Operator extensibility (`$eq`, `$ne`, `$in`, `$gt`, range, `LIKE`) | Phase 2 (Wayward) | M4 ships equality-only TSP; v2 superset is dict-shaped (`{"region": {"$eq": "eu-west"}}`) and fully compatible with v1 (`{"region": "eu-west"}` reads identically). M6 (discoverability verification) did NOT include this extension, despite earlier drafts pointing here. |
+| Cross-entity joins (e.g., `cip_deals` filtered by `cip_companies.region`) | Phase 2 (Wayward) | Single-table only in M4; would require a join compiler in the lens engine OR materialized denormalized views OR graph-layer query plan — none fit Phase 1 scope. |
+| JSONB-overflow filtering (e.g., `properties->>'industry_region'`) | Phase 2+ | M4 filters domain columns only; overflow lives in the per-table `properties` / `metadata` JSONB column. |
 | Lens authoring UX (web form, CLI) | Phase 2+ | M4 seeds via direct INSERT; tooling is venture-side. |
 | Push-side lens application (outbound to Chatwoot etc.) | Phase 2 (Wayward) | M4 is read-side only. |
 | Pagination / streaming for large lens results | Phase 2+ | STANDARD corpus is 50 companies; pagination unneeded. |
@@ -274,7 +275,7 @@ Trade-off: pulls more rows than needed. Acceptable at fixture scale; consider pa
 If a Phase 2 venture genuinely needs a v2 operator (range, `IN`-list, `LIKE`) immediately and the workarounds above are too painful, file an inbox note + new D-number proposal:
 
 1. Write to `internal-tooling/inboxes/tims-inbox.md` describing the use case + which operator(s) are needed.
-2. Atlas / Tim decide whether to cherry-pick a v2 operator subset into M4.5 (likely not — the `$eq`/`$in`/`$gt` set is cohesive) or wait for M6.
-3. If accepted, the operator extension lives on M6's plan; M4's `_FORBIDDEN_OPERATOR_TOKENS` guard keeps the surface stable in the meantime.
+2. Atlas / Tim decide whether to cherry-pick a v2 operator subset into M4.5 (likely not — the `$eq`/`$in`/`$gt` set is cohesive) or wait for Phase 2 Wayward.
+3. If accepted, the operator extension lives on the Phase 2 plan; M4's `_FORBIDDEN_OPERATOR_TOKENS` guard keeps the surface stable in the meantime.
 
 The fail-fast guards in M4's compiler are deliberate: v1 contract fail-loud, v2 contract escalation-required. The cost of a strict v1 is real; the cost of accidentally enabling unsafe operator syntax under stress is higher.

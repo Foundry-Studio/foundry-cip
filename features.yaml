@@ -13,14 +13,14 @@ features:
     name: "Generic Connector Framework"
     description: "CIPConnector + CIPMapper Protocols + sync orchestrator with session-level advisory locks for dual-run prevention"
     status: available
-    path_to_more: "cip/integration_mesh/README.md"
+    path_to_more: "cip/integration_mesh/orchestrator.py"
     depends_on: []
 
   - id: fixture-connector
     name: "Fixture (Deterministic Synthetic) Connector"
     description: "Reference CIPConnector implementation. Generates 1150-row deterministic corpus from a single Faker seed for byte-identical reproducibility"
     status: available
-    path_to_more: "cip/integration_mesh/connectors/fixture/README.md"
+    path_to_more: "cip/integration_mesh/connectors/fixture/connector.py"
     depends_on: []
 
   - id: connector-conformance-harness
@@ -49,7 +49,7 @@ features:
     name: "Bitemporal SCD-2 History"
     description: "Per-entity *_history tables capturing both valid-time (record's truth window) and transaction-time (when CIP knew about it) for full audit + point-in-time queries"
     status: available
-    path_to_more: "cip/integration_mesh/scd.py"
+    path_to_more: "cip/integration_mesh/scd_differ.py"
     depends_on: []
 
   - id: tenant-isolation-rls
@@ -92,9 +92,9 @@ features:
   # ─── Pillar 5: Consumption Surfaces (PLANNED — M5+) ──────────────────
   - id: metabase-platform-service
     name: "Metabase Dashboards"
-    description: "Self-service dashboards over CIP structured store for tenant operators"
-    status: planned
-    path_to_more: "(M5 deliverable — TBD)"
+    description: "Self-service dashboards over CIP structured store for tenant operators. M5 shipped cip_09 migration (cip_metabase_role + lens_all_companies + lens_eu_west_companies views; P-21 enforced via REVOKE on cip_* + GRANT on lens_*)."
+    status: available
+    path_to_more: "docs/METABASE-OPERATOR-GUIDE.md"
     depends_on: []
 
   - id: rest-api-endpoints

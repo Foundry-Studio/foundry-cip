@@ -2,14 +2,14 @@
 kind: doc
 domain: client-intelligence-platform
 status: draft
-last_updated: 2026-04-21
-milestone: Phase-1-M1
+last_updated: 2026-05-11
+milestone: Phase-1-M7
 ---
 
 # Migration Runbook
 
-> **Status:** draft — M1 migrations applied 2026-04-21. All TBD(M1) sections populated.
-> Once final, this runbook is the authoritative sequence for applying `cip_*` migrations to any CIP-enabled environment. Phase 1 covers cip_01 → cip_08; cip_09 is Phase 3; cip_10/11/12 are Phase 2.5.
+> **Status:** draft — M1 migrations applied 2026-04-21; cip_09 (Metabase platform service) added 2026-05-09 in M5. M7 read-through 2026-05-11 corrected the cip_09 / Phase 3 misattribution in §8 (Phase 3 cross-tenant grants now chain at cip_10 since cip_09 is taken).
+> This runbook is the authoritative sequence for applying `cip_*` migrations to any CIP-enabled environment. Phase 1 covers cip_01 → cip_09; cip_10/11/12 are Phase 2.5; cross-tenant grants (Phase 3) chain at cip_10+.
 
 ## Purpose
 
@@ -45,10 +45,11 @@ All 8 migrations land in a single linear chain. Each subsequent revision's `down
 | `cip_06_companies` | `migrations/versions/cip_06_companies.py` | `cip_companies` | `cip_companies_history` |
 | `cip_07_deals` | `migrations/versions/cip_07_deals.py` | `cip_deals` | `cip_deals_history` |
 | `cip_08_tickets_and_registry` | `migrations/versions/cip_08_tickets_and_registry.py` | `cip_tickets`, `cip_connector_property_registry` | `cip_tickets_history` |
+| `cip_09_metabase_role_views` | `migrations/versions/cip_09_metabase_role_views.py` | `cip_metabase_role` (Postgres LOGIN role) + `lens_all_companies` + `lens_eu_west_companies` views | none |
 
 The chain base: `cip_01_clients.down_revision = "async_03_agents_cols"` (the production DB head before CIP was introduced).
 
-Total new objects: 16 tables + 1 registry table = 17 tables, 40+ indexes, 17 RLS policies.
+Total new objects: 16 tables + 1 registry table + 2 lens views + 1 Postgres role = 17 tables + 2 views, 40+ indexes, 17 RLS policies, plus the M5 grant matrix (REVOKE on `cip_*`, GRANT only on `lens_*`).
 
 ---
 
@@ -239,13 +240,13 @@ Debug table `cip_test_trace` created during M1 env.py troubleshooting; dropped 2
 
 ### 8. Phase 2.5 and Phase 3 migrations (preview)
 
-**Do not apply these in Phase 1.**
+**Do not apply these in Phase 1 ventures.**
 
 | Revision (planned) | Phase | Purpose |
 |--------------------|-------|---------|
-| `cip_09_cross_tenant_grants` | Phase 3 | Cross-tenant visibility grants — extends RLS model without breaking D-026 default isolation. |
-| `cip_10_*` | Phase 2.5 | Write-back: mutation queue tables. |
-| `cip_11_*` | Phase 2.5 | Write-back: audit trail for mutations. |
-| `cip_12_*` | Phase 2.5 | Write-back: conflict resolution. |
+| `cip_10_cross_tenant_grants` | Phase 3 | Cross-tenant visibility grants — extends RLS model without breaking D-026 default isolation. (Was earlier sketched as `cip_09`; renumbered to `cip_10` because cip_09 was used by M5 for the Metabase role + lens views.) |
+| `cip_11_*` | Phase 2.5 | Write-back: mutation queue tables. |
+| `cip_12_*` | Phase 2.5 | Write-back: audit trail for mutations. |
+| `cip_13_*` | Phase 2.5 | Write-back: conflict resolution. |
 
-These revisions will chain off `cip_08_tickets_and_registry` when authored.
+These revisions will chain off `cip_09_metabase_role_views` when authored.

@@ -2,13 +2,13 @@
 kind: doc
 domain: client-intelligence-platform
 status: draft
-last_updated: 2026-05-09
-milestone: Phase-1-M5
+last_updated: 2026-05-11
+milestone: Phase-1-M7
 ---
 
 # Metabase Operator Guide
 
-> **Status:** draft — created 2026-05-09 alongside M5's `cip_09_metabase_role_views` migration. Reflects the deployed shape at foundry-cip HEAD post-M5-Commit-1. Operator-side dashboard authoring is the actual M5 acceptance proof; this doc is the runbook.
+> **Status:** draft — created 2026-05-09 alongside M5's `cip_09_metabase_role_views` migration; M7 read-through 2026-05-11 corrected §Related M6 row + §3 forward note (M6 was discoverability verification, NOT an auto-generator commit-watcher — the auto-generator is deferred to Phase 2 per task #143). Reflects the deployed shape. Operator-side dashboard authoring is the actual M5 acceptance proof; this doc is the runbook.
 
 ## Purpose
 
@@ -27,8 +27,9 @@ Wire the existing Metabase deployment at `reports.project-silk.com` to the found
 | M0 — Doc skeleton | (Skipped — this doc was created direct as `status: draft` in M5 because no M0 skeleton existed for it. M5 Δ in plan v3 §4.3.) |
 | M4 — Lens Engine | Provides the Lens-A and Lens-B fixture lenses; M5 mirrors them as Postgres views. |
 | **M5 — Metabase platform service** | **This guide ships alongside the cip_09 migration.** Two demo dashboards + a Lens Switcher are the M5 acceptance proof (operator-side, screenshot evidence in `WORKBENCH/tim/m5-acceptance-evidence/`). |
-| M6 — Discoverability registry | Auto-update commit-watcher: lens views regenerated automatically when `cip_views` rows change. M5's hardcoded views are temporary. |
-| Phase 2+ — multi-tenant Metabase | Per-tenant Collections / per-tenant DB connections. This guide's single-tenant pin is Phase 1 only. |
+| M6 — Discoverability registry completeness pass | Verified `lens_*` Postgres views exist + per-tenant isolation through `cip_metabase_role` (`tests/integration_mesh/test_discoverability_completeness.py` Test 5). M5's hardcoded views remain hardcoded; the auto-generator commit-watcher (Phase 2 task #143) is what eventually unwires this. |
+| M7 — Four Access Paths Validation + Doc Suite Harden | Cross-validated Path 1 production-shape (lens views as cip_metabase_role) against the Python-side lens engine in `tests/integration_mesh/test_four_access_paths_validation.py`. |
+| Phase 2+ — multi-tenant Metabase + auto-generator | Per-tenant Collections / per-tenant DB connections + commit-watcher that regenerates `lens_*` views from `cip_views` row changes. This guide's single-tenant pin is Phase 1 only. |
 
 Cross-ref: `cip/migrations/versions/cip_09_metabase_role_views.py`, `cip/integration_mesh/lens_engine/`, `docs/LENS-AUTHORING-GUIDE.md`, `docs/vision/VISION.md` §S6 (Consumption Surfaces) + §4 ("What Already Exists" — Metabase at reports.project-silk.com).
 
@@ -106,7 +107,7 @@ Cross-ref: `cip/migrations/versions/cip_09_metabase_role_views.py`, `cip/integra
 
 Both views target `cip_companies`. Phase 2+ will add lens views for other entity tables (cip_contacts, cip_deals, etc.) with appropriate filters.
 
-**Forward note:** M5 ships hardcoded views in the `cip_09` migration. M6 introduces a commit-watcher that auto-generates a lens view whenever a row is written to `cip_views`. Until M6 ships, every new lens requires a new migration + manual CREATE VIEW. Document the reason for any non-trivial lens addition in the migration commit so future automation has the rationale.
+**Forward note:** M5 ships hardcoded views in the `cip_09` migration. A future commit-watcher (deferred to Phase 2 — PM task #143) auto-generates a lens view whenever a row is written to `cip_views`. Until that lands, every new lens requires a new migration + manual `CREATE VIEW`. Document the rationale for any non-trivial lens addition in the migration commit so the future auto-generator has context.
 
 ---
 
@@ -232,7 +233,7 @@ This is the security-model regression check. Run before believing the dashboards
 ## 9. Forward compatibility
 
 - **Multi-tenant Metabase (Phase 2+).** The single-tenant Init SQL pin is the Phase 1 tradeoff per VISION §S6. Phase 2 multi-tenant can take one of three shapes — per-tenant Metabase Collections, per-tenant DB connections, or a parameter-driven tenant switcher. That's a Metabase-project design call, not foundry-cip's problem.
-- **M6 auto-update commit-watcher.** When a row is INSERTed/UPDATEd in `cip_views`, M6 commit-watches it and emits a CREATE-OR-REPLACE-VIEW migration to keep `lens_*` views in sync with the lens definitions. Until M6, `cip_views` and `lens_*` can drift; the M5 dashboards reference the M4-deployed Lens-A and Lens-B which DO have matching `lens_*` views.
+- **Auto-update commit-watcher (Phase 2 — task #143).** When a row is INSERTed/UPDATEd in `cip_views`, the watcher will emit a CREATE-OR-REPLACE-VIEW migration to keep `lens_*` views in sync with the lens definitions. Until that lands, `cip_views` and `lens_*` can drift; the M5 dashboards reference the M4-deployed Lens-A and Lens-B which DO have matching `lens_*` views. (Earlier-draft notes attributed this to M6 — corrected on M7 read-through.)
 - **Phase 4 REST/MCP/chatbot consumers** query the same `lens_*` views (per plan v3 §2.8). Single read-side abstraction across humans + agents.
 - **Phase 2.5 write-back** uses a separate role (`cip_writeback_role`, per plan v3 §2.7). M5's `cip_metabase_role` stays read-only.
 

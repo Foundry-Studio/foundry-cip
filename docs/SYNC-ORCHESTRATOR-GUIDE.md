@@ -2,14 +2,14 @@
 kind: doc
 domain: client-intelligence-platform
 status: draft
-last_updated: 2026-05-05
-milestone: Phase-1-M2
+last_updated: 2026-05-11
+milestone: Phase-1-M7
 ---
 
 # Sync Orchestrator Guide
 
-> **Status:** draft — M2 orchestrator live 2026-05-05. Sections §§1–6, 8–10 populated; §7 (real Knowledge+Graph wiring) deferred to M5 with the M2 stub contract documented.
-> Once final, this guide explains the CIP ingestion pipeline orchestrator — the component that drives a connector through `authenticate → stream_records → map → persist → ingest_as_knowledge` and records the run in `cip_sync_runs`.
+> **Status:** draft — M2 orchestrator live 2026-05-05; M7 read-through 2026-05-11 corrected the §Related M5 row (M5 was Metabase platform service, NOT Knowledge+Graph wiring — wiring lives in the monorepo platform service per `docs/FOUR-ACCESS-PATHS.md` §§2-3). Sections §§1–6, 8–10 populated; §7 documents the M2 stub contract that foundry-cip owns (the orchestrator dispatches through a no-op hook; the monorepo Knowledge service is what eventually replaces the stub).
+> This guide explains the CIP ingestion pipeline orchestrator — the component that drives a connector through `authenticate → stream_records → map → persist → ingest_as_knowledge` and records the run in `cip_sync_runs`.
 
 ## Purpose
 
@@ -27,7 +27,8 @@ Describe the orchestrator's responsibilities, control flow, transaction boundari
 |-----------|--------------|
 | M0 — Doc skeleton | Created the original skeleton. |
 | M2 — Connector framework + orchestrator + harness | Populates this guide §§1–6, 8–10 (current). |
-| M5 — Knowledge + Graph wiring | Populates §7 with real Pinecone+FalkorDB write-path semantics. |
+| M5 — Metabase platform service | Read-side consumption; orthogonal to the orchestrator. Knowledge+Graph wiring (the original §7 deferral target) is a monorepo platform-service concern, NOT a foundry-cip milestone. The orchestrator's `ingest_texts_noop` hook stays a no-op in foundry-cip; the monorepo service replaces it. |
+| M7 — Four Access Paths Validation + Doc Suite Harden | M5 row correction in this guide. |
 
 Cross-ref: [`PHASE-1-PLAIN-SPEC.md §3`](vision/PHASE-1-PLAIN-SPEC.md) for the orchestrator contract; [`CONNECTOR-AUTHORING-GUIDE.md`](CONNECTOR-AUTHORING-GUIDE.md) for the connector side; [`RLS-SET-LOCAL-OPERATOR-GUIDE.md`](RLS-SET-LOCAL-OPERATOR-GUIDE.md) for the tenant-scoping contract the orchestrator depends on.
 
@@ -237,9 +238,9 @@ with Session(engine, autoflush=False, expire_on_commit=False) as db, db.begin():
 
 ### 7. Knowledge-ingest hook
 
-**TBD (M5).** Real Pinecone + FalkorDB ingestion lands with M5.
+**Status (M7 read-through):** Real Pinecone + FalkorDB ingestion is a **monorepo platform-service concern**, NOT a foundry-cip milestone (earlier-draft pointer attributed this to M5; M5 was the Metabase platform service). foundry-cip's `ingest_texts_noop` stays a no-op stub; downstream consumers wire the real ingestion in the monorepo. Read `docs/FOUR-ACCESS-PATHS.md` §§2-3 for the consumer-side surface.
 
-**M2 forward-pointer (the contract that DOES live today):**
+**Deployed contract (what foundry-cip owns):**
 
 For every record processed in a batch, AFTER the persister has written domain rows AND BEFORE the next record begins, the orchestrator runs the knowledge-hook flow:
 

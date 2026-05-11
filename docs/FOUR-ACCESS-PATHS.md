@@ -120,8 +120,8 @@ from cip_consumer import storage_service  # platform service
 from sqlalchemy import text
 
 cip_file = db.execute(
-    text("SELECT r2_path FROM cip_files WHERE cip_file_id = :id AND tenant_id = :tid"),
-    {"id": file_id, "tid": tenant_id},
+    text("SELECT r2_path FROM cip_files WHERE id = :file_id AND tenant_id = :tid"),
+    {"file_id": file_id, "tid": tenant_id},
 ).first()
 signed_url = storage_service.sign_url(cip_file.r2_path, expiry_seconds=300)
 ```

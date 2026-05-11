@@ -39,7 +39,7 @@ def get_url() -> str:
     url = os.environ.get("DATABASE_URL")
     if not url:
         raise RuntimeError(
-            "DATABASE_URL not set — alembic requires a Postgres connection string. "
+            "DATABASE_URL not set - alembic requires a Postgres connection string. "
             "Example: postgresql+psycopg://user:pw@host:5432/db"
         )
     if url.startswith("postgresql://"):
@@ -47,6 +47,36 @@ def get_url() -> str:
     elif url.startswith("postgres://"):
         url = url.replace("postgres://", "postgresql+psycopg://", 1)
     return url
+
+
+def _print_target_banner(url: str) -> None:
+    """Print the resolved target host before any DDL runs.
+
+    Motivated by the 2026-05-11 cip01 incident (postmortem at
+    Foundry-Agent-System/WORKBENCH/tim/cip01-knowledge-taxonomy-incident-2026-05-11.md).
+    A parallel CC session ran a migration against Railway prod thinking
+    it was targeting local dev because the resolved DB host was never
+    surfaced before the upgrade ran. The monorepo env.py got the same
+    banner in commit 7da78ebf; this is the foundry-cip-side parity.
+
+    Prints a loud "*** PRODUCTION TARGET ***" tag when the host matches
+    known Railway patterns (``*.rlwy.net``, ``*.railway.app``).
+    """
+    import re as _re
+    m = _re.search(r"@([^/:?]+)(?::(\d+))?", url)
+    if not m:
+        return
+    host = m.group(1)
+    port = m.group(2) or "5432"
+    prod = bool(_re.search(r"\.rlwy\.net|\.railway\.app", host))
+    banner = " *** PRODUCTION TARGET *** " if prod else " "
+    print(
+        f"[cip alembic env.py]{banner}target={host}:{port}",
+        flush=True,
+    )
+
+
+_print_target_banner(get_url())
 
 
 def assert_no_cross_pollution(connection: Any) -> None:

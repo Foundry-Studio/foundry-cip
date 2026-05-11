@@ -7,8 +7,9 @@ intended_audience: claude-code-architect
 status: authoritative
 owner: tim
 authors: [atlas]
+amendments: [tim-2026-05-11-historical-lens]
 created: 2026-04-20
-last_updated: 2026-04-20
+last_updated: 2026-05-11
 pairs_with: PHASE-1-PLAN.md
 ---
 
@@ -43,6 +44,7 @@ Phase 1 is complete when all of these are simultaneously true:
 11. Four-access-paths validation report committed at `products/client-intelligence-platform/validation/M7-discoverability-report.md` with all four paths green against the fixture tenant.
 12. All ten doc artifacts in `docs/cip/` reviewed and complete (see §9).
 13. Connector-conformance test harness exists at `tests/fixtures/connector_conformance/` — any future `CIPConnector` subclass can use it to validate Protocol compliance.
+14. **(Tim amendment 2026-05-11)** Historical lens surface proof: at least one `lens_*_history` view exists exposing a `cip_*_history` table through `cip_metabase_role`, plus a verification test that the view is queryable per-tenant via the M5 role pattern. Closes the question "does CIP expose its bitemporal SCD-2 history layer for BI consumption" before Phase 2 inherits it. See §15.
 
 Any acceptance criterion missed = Phase 1 incomplete.
 
@@ -317,6 +319,8 @@ Stop and escalate to Atlas if:
 
 Escalation = a short prose message to Atlas naming the mismatch. Do not guess, do not proceed.
 
+**Vacation-mode exception (Tim 2026-05-11):** when Atlas is unreachable, Tim wears the design-decision hat. CC escalates to Tim instead of Atlas; Atlas reviews retroactively on return.
+
 ## 14. What you hand back
 
 At M8 exit:
@@ -341,3 +345,38 @@ Before writing any code:
 7. Only then does the builder subagent start M1.
 
 This loop is deliberate. Atlas pays for the iteration in tokens; Tim pays for mistakes in weeks. Iteration is cheaper.
+
+---
+
+## 15. Tim amendments (vacation-mode additions to original SPEC)
+
+### 15.1 — M8 historical-lens proof-of-life (2026-05-11)
+
+**Authoring context:** Tim, during vacation-mode (Atlas unreachable). Source conversation: 2026-05-11 CC session preparing M8 close. Atlas reviews on return.
+
+**The gap this closes:** the original SPEC (§6 Lens Engine, §2 acceptance) only requires two CURRENT-STATE lenses (`Lens-A Full View` + `Lens-B Region-EMEA View`) on `cip_companies`. The structural layer captures historical data via SCD-2 bitemporal `cip_*_history` tables (M1 deliverable, tested in §11 `test_scd_history`), but no lens surface exposes it through `cip_metabase_role`. The unanswered question at Phase 1 close: "can a BI tool like Metabase reach the historical surface, or did we build it but not connect it?"
+
+**What good looks like (the acceptance row):**
+
+| # | What good looks like | How to test | Pass/fail |
+|---|---|---|---|
+| 14.1 | At least one `lens_*_history` view exists in Postgres exposing a `cip_*_history` table for the fixture tenant. The view is tenant-RLS-scoped through `current_setting('app.current_tenant')`. | `SELECT viewname FROM pg_views WHERE schemaname='public' AND viewname LIKE 'lens_%_history'` returns ≥1 row. | Pass: ≥1 history-lens view; Fail: zero. |
+| 14.2 | `cip_metabase_role` has SELECT on the new history-lens view. It does NOT have SELECT on the underlying `cip_*_history` table (P-21 grant matrix continues to hold). | As `cip_metabase_role` + tenant context: `SELECT * FROM lens_companies_history` succeeds; `SELECT * FROM cip_companies_history` raises `permission denied`. | Pass: both behaviors; Fail: either drift. |
+| 14.3 | The history-lens view returns >0 rows for the fixture tenant after STANDARD-corpus sync (because every initial insert + every subsequent sync upserts history rows per the SCD-2 differ). | As `cip_metabase_role` + tenant_id set: `SELECT COUNT(*) FROM lens_companies_history` returns >0. | Pass: >0; Fail: 0. |
+| 14.4 | Cross-tenant isolation holds on the history-lens view: tenant B cannot see tenant A's historical rows. | Mirror the existing `test_cross_tenant_isolation_through_cip_views` pattern against `lens_companies_history`. | Pass: zero rows from the other tenant; Fail: leak. |
+| 14.5 | A verification test exists at `tests/integration_mesh/test_historical_lens_surface.py` (or appended to `test_cip_09_metabase_role_views.py`) covering 14.1-14.4. CI green. | `pytest` exits 0. | Pass: green; Fail: any red. |
+
+**Deliverable shape:** one `cip_10_*` migration (new revision in the chain) that:
+- `CREATE VIEW lens_companies_history AS SELECT * FROM cip_companies_history WHERE tenant_id = NULLIF(current_setting('app.current_tenant', true), '')::uuid;` (mirroring M5's per-tenant RLS pattern).
+- `GRANT SELECT ON lens_companies_history TO cip_metabase_role;`
+- No `REVOKE` on `cip_companies_history` — that grant was never given in M5, so the principle of least privilege already holds.
+
+**Why `cip_companies_history` specifically (not all 6 history tables):** proof-of-life, not full BI library. Pattern proven once = the same pattern works for the other 5 history tables when Wayward Phase 2 needs them. Authoring 6 history-lens views at fixture scale is busywork; one is sufficient to close the question.
+
+**Why this is M8 expansion, not new Phase 2 work:** the M5 grant matrix is the production-shape decision. Without proof that history is reachable through that matrix, Phase 1 closes with a design hole. Better to surface it now than discover it mid-Wayward.
+
+**Out of scope for this amendment:**
+- Date-range filtering on history lenses (Phase 2+ operator extensibility — `$gt`/`$lt` in M4 lens engine).
+- "Point-in-time" or "as of date X" query helpers (Phase 2+ — Metabase parameterizes via SQL or extension; CIP doesn't need a helper for it).
+- Auto-generation of `lens_*_history` views for all 6 entity tables (Phase 2 task #143 commit-watcher).
+- Joins between current + history (Phase 2+ — M4 single-table only).

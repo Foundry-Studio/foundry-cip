@@ -1,25 +1,33 @@
 # foundry: kind=service domain=client-intelligence-platform touches=integration
-"""Zendesk connector — SCAFFOLD ONLY.
+"""Zendesk Support v2 connector for CIP.
 
-Phase 2 Wayward Onboarding deliverable. Folder structure + class
-skeletons in place to give the Phase 2 M1 build a deliberate starting
-point. None of the methods are implemented yet; each raises
-``NotImplementedError`` with a pointer to the spec.
+Per D-159: historical backfill is mandatory. On first sync, the
+connector walks ``/api/v2/tickets/{id}/audits.json`` for every ticket
+and emits one synthesized record per audit event. The SCD-2 differ
+writes ``cip_tickets_history`` rows for each pre-CIP state change
+Zendesk's audit log still retains.
 
-Real implementation requires:
-- Wayward HubSpot/Zendesk Phase 2 deep plan (Atlas / Tim joint decision
-  on OAuth refresh strategy, pagination quirks, history-clock semantics)
-- ``WAYWARD_ZENDESK_TOKEN`` + ``WAYWARD_ZENDESK_USER`` (default
-  ``jake@wayward.com``) env vars provisioned per
-  ``WORKBENCH/tim/wayward-tenant-coordinates.md``
-- An existing pull-zendesk.py reference at
-  ``WORKBENCH/tim/ventures/ecomlever/clients/wayward/pull-zendesk.py``
-  in the monorepo — useful but pre-CIP-framework; the connector here is
-  a clean rewrite against ``CIPConnectorBase``.
+Auth: Basic with ``{email}/token:{token}`` format. Reads
+``WAYWARD_ZENDESK_TOKEN`` + ``WAYWARD_ZENDESK_USER`` +
+``WAYWARD_ZENDESK_SUBDOMAIN`` env vars by default.
 
-Use the FixtureConnector at ``cip/integration_mesh/connectors/fixture/``
-as the canonical reference implementation; mirror its layout
-(connector.py, mapper.py, optional records.py for fixtures).
+Entity mapping (Zendesk → CIP):
+  - organizations → cip_companies
+  - users → cip_contacts
+  - tickets → cip_tickets (with audit-log backfill)
+
+Usage::
+
+    from cip.integration_mesh.connectors.zendesk import (
+        ZendeskConnector, ZendeskMapper,
+    )
+    connector = ZendeskConnector(tenant_id=tid)  # reads env tokens
+    mapper = ZendeskMapper()
+    run_sync(connector, mapper, engine, tenant_id=tid, database_url=url)
+
+See ``WORKBENCH/tim/wayward-tenant-coordinates.md`` for Wayward
+deployment coordinates + ``docs/CONNECTOR-AUTHORING-GUIDE.md`` for the
+authoring pattern.
 """
 from __future__ import annotations
 

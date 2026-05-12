@@ -1,30 +1,28 @@
 # foundry: kind=service domain=client-intelligence-platform touches=integration
-"""HubSpot connector — SCAFFOLD ONLY.
+"""HubSpot v3 CRM connector for CIP.
 
-Phase 2 Wayward Onboarding deliverable. Folder structure + class
-skeletons in place to give the Phase 2 M1 build a deliberate starting
-point. None of the methods are implemented yet; each raises
-``NotImplementedError`` with a pointer to the spec.
+Per D-159: historical backfill is mandatory. On first sync for a new
+tenant, ``HubSpotConnector`` pulls each record's full property-history
+(up to HubSpot's 20-revision-per-property retention window) and emits
+synthesized backfill records to the orchestrator. The SCD-2 differ
+writes ``cip_*_history`` rows for every pre-CIP revision.
 
-Real implementation requires:
-- Wayward HubSpot/Zendesk Phase 2 deep plan (Atlas / Tim joint decision
-  on OAuth refresh strategy, pagination quirks, history-clock semantics)
-- ``WAYWARD_HUBSPOT_TOKEN`` env var provisioned per
-  ``WORKBENCH/tim/wayward-tenant-coordinates.md``
-- Decision on the **HubSpot "backup tape"** question: HubSpot retains
-  up to 20 revisions per property; the connector either backfills that
-  pre-CIP history into cip_*_history (preserves history before first
-  sync) or accepts from-sync-onward history (loses pre-CIP changes).
-  See PHASE-1-PLAN.md R5 + the historical-data answer in the
-  Wayward Phase 2 deep plan.
-- An existing pull-hubspot.py reference at
-  ``WORKBENCH/tim/ventures/ecomlever/clients/wayward/pull-hubspot.py``
-  in the monorepo — useful but pre-CIP-framework; the connector here is
-  a clean rewrite against ``CIPConnectorBase``.
+Auth: HubSpot Private App Token (PAT, ``pat-*`` prefix). Read from
+``WAYWARD_HUBSPOT_TOKEN`` env var by default; pass ``token=...`` to
+override.
 
-Use the FixtureConnector at ``cip/integration_mesh/connectors/fixture/``
-as the canonical reference implementation; mirror its layout
-(connector.py, mapper.py).
+Usage::
+
+    from cip.integration_mesh.connectors.hubspot import (
+        HubSpotConnector, HubSpotMapper,
+    )
+    connector = HubSpotConnector(tenant_id=tid)  # reads env tokens
+    mapper = HubSpotMapper()
+    run_sync(connector, mapper, engine, tenant_id=tid, database_url=url)
+
+See ``WORKBENCH/tim/wayward-tenant-coordinates.md`` for the Wayward
+deployment coordinates + ``docs/CONNECTOR-AUTHORING-GUIDE.md`` for the
+authoring pattern.
 """
 from __future__ import annotations
 

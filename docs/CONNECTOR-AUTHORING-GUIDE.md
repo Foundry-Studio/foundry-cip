@@ -418,6 +418,64 @@ When authoring a new connector (Phase 2 onward), copy `cip/integration_mesh/conn
 
 ---
 
+### 13. Historical Backfill Contract (per D-159)
+
+**Every CIP connector MUST backfill whatever historical data the source system retains, into the corresponding `cip_*_history` tables, on first sync for any new tenant.** This is the framework's default behavior, not an opt-in feature. Locked 2026-05-12 by D-159.
+
+**The contract:**
+
+1. On a tenant's first sync via a given connector, the connector calls the source system's history / audit / revision endpoint for every record it pulls, in addition to the current-state endpoint.
+2. For each prior revision the source still retains, the connector emits a **synthesized record** that flows through the orchestrator's SCD-2 differ. The synthesized record carries three special markers the mapper recognizes:
+    - `__cip_backfill__: True` — tells the framework this is a historical revision, not current state. (The orchestrator + persister inspect this to route the row to `cip_*_history` directly without bumping the current-state row in the main table.)
+    - `__cip_valid_from__: <ISO timestamp>` — the timestamp the source recorded for this revision. Becomes `cip_*_history.valid_from`.
+    - `__cip_valid_to__: <ISO timestamp | None>` — the timestamp of the NEXT revision, or `None` if this is the most-recent historical entry. Becomes `cip_*_history.valid_to`.
+3. Backfill records are yielded **chronologically (oldest → newest)** so the differ writes history rows in valid_from order.
+4. Backfill records share the same `ingestion_batch_id` as the initial current-state sync — one operation, multiple synthesized records.
+5. On subsequent syncs, history accumulates normally via the differ's change-detection (no backfill re-runs; backfill is per-tenant-per-connector one-shot).
+
+**Source-system retention is a known constraint, not a failure mode:**
+
+- HubSpot retains up to 20 revisions per property via the Property History API; the connector pulls all 20 if available.
+- Zendesk audit log retention varies by plan; the connector pulls what's still available without erroring on retention-window boundaries.
+- A 404 / 403 on the history endpoint for a specific record is non-fatal; the connector continues with current-state ingestion.
+
+**Connectors WITHOUT a history endpoint:** when the source system genuinely has no history endpoint OR the connector author cannot retrieve revisions for technical reasons, the connector documents the limitation in its module docstring + `describe_schema()` output. The framework does NOT REJECT a connector that lacks backfill — it FLAGS the gap. Tim/Atlas evaluate per-connector whether the gap is acceptable for the specific venture.
+
+**Implementation pattern (reference: `cip/integration_mesh/connectors/hubspot/connector.py`):**
+
+```python
+def stream_records(self, cursor, batch_size):
+    # ...pagination loop...
+    for record in page.get("results", []):
+        # 1. Yield current-state record first
+        yield self._to_record(record, record_type)
+
+        # 2. Yield synthesized backfill records for each prior revision
+        if self.backfill_history:
+            yield from self._yield_history_revisions(record, record_type)
+
+
+def _yield_history_revisions(self, source_obj, record_type):
+    """Emit one synthesized record per historical revision, oldest first."""
+    revisions = self._fetch_revisions(source_obj)  # source-system history call
+    for ts, snapshot, next_ts in revisions:
+        yield {
+            "__cip_kind__": record_type,
+            "__cip_backfill__": True,
+            "__cip_valid_from__": ts,
+            "__cip_valid_to__": next_ts,
+            "source_id": str(source_obj["id"]),
+            **snapshot,
+            "updated_at": ts,
+        }
+```
+
+**Knowledge-text emission and backfill:** by convention, mapper's `ingest_as_knowledge()` returns an EMPTY list for backfill records — historical revisions don't re-emit knowledge text. The current-state record drives knowledge ingestion; backfill is purely structural for time-series reporting.
+
+**Why this is the default, not an opt-in:** Tim 2026-05-12 — historical reporting (deal-stage trends, ticket-state transitions over time, company-property changes) is core to the BI use case CIP exists to serve. Accepting "from-sync-onward" history means losing what the source system still has retained, which is irrecoverable once the retention window passes.
+
+---
+
 ## v5.4 plan-hygiene TODOs surfaced by this guide
 
 Captured for the next plan-hygiene pass:

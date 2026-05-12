@@ -160,14 +160,21 @@ features:
 
   - id: hubspot-connector
     name: "HubSpot CRM Connector"
-    description: "HubSpot ingestion for contacts, companies, deals, notes (incl. call transcripts). Phase 2 LOCKED per VISION — first instance alongside Zendesk for Wayward onboarding."
-    status: planned
-    path_to_more: "(Phase 2 deliverable)"
+    description: "HubSpot v3 connector — companies/contacts/deals/tickets + mandatory property-history backfill per D-159 (up to HubSpot's 20-revision retention window). Implementation landed 2026-05-12; not yet run against real Wayward data (Tier 3 pending Tim go)."
+    status: available
+    path_to_more: "cip/integration_mesh/connectors/hubspot/connector.py"
+    depends_on: []
+
+  - id: historical-backfill
+    name: "Mandatory Historical Backfill (D-159)"
+    description: "Every CIP connector pulls source-system history (HubSpot Property History, Zendesk audit log, etc.) on first sync for any new tenant and writes synthesized cip_*_history rows. Locked 2026-05-12 by D-159; codified in CONNECTOR-AUTHORING-GUIDE.md §13."
+    status: available
+    path_to_more: "docs/CONNECTOR-AUTHORING-GUIDE.md"
     depends_on: []
 
   - id: zendesk-connector
     name: "Zendesk Connector"
-    description: "Zendesk ingestion for tickets, users, organizations, comments. Phase 2 LOCKED per VISION — first instance alongside HubSpot for Wayward onboarding."
-    status: planned
-    path_to_more: "(Phase 2 deliverable)"
+    description: "Zendesk Support v2 connector — orgs/users/tickets + mandatory ticket-audit history backfill per D-159. Implementation landed 2026-05-12; not yet run against real Wayward data (Tier 3 pending Tim go)."
+    status: available
+    path_to_more: "cip/integration_mesh/connectors/zendesk/connector.py"
     depends_on: []

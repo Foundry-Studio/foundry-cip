@@ -1,23 +1,14 @@
 # foundry: kind=service domain=client-intelligence-platform touches=integration
-"""ZendeskMapper — SCAFFOLD ONLY.
+"""ZendeskMapper — maps Zendesk v2 records to ``CIPRow``s.
 
-Maps Zendesk records (tickets, users, organizations) to ``CIPRow``s
-targeting ``cip_tickets`` / ``cip_contacts`` / ``cip_companies``.
+Implements the full CIPMapper Protocol. Dispatches per-record on
+``__cip_kind__`` (company / contact / ticket) → corresponding ``cip_*``
+table. Zendesk organizations map to ``cip_companies``; Zendesk users to
+``cip_contacts``.
 
-Phase 2 implementation will need:
-
-- ``map(record)`` — dispatch on a record-side type indicator (Zendesk's
-  ``type`` field on tickets is "incident/problem/question"; for entity
-  routing use ``__cip_kind__`` injected by the connector — same pattern
-  as FixtureMapper's ``record_type``).
-- ``overflow_fields()`` — Zendesk-specific custom fields that don't
-  match a column on the target ``cip_*`` table; these route to the
-  per-table JSONB extras column (``properties`` for most tables; per
-  CONNECTOR-AUTHORING-GUIDE.md §7).
-- ``authority()`` — return ``"ingested"`` for Phase 2 (default).
-- ``ingest_as_knowledge(record)`` — emit ``KnowledgeText`` for ticket
-  bodies and comment threads (the high-signal text in Zendesk data);
-  empty list for users/orgs which are pure structured records.
+Knowledge text:
+- Ticket descriptions emit ``KnowledgeText`` for vector+BM25 ingestion.
+- Other entities emit empty list.
 
 Reference: ``cip/integration_mesh/connectors/fixture/mapper.py``.
 """
@@ -30,38 +21,137 @@ from cip.integration_mesh.base import (
     CIPMapperBase,
     CIPRow,
     KnowledgeText,
+    KnowledgeTextMetadata,
 )
+from cip.integration_mesh.exceptions import SchemaDriftError
+
+_TARGET_TABLE_BY_TYPE: dict[str, str] = {
+    "company": "cip_companies",
+    "contact": "cip_contacts",
+    "ticket": "cip_tickets",
+}
+
+# Domain columns per cip_* table accepting Zendesk values directly.
+_DOMAIN_FIELDS_BY_TYPE: dict[str, set[str]] = {
+    "company": {"name", "domain"},  # cip_companies columns the mapper can fill
+    "contact": {"first_name", "last_name", "email", "phone"},
+    "ticket": {"subject", "description", "priority", "status"},
+}
+
+# Zendesk field name → cip_* SQL column name. Identity where omitted.
+_RECORD_TO_SQL_COLUMN: dict[str, dict[str, str]] = {
+    "company": {},
+    "contact": {
+        # Zendesk has a single "name" field; split into first/last by space.
+        # Handled at map-time, not via static translation.
+    },
+    "ticket": {},
+}
+
+_RESERVED: set[str] = {
+    "__cip_kind__",
+    "__cip_backfill__",
+    "__cip_valid_from__",
+    "__cip_valid_to__",
+    "id",
+    "source_id",
+    "updated_at",
+    "record_type",
+}
 
 
 class ZendeskMapper(CIPMapperBase):
-    """Zendesk record → CIPRow mapper. SCAFFOLD — Phase 2 implementation."""
+    """Zendesk v2 record → CIPRow mapper.
 
-    object_type: str = "zendesk"  # superseded per-call by record-side kind
-    target_table: str = "cip_tickets"  # default; per-call resolved
+    Per-record dispatch on ``__cip_kind__``. Zendesk organizations →
+    cip_companies; users → cip_contacts; tickets → cip_tickets.
+    """
+
+    object_type: str = "zendesk"
+    target_table: str = "cip_tickets"
 
     def map(self, record: dict[str, object]) -> Iterable[CIPRow]:
-        raise NotImplementedError(
-            "ZendeskMapper.map — Phase 2 implementation pending. See "
-            "FixtureMapper at cip/integration_mesh/connectors/fixture/mapper.py "
-            "for the canonical pattern (record-type dispatch + "
-            "_RECORD_TO_SQL_COLUMN translation + overflow routing)."
+        kind = record.get("__cip_kind__")
+        if not isinstance(kind, str) or kind not in _TARGET_TABLE_BY_TYPE:
+            raise SchemaDriftError(
+                f"ZendeskMapper: unknown __cip_kind__={kind!r}; "
+                f"known: {sorted(_TARGET_TABLE_BY_TYPE)}"
+            )
+        target = _TARGET_TABLE_BY_TYPE[kind]
+        domain_keys = _DOMAIN_FIELDS_BY_TYPE[kind]
+
+        fields: dict[str, object] = {}
+        overflow: dict[str, object] = {}
+
+        # Zendesk user "name" → split into first_name / last_name for cip_contacts
+        if kind == "contact":
+            name = record.get("name")
+            if isinstance(name, str) and name.strip():
+                parts = name.strip().split(" ", 1)
+                fields["first_name"] = parts[0]
+                fields["last_name"] = parts[1] if len(parts) > 1 else ""
+
+        # Zendesk org "domain_names" is a list — emit first one to cip_companies.domain
+        if kind == "company":
+            domains = record.get("domain_names")
+            if isinstance(domains, list) and domains:
+                fields["domain"] = str(domains[0])
+
+        for k, v in record.items():
+            if k in _RESERVED:
+                continue
+            if k == "name" and kind == "contact":
+                continue  # already handled above
+            if k == "domain_names" and kind == "company":
+                continue  # already handled above
+            sql_col = _RECORD_TO_SQL_COLUMN.get(kind, {}).get(k, k)
+            if sql_col in domain_keys:
+                fields[sql_col] = v
+            else:
+                overflow[k] = v
+
+        # Tickets need non-null subject
+        if kind == "ticket" and "subject" not in fields:
+            fields["subject"] = "(no subject)"
+
+        # cip_companies requires non-null name
+        if kind == "company" and "name" not in fields:
+            fields["name"] = f"(zendesk org #{record.get('source_id', '?')})"
+
+        yield CIPRow(
+            target_table=target,
+            source_id=str(record.get("source_id", "")),
+            fields=fields,
+            overflow=overflow,
+            authority="ingested",
         )
 
     def overflow_fields(self) -> list[str]:
-        raise NotImplementedError(
-            "ZendeskMapper.overflow_fields — Phase 2. Return list of "
-            "Zendesk custom-field keys that route to the target table's "
-            "JSONB extras column."
-        )
+        return sorted({
+            "details", "notes",  # company
+            "role", "organization_id",  # contact
+            "type", "requester_id", "assignee_id",  # ticket
+            "tags",  # all kinds
+        })
 
     def authority(self) -> Literal["agent_discovered", "ingested", "validated"]:
-        return "ingested"  # Phase 2 default per CONNECTOR-AUTHORING-GUIDE.md §8
+        return "ingested"
 
     def ingest_as_knowledge(
         self, record: dict[str, object]
     ) -> list[KnowledgeText]:
-        raise NotImplementedError(
-            "ZendeskMapper.ingest_as_knowledge — Phase 2. Emit "
-            "KnowledgeText for ticket bodies + comment threads; empty "
-            "list for users/orgs (pure structured)."
-        )
+        if record.get("__cip_kind__") != "ticket":
+            return []
+        if record.get("__cip_backfill__"):
+            return []
+        body = record.get("description") or record.get("content") or ""
+        if not isinstance(body, str) or not body.strip():
+            return []
+        return [
+            KnowledgeText(
+                text=body,
+                metadata=KnowledgeTextMetadata(
+                    source_id=str(record.get("source_id", "")),
+                ),
+            )
+        ]

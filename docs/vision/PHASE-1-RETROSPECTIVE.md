@@ -89,7 +89,7 @@ Mid-Phase-1 Tim split Metabase out of CIP M5 into its own first-class product (`
 
 Per PHASE-1-PLAN.md §M8 retrospective prompt:
 
-1. **The HubSpot "backup tape" decision.** PHASE-1-PLAN R5 flagged this as a kickoff risk. M8 surfaced it as a real architectural choice (see HubSpot connector scaffold + Tim's 2026-05-12 question). Wayward Phase 2 deep plan decides: preserve HubSpot's pre-CIP property history (call propertiesWithHistory + synthesize cip_*_history rows on initial sync) vs. accept from-sync-onward history.
+1. **The HubSpot "backup tape" decision — RESOLVED 2026-05-12 by D-159.** Originally flagged as PHASE-1-PLAN R5 kickoff risk; M8 surfaced as architectural choice; **Tim's call 2026-05-12**: historical backfill is mandatory across all CIP connectors, per tenant, by default. Locked in `docs/DECISION-LOG.md` D-159 and codified in `docs/CONNECTOR-AUTHORING-GUIDE.md` §13 "Historical Backfill Contract". Phase 2 Wayward's HubSpot + Zendesk connectors implement the contract from the start — no separate "backup tape mini-project" needed.
 
 2. **Real OAuth refresh.** M2 documented the `AuthenticationError` contract but never exercised real token refresh. HubSpot tokens expire; Zendesk OAuth tokens rotate. Phase 2 connectors need a refresh hook + retry-on-expiry pattern. Atlas/Tim decide where it lives (per-connector vs. shared base).
 

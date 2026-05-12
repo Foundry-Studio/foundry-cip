@@ -12,6 +12,15 @@ Pre-1.0.0 (current): minor versions may include breaking changes per SemVer pre-
 
 ## [Unreleased]
 
+### M8 closeout (2026-05-12)
+
+**Phase 1 LOCKED.** All M0–M8 milestone scopes complete. Plain-jane shippable. Framework ready for Phase 2 Wayward Onboarding.
+
+- **M8 Metabase fixture-tenant gate PASSED:** Railway prod has the foundry-cip alembic chain landed (cip_08 stamp → cip_09 → cip_10). `cip_metabase_role` provisioned with strong password (Railway env var). Fixture tenant TENANT_A (`a0000000-...0001`) seeded with FixtureConnector STANDARD (1150 rows). Tim connected Metabase at `reports.project-silk.com`, clicked through, confirmed `lens_all_companies` (50 rows), `lens_eu_west_companies` (13 rows), `lens_companies_history` (queryable, 0 initial), and raw `cip_companies` returns `permission denied` (P-21 enforcement). Deploy plan + execution at `Foundry-Agent-System/WORKBENCH/tim/m8-railway-deploy-plan-2026-05-11.md`.
+- **Phase 1 retrospective:** `docs/vision/PHASE-1-RETROSPECTIVE.md` — what shipped, what surprised, what Phase 2 should sharpen. Atlas reviews retroactively on return.
+- **Wayward tenant_id reserved:** `b0000000-0000-0000-0000-000000000001` per `Foundry-Agent-System/WORKBENCH/tim/wayward-tenant-coordinates.md`. Pre-Phase-2 anchor.
+- **Phase 2 connector scaffolds landed:** `cip/integration_mesh/connectors/zendesk/` + `cip/integration_mesh/connectors/hubspot/` skeletons (NotImplementedError methods + per-method spec pointers). HubSpotConnector ctor includes the `backfill_property_history` flag reserving the surface for the PHASE-1-PLAN.md R5 "backup tape" decision.
+
 ### Added
 - M2 framework code (executes in foundry-cip per `docs/vision/PHASE-1-PLAN.md` after M2 plan v4 hand-off).
 - **M5 (Pillar 5 — Consumption Surfaces lights up, 2026-05-09):** `cip_09_metabase_role_views` migration provisioning `cip_metabase_role` (NOSUPERUSER NOBYPASSRLS LOGIN) + two hardcoded fixture lens views (`lens_all_companies`, `lens_eu_west_companies`) matching the M4 Lens-A and Lens-B filter configs. P-21 Multi-Lens-by-Default is structurally enforced via Postgres grant matrix (REVOKE on `cip_*` tables; GRANT only on `lens_*` views). Tenant scoping in views via explicit `WHERE tenant_id = NULLIF(current_setting('app.current_tenant', true), '')::uuid`. 13 tests at `tests/integration_mesh/test_cip_09_metabase_role_views.py` (12 from M5 plan v3 §4.2 + 1 sentinel-sanity bonus). MINOR bump per SemVer policy.

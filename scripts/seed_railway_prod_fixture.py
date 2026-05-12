@@ -164,7 +164,7 @@ def main() -> int:
         FixtureMapper(),
         engine,
         tenant_id=TENANT_A,
-        database_url=url,
+        database_url=sa_url,  # orchestrator's lock-holder engine needs the +psycopg dialect
     )
 
     print("\nPost-seed row counts:")

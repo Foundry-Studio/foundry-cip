@@ -173,6 +173,18 @@ class HubSpotMapper(CIPMapperBase):
         if kind == "ticket" and "subject" not in fields:
             fields["subject"] = "(no subject)"
 
+        # cip_companies requires non-null name — surfaced 2026-05-13 during
+        # Wayward initial sync, HubSpot had a company record without a name
+        # property set (HubSpot allows this; CIP doesn't). Apply same
+        # fallback pattern as ticket subject + Zendesk org name.
+        if kind == "company" and "name" not in fields:
+            fields["name"] = (
+                f"(unnamed hubspot company #{record.get('source_id', '?')})"
+            )
+
+        # cip_contacts has FK / unique constraints that allow null names
+        # but downstream BI consumers want consistent fields; leave as-is.
+
         yield CIPRow(
             target_table=target,
             source_id=str(record.get("source_id", "")),

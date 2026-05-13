@@ -56,6 +56,7 @@ from .base import (
     MAX_RATE_LIMIT_SLEEP_SECONDS,
     CIPConnector,
     CIPMapper,
+    HistoricalRecord,
     KnowledgeText,
     KnowledgeTextMetadata,
     SyncRunState,
@@ -943,3 +944,154 @@ def _finalize(recorder: SyncRunRecorder) -> SyncRunState:
         error_detail=recorder.counters.error_detail,
         cursor_state=recorder.counters.cursor_state,
     )
+
+
+# ── D-159 Backfill orchestration ──────────────────────────────────────────
+
+
+def run_backfill(
+    connector: CIPConnector,
+    engine: sa.Engine,
+    *,
+    tenant_id: UUID,
+    batch_size: int = 200,
+    database_url: str | None = None,
+) -> dict[str, int]:
+    """D-159 historical backfill: pull source-system history + write to
+    cip_*_history.
+
+    Calls ``connector.backfill_history(tenant_id)`` which yields
+    ``HistoricalRecord`` instances (oldest → newest per source_id). Each
+    is persisted via ``CIPRowPersister.persist_history_record()`` —
+    bypasses the SCD-2 differ; writes directly with explicit valid_from
+    / valid_to from the source.
+
+    Caller responsibilities:
+      - Run ``run_sync()`` first to materialize current state. ``record_id``
+        FK lookups need existing rows. Records that can't resolve to a
+        current row are SKIPPED (counted; not fatal).
+      - Single ingestion_batch_id is generated for the whole backfill
+        run; all history rows share it.
+
+    Acquires the same advisory lock as ``run_sync`` (per
+    ``(tenant_id, connector_id)``) so concurrent current-state syncs
+    and backfills serialize cleanly.
+
+    Args:
+        connector: Same connector instance as run_sync uses.
+        engine: SQLAlchemy Engine.
+        tenant_id: Run scope.
+        batch_size: Records per transaction. Default 200 (smaller than
+            run_sync's 500 because backfill rows can be large with many
+            properties + extras).
+        database_url: Optional explicit URL for the lock-holder engine.
+
+    Returns:
+        Dict with counters:
+          - persisted: history rows written
+          - skipped_missing_current: emitted records whose source_id had
+            no current row (run_sync needed first)
+          - failed: emitted records that raised PersistenceError
+    """
+    validate_connector_shape(connector, _NoOpMapper())  # connector-only shape check
+
+    if database_url is not None:
+        lock_db_url = database_url
+    else:
+        lock_db_url = engine.url.render_as_string(hide_password=False)
+    lock_engine = _make_lock_holder_engine(lock_db_url)
+    try:
+        with _AdvisoryLockHeld(lock_engine, tenant_id, connector.connector_id):
+            return _run_backfill_body(
+                connector=connector,
+                engine=engine,
+                tenant_id=tenant_id,
+                batch_size=batch_size,
+            )
+    finally:
+        lock_engine.dispose()
+
+
+def _run_backfill_body(
+    *,
+    connector: CIPConnector,
+    engine: sa.Engine,
+    tenant_id: UUID,
+    batch_size: int,
+) -> dict[str, int]:
+    from uuid import uuid4
+
+    batch_id = uuid4()
+    counters = {"persisted": 0, "skipped_missing_current": 0, "failed": 0}
+    differ = SCDDiffer()
+
+    # Authenticate (idempotent if already done).
+    try:
+        connector.authenticate()
+    except AuthenticationError:
+        raise
+
+    # Iterate connector.backfill_history(tenant_id), chunking into batches.
+    # backfill_history is optional on the Protocol; use getattr-with-default
+    # so connectors that don't implement it produce an empty stream cleanly.
+    backfill_fn = getattr(connector, "backfill_history", None)
+    if backfill_fn is None:
+        return counters
+    history_iter: Iterator[HistoricalRecord] = backfill_fn(tenant_id)
+    pending: list[HistoricalRecord] = []
+
+    def _flush() -> None:
+        if not pending:
+            return
+        with Session(engine, autoflush=False, expire_on_commit=False) as db, db.begin():
+            apply_tenant_context(db, tenant_id)
+            persister = CIPRowPersister(db, differ)
+            for record in pending:
+                try:
+                    ok = persister.persist_history_record(
+                        record,
+                        tenant_id=tenant_id,
+                        connector_id=connector.connector_id,
+                        batch_id=batch_id,
+                    )
+                    if ok:
+                        counters["persisted"] += 1
+                    else:
+                        counters["skipped_missing_current"] += 1
+                except PersistenceError as exc:
+                    log.warning(
+                        "backfill persist failed for source_id=%s on %s: %s",
+                        record.source_id, record.target_table, exc,
+                    )
+                    counters["failed"] += 1
+        pending.clear()
+
+    for record in history_iter:
+        pending.append(record)
+        if len(pending) >= batch_size:
+            _flush()
+    _flush()  # remainder
+
+    return counters
+
+
+class _NoOpMapper:
+    """Internal sentinel passed to validate_connector_shape() when
+    only the connector side is needed (run_backfill doesn't use a
+    mapper — backfill_history() returns typed HistoricalRecord
+    instances directly)."""
+
+    object_type: str = "_backfill_internal_"
+    target_table: str = "cip_companies"  # any valid; never used
+
+    def map(self, record: dict[str, object]) -> list[object]:
+        return []
+
+    def overflow_fields(self) -> list[str]:
+        return []
+
+    def authority(self) -> str:
+        return "ingested"
+
+    def ingest_as_knowledge(self, record: dict[str, object]) -> list[KnowledgeText]:
+        return []

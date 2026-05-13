@@ -21,6 +21,7 @@ from .base import (
     ALLOWED_CIP_TABLES,
     HISTORY_TABLE_BY_CURRENT,
     CIPRow,
+    HistoricalRecord,
     _assert_tz_aware,
 )
 from .exceptions import PersistenceError
@@ -143,6 +144,186 @@ class CIPRowPersister:
             # H-8: translate SQLAlchemy errors so the orchestrator's
             # ``except PersistenceError`` block catches them.
             raise PersistenceError(str(sqle)) from sqle
+
+    def persist_history_record(
+        self,
+        record: HistoricalRecord,
+        *,
+        tenant_id: UUID,
+        connector_id: str,
+        batch_id: UUID,
+    ) -> bool:
+        """D-159 backfill entry point: write a known-historical revision
+        directly to ``cip_{entity}_history`` with explicit valid_from /
+        valid_to from the source system.
+
+        Bypasses the SCD-2 differ (the differ exists to DETECT changes;
+        backfill records are known-historical, not change-detected).
+
+        Looks up the current row's ``id`` by (tenant_id, source_connector,
+        source_id) for the ``record_id`` FK. If the current row doesn't
+        exist, returns ``False`` (current-state sync must run first).
+
+        Caller responsibilities (SAME as persist()):
+          - ``apply_tenant_context()`` BEFORE this call.
+          - Hold the transaction.
+
+        Returns:
+            True if a history row was inserted; False if current row
+            lookup miss (caller decides whether to warn or proceed).
+        """
+        if record.target_table not in ALLOWED_CIP_TABLES:
+            raise PersistenceError(
+                f"Unknown target_table {record.target_table!r}; "
+                f"allowed: {sorted(ALLOWED_CIP_TABLES)}"
+            )
+        history_table = HISTORY_TABLE_BY_CURRENT.get(record.target_table)
+        if history_table is None:
+            raise PersistenceError(
+                f"Table {record.target_table!r} has no history table "
+                f"(per HISTORY_TABLE_BY_CURRENT)"
+            )
+
+        _assert_tz_aware(record.valid_from, "HistoricalRecord.valid_from")
+        if record.valid_to is not None:
+            _assert_tz_aware(record.valid_to, "HistoricalRecord.valid_to")
+        for k, v in record.fields.items():
+            _assert_tz_aware(v, f"HistoricalRecord.fields[{k!r}]")
+
+        # Defense-in-depth identifier validation
+        for k in record.fields:
+            _safe_column_name(k)
+
+        extras_col = EXTRAS_COLUMN_BY_TABLE.get(record.target_table)
+        if record.overflow and extras_col is None:
+            raise PersistenceError(
+                f"table {record.target_table} has no overflow column but "
+                f"backfill produced overflow keys: {sorted(record.overflow.keys())}"
+            )
+
+        try:
+            return self._persist_history_with_lookup(
+                record=record,
+                tenant_id=tenant_id,
+                connector_id=connector_id,
+                batch_id=batch_id,
+                history_table=history_table,
+                extras_col=extras_col,
+            )
+        except SQLAlchemyError as sqle:
+            raise PersistenceError(str(sqle)) from sqle
+
+    def _persist_history_with_lookup(
+        self,
+        *,
+        record: HistoricalRecord,
+        tenant_id: UUID,
+        connector_id: str,
+        batch_id: UUID,
+        history_table: str,
+        extras_col: str | None,
+    ) -> bool:
+        # 1. Look up current row's id by natural key. The cip_*_history
+        #    `record_id` column is FK to main.id.
+        lookup_sql = (
+            f"SELECT id FROM {record.target_table} "
+            f"WHERE tenant_id = :tid "
+            f"  AND source_connector = :sc "
+            f"  AND source_id = :sid"
+        )
+        cur_id_row = self.db.execute(
+            sa.text(lookup_sql),
+            {
+                "tid": str(tenant_id),
+                "sc": connector_id,
+                "sid": record.source_id,
+            },
+        ).first()
+        if cur_id_row is None:
+            # Current row not yet materialized — caller must run_sync first.
+            return False
+        current_id = cur_id_row[0]
+
+        # 2. Build INSERT into history table. Columns:
+        #    history_id   = gen_random_uuid()
+        #    record_id    = current_id
+        #    tenant_id    = :tid
+        #    valid_from   = :valid_from
+        #    valid_to     = :valid_to (nullable)
+        #    changed_by   = :changed_by
+        #    change_reason = :change_reason (nullable)
+        #    source_connector / source_id / ingested_at / refreshed_at /
+        #      ingestion_batch_id / authority = explicit
+        #    {extras_col}: JSONB cast from record.overflow
+        #    + per-table domain columns from record.fields
+        history_cols = self._get_table_columns(history_table)
+
+        col_to_value_expr: dict[str, str] = {}
+        params: dict[str, object] = {
+            "tid": str(tenant_id),
+            "sc": connector_id,
+            "sid": record.source_id,
+            "valid_from": record.valid_from,
+            "valid_to": record.valid_to,
+            "changed_by": record.changed_by or connector_id,
+            "change_reason": record.change_reason,
+            "current_id": str(current_id),
+            "batch_id": str(batch_id),
+            "ingested_at": record.valid_from,
+            "refreshed_at": record.valid_from,
+            "authority": "ingested",
+        }
+
+        # Provenance + history columns (deterministic SET):
+        col_to_value_expr["history_id"] = "gen_random_uuid()"
+        col_to_value_expr["record_id"] = ":current_id"
+        col_to_value_expr["tenant_id"] = ":tid"
+        col_to_value_expr["valid_from"] = ":valid_from"
+        col_to_value_expr["valid_to"] = ":valid_to"
+        col_to_value_expr["changed_by"] = ":changed_by"
+        col_to_value_expr["change_reason"] = ":change_reason"
+        col_to_value_expr["source_connector"] = ":sc"
+        col_to_value_expr["source_id"] = ":sid"
+        col_to_value_expr["ingested_at"] = ":ingested_at"
+        col_to_value_expr["refreshed_at"] = ":refreshed_at"
+        col_to_value_expr["ingestion_batch_id"] = ":batch_id"
+        col_to_value_expr["authority"] = ":authority"
+        # previous_version_id is optional (NULL on backfill — chain unknown).
+        col_to_value_expr["previous_version_id"] = "NULL"
+
+        # Domain columns from record.fields:
+        for col_name, value in record.fields.items():
+            safe = _safe_column_name(col_name)
+            param_name = f"f_{safe}"
+            col_to_value_expr[safe] = f":{param_name}"
+            params[param_name] = value
+
+        # Overflow → extras JSONB column:
+        if extras_col is not None and record.overflow:
+            col_to_value_expr[extras_col] = "CAST(:extras AS jsonb)"
+            params["extras"] = json.dumps(record.overflow, sort_keys=True, default=str)
+
+        # Filter to columns actually present in the history table; warn
+        # silently on any extras we'd want but the schema doesn't have.
+        history_col_set = set(history_cols)
+        insertable = [
+            (col, expr) for col, expr in col_to_value_expr.items()
+            if col in history_col_set
+        ]
+        if not insertable:
+            raise PersistenceError(
+                f"No insertable columns matched for history table "
+                f"{history_table}"
+            )
+
+        cols_sql = ", ".join(col for col, _ in insertable)
+        vals_sql = ", ".join(expr for _, expr in insertable)
+        insert_sql = (
+            f"INSERT INTO {history_table} ({cols_sql}) "
+            f"VALUES ({vals_sql})"
+        )
+        self.db.execute(sa.text(insert_sql), params)
+        return True
 
     # ── internals ─────────────────────────────────────────────────────────
 

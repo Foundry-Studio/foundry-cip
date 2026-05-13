@@ -47,6 +47,7 @@ from uuid import UUID
 
 from cip.integration_mesh.base import (
     CIPConnectorBase,
+    HistoricalRecord,
     PropertyDescriptor,
     RateLimitPolicy,
 )
@@ -109,7 +110,6 @@ class HubSpotConnector(CIPConnectorBase):
         token: str | None = None,
         portal_id: int | None = None,
         http: HTTPTransport | None = None,
-        backfill_history: bool = True,
     ) -> None:
         """
         Args:
@@ -118,18 +118,17 @@ class HubSpotConnector(CIPConnectorBase):
             portal_id: HubSpot portal/hub identifier. Defaults to
                 ``WAYWARD_HUBSPOT_PORTAL_ID`` env.
             http: Optional ``HTTPTransport`` for test-stub injection.
-                When None, the default httpx-backed transport is used.
-            backfill_history: D-159 default ``True``. Set ``False`` ONLY
-                for explicit no-backfill scenarios (test fixtures, retry-
-                of-current-state-only mid-incident). Production code
-                should never override.
+
+        Note: ``stream_records()`` always emits current-state only.
+        Historical backfill is a separate method (``backfill_history``)
+        invoked by ``orchestrator.run_backfill()`` after ``run_sync`` —
+        per D-159 + PM 218f67a4 implementation.
         """
         self.tenant_id = tenant_id
         self.token = token or os.environ.get("WAYWARD_HUBSPOT_TOKEN", "")
         self.portal_id = portal_id or int(
             os.environ.get("WAYWARD_HUBSPOT_PORTAL_ID", "0") or "0"
         )
-        self.backfill_history = backfill_history
         self._http = http or HttpxTransport(
             base_url=_HUBSPOT_BASE_URL,
             auth_headers={"Authorization": f"Bearer {self.token}"},
@@ -192,15 +191,15 @@ class HubSpotConnector(CIPConnectorBase):
         last_key: datetime | None,
         batch_size: int,
     ) -> Iterator[dict[str, object]]:
-        """Paginate one entity type. For each record:
-          1. Emit the current-state record (record_type=<singular>).
-          2. If backfill_history is True, emit one record per historical
-             property revision (record_type=<singular>, with
-             __cip_backfill__=True + __cip_valid_from__ set).
+        """Paginate one entity type and emit current-state records.
+
+        Historical backfill is now a SEPARATE method per D-159 redesign
+        (PM 218f67a4 implementation). See ``backfill_history()`` below;
+        the orchestrator's ``run_backfill()`` invokes it after run_sync
+        finishes current state.
         """
         page_size = min(batch_size, 100)  # HubSpot caps at 100
         properties = _DEFAULT_PROPERTIES.get(hubspot_path, ())
-        properties_with_history = ",".join(properties) if self.backfill_history else ""
         after: str | None = None
 
         while True:
@@ -208,8 +207,6 @@ class HubSpotConnector(CIPConnectorBase):
                 "limit": page_size,
                 "properties": ",".join(properties),
             }
-            if properties_with_history:
-                params["propertiesWithHistory"] = properties_with_history
             if after:
                 params["after"] = after
 
@@ -224,13 +221,11 @@ class HubSpotConnector(CIPConnectorBase):
                     continue
                 yield rec_dict
 
-                if self.backfill_history:
-                    yield from self._yield_history_revisions(
-                        record, record_type
-                    )
-
             paging = page.get("paging", {})
-            after = paging.get("next", {}).get("after") if isinstance(paging, dict) else None
+            after = (
+                paging.get("next", {}).get("after")
+                if isinstance(paging, dict) else None
+            )
             if not after:
                 return
 
@@ -252,46 +247,132 @@ class HubSpotConnector(CIPConnectorBase):
             ),
         }
 
-    def _yield_history_revisions(
-        self, hubspot_obj: dict[str, Any], record_type: str
-    ) -> Iterator[dict[str, object]]:
-        """For each property with history, emit one record per prior
-        revision (oldest first).
+    def backfill_history(
+        self, tenant_id: UUID
+    ) -> Iterator[HistoricalRecord]:
+        """D-159 historical backfill via HubSpot Property History API.
 
-        **FRAMEWORK GAP (2026-05-12 escalation):** the persister does NOT
-        yet recognize the ``__cip_backfill__`` marker; if these records
-        flowed through as-is, the SCD-2 differ would treat each as a
-        current-state update and stamp ``valid_from = NOW()`` instead of
-        the actual historical timestamp — destroying the time-series the
-        contract exists to preserve. Pending persister extension; until
-        then this method raises NotImplementedError so backfill-enabled
-        syncs fail loud instead of producing misleading history rows.
+        Re-paginates every entity type (companies/contacts/deals/tickets),
+        requesting ``propertiesWithHistory=<csv-of-default-props>`` per
+        page. For each record, flattens property revisions across all
+        tracked properties, groups by timestamp into snapshots (HubSpot
+        often writes multiple property changes within the same operator
+        action sharing a timestamp), and yields one ``HistoricalRecord``
+        per snapshot oldest → newest.
 
-        To run a current-state-only sync against real source systems
-        while the framework extension is pending, construct with
-        ``backfill_history=False``.
-
-        Once the persister supports ``__cip_backfill__``, the real
-        implementation will:
-          1. Read ``hubspot_obj['propertiesWithHistory']`` (dict of
-             prop_name → list of {timestamp, value, sourceType, ...}).
-          2. Flatten + group revisions by timestamp; build per-snapshot
-             dicts of property values.
-          3. Sort oldest → newest and yield each as a synthesized record
-             with ``__cip_backfill__: True`` + ``__cip_valid_from__`` +
-             ``__cip_valid_to__`` markers.
+        Caller responsibility: run ``run_sync()`` first to materialize
+        current state. The persister looks up the current row's ``id``
+        for the history-table ``record_id`` FK; missing current rows
+        are skipped (counted by the orchestrator, not fatal).
         """
-        raise NotImplementedError(
-            "HubSpot property-history backfill emits records the persister "
-            "doesn't yet route to cip_*_history correctly (see escalation "
-            "2026-05-12: __cip_backfill__ marker recognition pending in "
-            "cip/integration_mesh/persister.py). Construct HubSpotConnector "
-            "with backfill_history=False for current-state-only sync."
-        )
-        # The yield below is unreachable but makes Python recognize this
-        # function as a generator (for the Iterator return type). When the
-        # framework gap is closed, the real implementation will be wired here.
-        yield {}  # type: ignore[unreachable]
+        if not self._authenticated:
+            self.authenticate()
+
+        for hubspot_path, record_type in _OBJECT_TYPES:
+            target_table = _CIP_TABLE_BY_TYPE[record_type]
+            properties = _DEFAULT_PROPERTIES.get(hubspot_path, ())
+            properties_csv = ",".join(properties)
+            after: str | None = None
+
+            while True:
+                params: dict[str, str | int] = {
+                    "limit": 100,  # HubSpot max
+                    "properties": properties_csv,
+                    "propertiesWithHistory": properties_csv,
+                }
+                if after:
+                    params["after"] = after
+                page = self._http.get(
+                    f"/crm/v3/objects/{hubspot_path}", params=params
+                )
+                for obj in page.get("results", []):
+                    yield from self._historical_records_for_obj(
+                        obj, record_type, target_table
+                    )
+                paging = page.get("paging", {})
+                if isinstance(paging, dict):
+                    nxt = paging.get("next", {})
+                    after = nxt.get("after") if isinstance(nxt, dict) else None
+                else:
+                    after = None
+                if not after:
+                    break
+
+    def _historical_records_for_obj(
+        self, hubspot_obj: dict[str, Any], record_type: str, target_table: str
+    ) -> Iterator[HistoricalRecord]:
+        """For one HubSpot object, yield HistoricalRecord per snapshot
+        across all tracked properties (oldest → newest)."""
+        history = hubspot_obj.get("propertiesWithHistory", {}) or {}
+        if not isinstance(history, dict):
+            return
+
+        # Flatten (ts, prop, value) tuples across all properties.
+        revisions: list[tuple[str, str, Any]] = []
+        for prop_name, prop_history in history.items():
+            if not isinstance(prop_history, list):
+                continue
+            for rev in prop_history:
+                ts_raw = rev.get("timestamp")
+                if isinstance(ts_raw, str):
+                    revisions.append((ts_raw, prop_name, rev.get("value")))
+        if not revisions:
+            return
+
+        # Group by timestamp; build snapshots.
+        revisions.sort(key=lambda r: r[0])
+        snapshots: dict[str, dict[str, Any]] = {}
+        for ts, prop, value in revisions:
+            snapshots.setdefault(ts, {})[prop] = value
+
+        ts_sorted = sorted(snapshots.keys())
+        source_id = str(hubspot_obj.get("id", ""))
+        if not source_id:
+            return
+
+        domain_keys = _HUBSPOT_DOMAIN_FIELDS_FOR_HISTORY.get(record_type, set())
+        translation = _HUBSPOT_RECORD_TO_SQL_FOR_HISTORY.get(record_type, {})
+
+        for idx, ts in enumerate(ts_sorted):
+            snap_props = snapshots[ts]
+            valid_from = _parse_hubspot_ts(ts)
+            valid_to = (
+                _parse_hubspot_ts(ts_sorted[idx + 1])
+                if idx + 1 < len(ts_sorted)
+                else None
+            )
+
+            fields: dict[str, object] = {}
+            overflow: dict[str, object] = {}
+            for k, v in snap_props.items():
+                if v is None:
+                    continue
+                sql_col = translation.get(k, k)
+                if sql_col in domain_keys or k in domain_keys:
+                    fields[sql_col] = v
+                else:
+                    overflow[k] = v
+
+            # cip_companies / cip_tickets need non-null name/subject —
+            # if the snapshot didn't include them, skip the snapshot
+            # (mid-history with no name change → name unchanged but we
+            # can't reconstruct without lookup; we just skip the
+            # incomplete snapshot to avoid NULL violations).
+            if record_type == "company" and "name" not in fields:
+                continue
+            if record_type == "ticket" and "subject" not in fields:
+                continue
+
+            yield HistoricalRecord(
+                target_table=target_table,
+                source_id=source_id,
+                valid_from=valid_from,
+                valid_to=valid_to,
+                fields=fields,
+                overflow=overflow,
+                changed_by=self.connector_id,
+                change_reason=f"hubspot-property-history-snapshot[{ts}]",
+            )
 
     def describe_schema(self) -> list[PropertyDescriptor]:
         """Return PropertyDescriptors for the default properties on each
@@ -376,3 +457,65 @@ _DATA_TYPE_BY_PROP: dict[str, str] = {
 }
 
 
+
+
+# ── Backfill helpers (D-159) ──────────────────────────────────────────────
+
+
+def _parse_hubspot_ts(ts: str) -> datetime:
+    """HubSpot property-history timestamps come as either ISO-8601 with
+    'Z' suffix OR epoch-millis strings. Return tz-aware UTC datetime."""
+    if ts.endswith("Z"):
+        return datetime.fromisoformat(ts.replace("Z", "+00:00"))
+    if ts.isdigit():
+        return datetime.fromtimestamp(int(ts) / 1000, UTC)
+    return datetime.fromisoformat(ts)
+
+
+# Per-record-type domain field sets used when reconstructing historical
+# snapshots. Mirrors the HubSpotMapper's _DOMAIN_FIELDS_BY_TYPE so
+# backfill rows have the same column shape as current-state rows.
+_HUBSPOT_DOMAIN_FIELDS_FOR_HISTORY: dict[str, set[str]] = {
+    "company": {
+        "name", "domain", "industry", "city", "country",
+        "employee_count", "annual_revenue",
+        "numberofemployees", "annualrevenue",
+    },
+    "contact": {
+        "first_name", "last_name", "email", "phone", "job_title",
+        "firstname", "lastname", "jobtitle",
+    },
+    "deal": {
+        "name", "amount", "stage", "pipeline", "close_date",
+        "dealname", "dealstage", "closedate",
+    },
+    "ticket": {
+        "subject", "description", "priority", "status",
+        "content", "hs_ticket_priority", "hs_pipeline_stage",
+    },
+}
+
+# HubSpot property-name → cip column-name translation for backfill rows.
+# Same as the mapper's translation table — kept duplicated here so the
+# connector can produce HistoricalRecord directly without a mapper.
+_HUBSPOT_RECORD_TO_SQL_FOR_HISTORY: dict[str, dict[str, str]] = {
+    "company": {
+        "numberofemployees": "employee_count",
+        "annualrevenue": "annual_revenue",
+    },
+    "contact": {
+        "firstname": "first_name",
+        "lastname": "last_name",
+        "jobtitle": "job_title",
+    },
+    "deal": {
+        "dealname": "name",
+        "dealstage": "stage",
+        "closedate": "close_date",
+    },
+    "ticket": {
+        "content": "description",
+        "hs_ticket_priority": "priority",
+        "hs_pipeline_stage": "status",
+    },
+}

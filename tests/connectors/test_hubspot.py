@@ -33,15 +33,19 @@ TENANT = UUID("b0000000-0000-0000-0000-000000000001")
 
 
 def _make_connector(
-    *, backfill: bool = False, transport: StubTransport | None = None
+    *, transport: StubTransport | None = None
 ) -> tuple[HubSpotConnector, StubTransport]:
-    """Build a connector wired to a stub transport (no real HTTP)."""
+    """Build a connector wired to a stub transport (no real HTTP).
+
+    Note (post-PM 218f67a4 redesign): backfill is now a separate method
+    (``backfill_history``) on the connector, not a ctor flag. Tests for
+    backfill behavior invoke ``conn.backfill_history(tenant_id)`` directly.
+    """
     stub = transport or StubTransport()
     conn = HubSpotConnector(
         tenant_id=TENANT,
         token="pat-test-stub",
         http=stub,
-        backfill_history=backfill,
     )
     return conn, stub
 
@@ -128,21 +132,56 @@ def test_stream_records_pagination_continues_until_no_next() -> None:
     assert len(companies) == 2
 
 
-def test_backfill_raises_when_enabled() -> None:
-    """Per 2026-05-12 escalation: backfill emits records the persister
-    doesn't yet route correctly. Connector must fail loud when
-    backfill_history=True is used until framework support lands."""
-    conn, stub = _make_connector(backfill=True)
-    stub.queue("GET", "/crm/v3/objects/companies", response={"results": []})  # auth
+def test_backfill_history_yields_historical_records() -> None:
+    """Post-PM 218f67a4 design: backfill is a SEPARATE method
+    (backfill_history) that yields HistoricalRecord instances directly,
+    consumed by orchestrator.run_backfill() and routed by
+    persister.persist_history_record() to cip_*_history.
+    """
+    from cip.integration_mesh.base import HistoricalRecord
+
+    conn, stub = _make_connector()
+    # auth probe
+    stub.queue("GET", "/crm/v3/objects/companies", response={"results": []})
+    # Iteration order: companies → contacts → deals → tickets.
+    # Give companies ONE record with property history, others empty.
     stub.queue(
         "GET",
         "/crm/v3/objects/companies",
         response={
-            "results": [{"id": "1", "properties": {"hs_lastmodifieddate": "2026-05-01T00:00:00Z"}}],
+            "results": [
+                {
+                    "id": "42",
+                    "properties": {"name": "Acme"},
+                    "propertiesWithHistory": {
+                        "name": [
+                            {"timestamp": "2025-01-01T00:00:00Z", "value": "Acme Old"},
+                            {"timestamp": "2025-06-01T00:00:00Z", "value": "Acme Mid"},
+                            {"timestamp": "2025-12-01T00:00:00Z", "value": "Acme"},
+                        ],
+                    },
+                }
+            ],
         },
     )
-    with pytest.raises(NotImplementedError, match="backfill"):
-        list(conn.stream_records(cursor=None, batch_size=100))
+    for _ in range(3):  # contacts, deals, tickets — empty
+        stub.queue("GET", "/", response={"results": []})
+
+    records = list(conn.backfill_history(TENANT))
+    assert len(records) == 3, f"expected 3 historical snapshots, got {len(records)}"
+    assert all(isinstance(r, HistoricalRecord) for r in records)
+    assert all(r.target_table == "cip_companies" for r in records)
+    assert all(r.source_id == "42" for r in records)
+    # Oldest → newest ordering
+    assert records[0].valid_from < records[1].valid_from < records[2].valid_from
+    # valid_to chains: each row's valid_to == next row's valid_from
+    assert records[0].valid_to == records[1].valid_from
+    assert records[1].valid_to == records[2].valid_from
+    # Last revision has valid_to=None (most-recent historical)
+    assert records[2].valid_to is None
+    # Domain field captured
+    assert records[0].fields.get("name") == "Acme Old"
+    assert records[2].fields.get("name") == "Acme"
 
 
 def test_describe_schema_returns_valid_property_types() -> None:

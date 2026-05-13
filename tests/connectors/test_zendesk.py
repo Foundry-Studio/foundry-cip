@@ -24,7 +24,7 @@ TENANT = UUID("b0000000-0000-0000-0000-000000000001")
 
 
 def _make_connector(
-    *, backfill: bool = False, transport: StubTransport | None = None
+    *, transport: StubTransport | None = None
 ) -> tuple[ZendeskConnector, StubTransport]:
     stub = transport or StubTransport()
     conn = ZendeskConnector(
@@ -33,7 +33,6 @@ def _make_connector(
         user="test@example.com",
         subdomain="teststub",
         http=stub,
-        backfill_history=backfill,
     )
     return conn, stub
 
@@ -121,24 +120,66 @@ def test_stream_records_handles_pagination_via_next_page() -> None:
     assert len(orgs) == 2
 
 
-def test_backfill_raises_when_enabled_and_ticket_seen() -> None:
-    conn, stub = _make_connector(backfill=True)
-    stub.queue("GET", "/api/v2/users/me.json", response={"user": {"id": 1}})  # auth
+def test_backfill_history_yields_historical_records_for_tickets() -> None:
+    """Post-PM 218f67a4 design: Zendesk backfill walks ticket audits +
+    yields one HistoricalRecord per audit event."""
+    from cip.integration_mesh.base import HistoricalRecord
+
+    conn, stub = _make_connector()
     stub.queue(
-        "GET", "/api/v2/organizations.json",
-        response={"organizations": [], "next_page": None},
-    )
-    stub.queue("GET", "/api/v2/users.json", response={"users": [], "next_page": None})
+        "GET", "/api/v2/users/me.json", response={"user": {"id": 1}}
+    )  # auth probe
+    # Tickets endpoint: one ticket
     stub.queue(
         "GET",
         "/api/v2/tickets.json",
         response={
-            "tickets": [{"id": 99, "subject": "Test", "updated_at": "2026-05-01T00:00:00Z"}],
+            "tickets": [
+                {
+                    "id": 99,
+                    "subject": "Login broken",
+                    "priority": "high",
+                    "status": "open",
+                    "updated_at": "2026-05-01T00:00:00Z",
+                }
+            ],
             "next_page": None,
         },
     )
-    with pytest.raises(NotImplementedError, match="backfill"):
-        list(conn.stream_records(cursor=None, batch_size=100))
+    # Audits for that ticket: 2 events (Create + status Change)
+    stub.queue(
+        "GET",
+        "/api/v2/tickets/99/audits.json",
+        response={
+            "audits": [
+                {
+                    "created_at": "2025-12-01T08:00:00Z",
+                    "events": [
+                        {"type": "Create", "field_name": "subject",
+                         "value": "Login broken"},
+                    ],
+                },
+                {
+                    "created_at": "2025-12-02T08:00:00Z",
+                    "events": [
+                        {"type": "Change", "field_name": "status",
+                         "value": "open"},
+                    ],
+                },
+            ],
+        },
+    )
+
+    records = list(conn.backfill_history(TENANT))
+    assert all(isinstance(r, HistoricalRecord) for r in records)
+    assert all(r.target_table == "cip_tickets" for r in records)
+    assert all(r.source_id == "99" for r in records)
+    assert len(records) == 2
+    # Oldest first
+    assert records[0].valid_from < records[1].valid_from
+    # First audit's valid_to == second audit's valid_from
+    assert records[0].valid_to == records[1].valid_from
+    assert records[1].valid_to is None  # most-recent historical
 
 
 def test_describe_schema_returns_valid_property_types() -> None:

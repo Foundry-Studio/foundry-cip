@@ -99,6 +99,51 @@ class CIPRow:
 
 
 @dataclass(frozen=True)
+class HistoricalRecord:
+    """One historical revision of a record from a source system (D-159).
+
+    Connectors implementing the D-159 historical-backfill contract emit
+    these via ``backfill_history()``. The orchestrator's ``run_backfill()``
+    routes each to ``CIPRowPersister.persist_history_record()``, which
+    writes directly to ``cip_{entity}_history`` with the explicit
+    ``valid_from`` / ``valid_to`` from the source.
+
+    Separation from ``CIPRow``: ``CIPRow`` is current-state (persisted to
+    main table by ``run_sync``); ``HistoricalRecord`` is a known-past
+    snapshot (persisted to history table by ``run_backfill``). The SCD-2
+    differ is NOT invoked for ``HistoricalRecord`` — backfill records
+    are known-historical, not change-detected.
+
+    Field semantics:
+
+    - ``target_table``: the CURRENT cip table (e.g. ``"cip_companies"``).
+      Persister derives ``cip_companies_history`` from it.
+    - ``source_id``: used to look up the current row's ``id`` for the
+      history table's ``record_id`` FK. The current row MUST already
+      exist (run ``run_sync`` first).
+    - ``valid_from``: tz-aware UTC timestamp when this revision became
+      true (from source system's history endpoint).
+    - ``valid_to``: tz-aware UTC timestamp when this revision was
+      superseded, or ``None`` if it's the most-recent historical
+      revision (predecessor of current state).
+    - ``fields``: domain column values at this revision.
+    - ``overflow``: JSONB extras at this revision.
+    - ``changed_by``: who/what made the change (e.g. operator email,
+      "system", or the connector_id if the source doesn't record it).
+    - ``change_reason``: optional human-readable annotation.
+    """
+
+    target_table: str
+    source_id: str
+    valid_from: datetime
+    valid_to: datetime | None
+    fields: dict[str, object]
+    overflow: dict[str, object] = field(default_factory=dict)
+    changed_by: str = ""
+    change_reason: str | None = None
+
+
+@dataclass(frozen=True)
 class RateLimitPolicy:
     """In-process rate-limiting policy for ``stream_records`` calls."""
 
@@ -416,6 +461,34 @@ class CIPConnectorBase:
         raise NotImplementedError(
             f"{self.__class__.__name__} must implement incremental_key()"
         )
+
+    def backfill_history(
+        self, tenant_id: UUID
+    ) -> Iterator[HistoricalRecord]:
+        """Per D-159: yield historical revisions from the source system's
+        history/audit/revision endpoint.
+
+        Default: empty iterator (connector does not support backfill). The
+        framework treats absent-backfill as a documented gap, not an error
+        — per D-159 the gap is flagged in describe_schema() output and
+        evaluated per-venture by the operator. Connectors that DO support
+        backfill (HubSpot via propertiesWithHistory, Zendesk via ticket
+        audits) override this method.
+
+        The orchestrator's ``run_backfill()`` calls this AFTER current
+        state is materialized (so each emitted ``HistoricalRecord.source_id``
+        resolves to an existing row's ``id`` for the history-table FK).
+
+        Args:
+            tenant_id: CIP tenant the backfill is scoped to. Connectors
+                may use it for source-side filtering if the source API
+                supports tenant scoping; FixtureConnector ignores it.
+
+        Yields:
+            ``HistoricalRecord`` instances, ideally oldest → newest per
+            source_id (matches the SCD-2 valid_from chronology).
+        """
+        return iter([])
 
 
 class CIPMapperBase:

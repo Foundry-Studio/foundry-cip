@@ -25,6 +25,7 @@ from .base import (
     CIPMapper,
     CIPMapperBase,
     CIPRow,
+    HistoricalRecord,
     KnowledgeText,
     KnowledgeTextMetadata,
     PropertyDescriptor,
@@ -54,7 +55,7 @@ from .lens_engine import (
     lens_query_for_table,
     load_lens,
 )
-from .orchestrator import run_sync
+from .orchestrator import run_backfill, run_sync
 from .validation import ProtocolShapeError, validate_connector_shape
 
 __all__ = [
@@ -108,4 +109,6 @@ __all__ = [
     "load_lens",
     # Orchestrator entry point
     "run_sync",
+    "run_backfill",
+    "HistoricalRecord",
 ]

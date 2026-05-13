@@ -12,6 +12,13 @@ Pre-1.0.0 (current): minor versions may include breaking changes per SemVer pre-
 
 ## [Unreleased]
 
+### D-159 framework extension landed (2026-05-13)
+
+- **HistoricalRecord dataclass + persister extension + run_backfill orchestrator:** `cip/integration_mesh/base.py` adds `HistoricalRecord` (immutable; `target_table`, `source_id`, `valid_from`, `valid_to`, `fields`, `overflow`, `changed_by`, `change_reason`). `CIPConnectorBase` gains optional `backfill_history(tenant_id) -> Iterator[HistoricalRecord]` (default empty). `CIPRowPersister.persist_history_record()` writes directly to `cip_*_history` with explicit valid_from/valid_to (bypasses SCD-2 differ — backfill records are known-historical). `run_backfill()` mirrors run_sync shape (advisory-lock + per-batch transactions). **Closes PM scope 218f67a4** with the clean two-method design recommended in the research-grounded scope description; replaces the earlier magic-marker prototype.
+- **HubSpot + Zendesk connector backfill methods:** `HubSpotConnector.backfill_history()` re-paginates each entity type with `propertiesWithHistory`, groups revisions by timestamp into snapshots, yields oldest → newest `HistoricalRecord`. `ZendeskConnector.backfill_history()` walks `/api/v2/tickets/{id}/audits.json` per ticket, reconstructs state via Change-event replay. Magic-marker raise-NotImplementedError code paths removed; `backfill_history` ctor flag removed.
+- **scripts/orchestrate_wayward_backfill.py:** autonomous orchestrator. Polls `cip_sync_runs` every `ORCHESTRATOR_POLL_SECONDS` (default 900s/15min); triggers `run_backfill` per connector when its current-state sync completes. Records each backfill outcome as a `cip_sync_runs` row with `sync_mode='backfill'`. Logs to `scripts/wayward_backfill_orchestrator.log`. Designed for "launch + leave"-style usage — zero Claude-token cost.
+- **Test coverage:** `test_hubspot.py::test_backfill_history_yields_historical_records` + `test_zendesk.py::test_backfill_history_yields_historical_records_for_tickets` lock the new contract. All 34 connector tests pass against the redesigned API.
+
 ### M8 closeout (2026-05-12)
 
 **Phase 1 LOCKED.** All M0–M8 milestone scopes complete. Plain-jane shippable. Framework ready for Phase 2 Wayward Onboarding.

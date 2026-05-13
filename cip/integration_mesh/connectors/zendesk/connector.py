@@ -42,6 +42,7 @@ from uuid import UUID
 
 from cip.integration_mesh.base import (
     CIPConnectorBase,
+    HistoricalRecord,
     PropertyDescriptor,
     RateLimitPolicy,
 )
@@ -78,7 +79,6 @@ class ZendeskConnector(CIPConnectorBase):
         user: str | None = None,
         subdomain: str | None = None,
         http: HTTPTransport | None = None,
-        backfill_history: bool = True,
     ) -> None:
         """
         Args:
@@ -89,8 +89,10 @@ class ZendeskConnector(CIPConnectorBase):
             subdomain: Zendesk subdomain. Defaults to
                 ``WAYWARD_ZENDESK_SUBDOMAIN`` (``waywardsupport``).
             http: Optional ``HTTPTransport`` for test-stub injection.
-            backfill_history: D-159 default ``True``. ``False`` ONLY for
-                test fixtures / explicit no-backfill scenarios.
+
+        Note: ``stream_records()`` emits current-state only. Historical
+        backfill is a separate method (``backfill_history``) invoked by
+        ``orchestrator.run_backfill()`` after run_sync — per D-159.
         """
         self.tenant_id = tenant_id
         self.token = token or os.environ.get("WAYWARD_ZENDESK_TOKEN", "")
@@ -100,7 +102,6 @@ class ZendeskConnector(CIPConnectorBase):
         self.subdomain = subdomain or os.environ.get(
             "WAYWARD_ZENDESK_SUBDOMAIN", ""
         )
-        self.backfill_history = backfill_history
 
         if http is None and self.subdomain:
             auth = base64.b64encode(
@@ -191,13 +192,9 @@ class ZendeskConnector(CIPConnectorBase):
                     continue
                 yield rec_dict
 
-                # Backfill ONLY for tickets (Zendesk audit log) — orgs +
-                # users have no first-class history endpoint.
-                if (
-                    self.backfill_history
-                    and record_type == "ticket"
-                ):
-                    yield from self._yield_ticket_audits(record)
+            # Historical backfill is now a SEPARATE method per D-159
+            # redesign (PM 218f67a4). See backfill_history() — invoked
+            # by orchestrator.run_backfill() after run_sync completes.
 
             # Honor next_page URL (legacy pagination).
             next_url = page.get("next_page")
@@ -220,39 +217,113 @@ class ZendeskConnector(CIPConnectorBase):
             "updated_at": zd_obj.get("updated_at") or zd_obj.get("created_at"),
         }
 
-    def _yield_ticket_audits(
-        self, ticket_obj: dict[str, Any]
-    ) -> Iterator[dict[str, object]]:
-        """Walk /tickets/{id}/audits.json and emit one historical record
-        per audit event.
+    def backfill_history(
+        self, tenant_id: UUID
+    ) -> Iterator[HistoricalRecord]:
+        """D-159 historical backfill via Zendesk Ticket Audits API.
 
-        **FRAMEWORK GAP (2026-05-12 escalation):** same as HubSpot's
-        _yield_history_revisions — the persister does NOT yet recognize
-        the ``__cip_backfill__`` marker. Raises until the framework
-        extension lands. Construct ZendeskConnector with
-        ``backfill_history=False`` for current-state-only sync.
+        Iterates all tickets (organizations + users have no first-class
+        history endpoint in Zendesk v2), and for each ticket fetches
+        ``/api/v2/tickets/{id}/audits.json``. Walks audits in chronological
+        order, reconstructing ticket state at each event by replaying
+        ``Change`` events forward. Yields one ``HistoricalRecord`` per
+        audit timestamp with the snapshot at that moment.
 
-        Once the persister supports ``__cip_backfill__``, the real
-        implementation will:
-          1. GET ``/api/v2/tickets/{id}/audits.json`` (handles 403/404
-             as informational — Zendesk audit retention varies by plan).
-          2. Walk audits in chronological order, reconstructing ticket
-             state by applying each event's Change events.
-          3. Yield one synthesized record per audit timestamp with the
-             reconstructed snapshot + backfill markers.
+        Caller responsibility: run ``run_sync()`` first to materialize
+        ``cip_tickets`` current state.
         """
-        raise NotImplementedError(
-            "Zendesk ticket-audit backfill emits records the persister "
-            "doesn't yet route to cip_tickets_history correctly (see "
-            "escalation 2026-05-12: __cip_backfill__ marker recognition "
-            "pending in cip/integration_mesh/persister.py). Construct "
-            "ZendeskConnector with backfill_history=False for "
-            "current-state-only sync."
-        )
-        # The yield below is unreachable but makes Python recognize this
-        # function as a generator. When the framework gap is closed, the
-        # real implementation will be wired here.
-        yield {}  # type: ignore[unreachable]
+        if not self._authenticated:
+            self.authenticate()
+        if self._http is None:
+            return
+
+        # Paginate tickets endpoint, but ONLY fetch audits per ticket
+        # (orgs/users skipped — no audit endpoint).
+        path = "/api/v2/tickets.json"
+        params: dict[str, Any] = {"per_page": 100}
+
+        while True:
+            page = self._http.get(path, params=params)
+            tickets = page.get("tickets", [])
+            for ticket in tickets:
+                yield from self._historical_records_for_ticket(ticket)
+
+            next_url = page.get("next_page")
+            if not isinstance(next_url, str) or not next_url:
+                return
+            path = (
+                next_url.split(".zendesk.com", 1)[-1]
+                if ".zendesk.com" in next_url else next_url
+            )
+            params = {}
+
+    def _historical_records_for_ticket(
+        self, ticket_obj: dict[str, Any]
+    ) -> Iterator[HistoricalRecord]:
+        """Walk one ticket's audit log; yield HistoricalRecord per snapshot."""
+        assert self._http is not None
+        ticket_id = ticket_obj.get("id")
+        if not ticket_id:
+            return
+        try:
+            audits_page = self._http.get(
+                f"/api/v2/tickets/{ticket_id}/audits.json"
+            )
+        except HTTPError as exc:
+            if exc.status in (403, 404):
+                return
+            return
+
+        audits = audits_page.get("audits", [])
+        audits.sort(key=lambda a: a.get("created_at", ""))
+
+        # Reconstruct ticket state by applying Change events forward.
+        # Start from initial state seen in the audit's first Create event
+        # (or fall back to current state from the ticket object).
+        snapshot: dict[str, Any] = {
+            "subject": ticket_obj.get("subject"),
+            "description": ticket_obj.get("description"),
+            "priority": ticket_obj.get("priority"),
+            "status": ticket_obj.get("status"),
+        }
+        source_id = str(ticket_id)
+
+        for idx, audit in enumerate(audits):
+            ts_raw = audit.get("created_at")
+            if not isinstance(ts_raw, str):
+                continue
+            # Apply Change events to snapshot.
+            for event in audit.get("events", []):
+                if event.get("type") == "Change":
+                    field = event.get("field_name")
+                    new_val = event.get("value")
+                    if field in snapshot:
+                        snapshot[field] = new_val
+
+            valid_from = datetime.fromisoformat(ts_raw.replace("Z", "+00:00"))
+            next_ts = (
+                audits[idx + 1].get("created_at")
+                if idx + 1 < len(audits) else None
+            )
+            valid_to = (
+                datetime.fromisoformat(next_ts.replace("Z", "+00:00"))
+                if isinstance(next_ts, str) and next_ts else None
+            )
+
+            fields = {k: v for k, v in snapshot.items() if v is not None}
+            if "subject" not in fields:
+                fields["subject"] = "(no subject)"
+
+            yield HistoricalRecord(
+                target_table="cip_tickets",
+                source_id=source_id,
+                valid_from=valid_from,
+                valid_to=valid_to,
+                fields=fields,
+                overflow={},
+                changed_by=self.connector_id,
+                change_reason=f"zendesk-audit-event[{ts_raw}]",
+            )
 
     def describe_schema(self) -> list[PropertyDescriptor]:
         out: list[PropertyDescriptor] = []

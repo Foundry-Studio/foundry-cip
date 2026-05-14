@@ -171,10 +171,7 @@ def main() -> int:
     print("\n" + "-" * 70)
     print("Sync 1/2: HubSpot (companies + contacts + deals + tickets)")
     print("-" * 70)
-    hs_connector = HubSpotConnector(
-        tenant_id=TENANT_WAYWARD,
-        backfill_history=False,  # PM 218f67a4 - backfill pending
-    )
+    hs_connector = HubSpotConnector(tenant_id=TENANT_WAYWARD)
     run_sync(
         hs_connector,
         HubSpotMapper(),
@@ -188,10 +185,7 @@ def main() -> int:
     print("\n" + "-" * 70)
     print("Sync 2/2: Zendesk (organizations + users + tickets)")
     print("-" * 70)
-    zd_connector = ZendeskConnector(
-        tenant_id=TENANT_WAYWARD,
-        backfill_history=False,
-    )
+    zd_connector = ZendeskConnector(tenant_id=TENANT_WAYWARD)
     run_sync(
         zd_connector,
         ZendeskMapper(),

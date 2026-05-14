@@ -19,10 +19,10 @@ Verifies:
      Tim Decision-1)
 """
 from __future__ import annotations
+
 import os
 import subprocess
 import sys
-
 
 EXPECTED_TABLES = {
     # 7 entity tables
@@ -102,8 +102,8 @@ def main() -> None:
             sys.exit(1)
 
         print("\nalembic upgrade head: OK")
-        print(f"version_table: alembic_version_cip [OK]")
-        print(f"all 16 expected cip_* tables: [OK]")
+        print("version_table: alembic_version_cip [OK]")
+        print("all 16 expected cip_* tables: [OK]")
 
 
 if __name__ == "__main__":

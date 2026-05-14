@@ -1076,16 +1076,33 @@ def _run_backfill_body(
 
 
 class _NoOpMapper:
-    """Internal sentinel passed to validate_connector_shape() when
-    only the connector side is needed (run_backfill doesn't use a
-    mapper — backfill_history() returns typed HistoricalRecord
-    instances directly)."""
+    """Internal sentinel passed to validate_connector_shape() when only
+    the connector side is needed (run_backfill doesn't use a mapper —
+    ``backfill_history()`` returns typed ``HistoricalRecord`` instances
+    directly).
+
+    Important: ``map()`` MUST be a generator function (yields nothing)
+    rather than a regular function returning an empty list — the
+    framework's ``validate_connector_shape()`` uses
+    ``inspect.isgeneratorfunction(mapper.map)`` to assert mapper
+    contract compliance per H-7 (partial-yield atomic discard).
+
+    Bug history (2026-05-14): the previous version of this class
+    returned a list, which validate_connector_shape rejected with
+    ``ProtocolShapeError: _NoOpMapper.map must be a generator function``,
+    killing run_backfill on first invocation in the autonomous
+    orchestrator. Fixed via ``yield from ()`` — empty-generator body
+    that satisfies the contract without yielding anything.
+    """
 
     object_type: str = "_backfill_internal_"
     target_table: str = "cip_companies"  # any valid; never used
 
-    def map(self, record: dict[str, object]) -> list[object]:
-        return []
+    def map(self, record: dict[str, object]) -> Iterator[object]:
+        # Empty generator: function-as-generator (yields nothing).
+        # The ``yield from ()`` is what makes Python recognize this as
+        # a generator function (per validate_connector_shape's check).
+        yield from ()
 
     def overflow_fields(self) -> list[str]:
         return []

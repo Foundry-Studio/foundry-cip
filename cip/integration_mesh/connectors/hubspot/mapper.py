@@ -56,31 +56,34 @@ _TARGET_TABLE_BY_TYPE: dict[str, str] = {
 # specific column set; everything else routes to overflow. The list
 # below mirrors HubSpot's default property names where the column name
 # matches; explicit translation lives in _RECORD_TO_SQL_COLUMN.
+# Per-record-type domain field sets. SQL column names ONLY (no HubSpot
+# raw names) — translation happens via _RECORD_TO_SQL_COLUMN below.
+# Schema-drift guard: tests/integration_mesh/test_mapper_schema_drift.py
+# asserts every value here exists as a column on the corresponding cip_*
+# table.
 _DOMAIN_FIELDS_BY_TYPE: dict[str, set[str]] = {
     "company": {
         "name", "domain", "industry", "city", "country",
         "employee_count", "annual_revenue",
-        # HubSpot original names
-        "numberofemployees", "annualrevenue",
     },
     "contact": {
-        "first_name", "last_name", "email", "phone", "job_title",
-        # HubSpot original names
-        "firstname", "lastname", "jobtitle",
+        "first_name", "last_name", "email", "phone",
+        "title", "country", "city", "lifecycle_stage",
+        "company_name",
     },
     "deal": {
         "name", "amount", "stage", "pipeline", "close_date",
-        # HubSpot original names
-        "dealname", "dealstage", "closedate",
+        "currency", "probability",
     },
     "ticket": {
         "subject", "description", "priority", "status",
-        # HubSpot original names
-        "content", "hs_ticket_priority", "hs_pipeline_stage",
+        "ticket_type",
     },
 }
 
 # HubSpot property name → cip_* column name. Identity where omitted.
+# Every TARGET value here must appear in _DOMAIN_FIELDS_BY_TYPE for the
+# same record type. Schema-drift test catches mismatches.
 _RECORD_TO_SQL_COLUMN: dict[str, dict[str, str]] = {
     "company": {
         "numberofemployees": "employee_count",
@@ -89,7 +92,15 @@ _RECORD_TO_SQL_COLUMN: dict[str, dict[str, str]] = {
     "contact": {
         "firstname": "first_name",
         "lastname": "last_name",
-        "jobtitle": "job_title",
+        # cip_contacts.title (NOT job_title — column doesn't exist).
+        # Surfaced 2026-05-13 during Wayward initial sync as a
+        # NotNullViolation; locked here.
+        "jobtitle": "title",
+        # HubSpot writes "lifecyclestage" (no underscore); cip_contacts
+        # has "lifecycle_stage". Translate so the column is populated
+        # rather than dumped to overflow.
+        "lifecyclestage": "lifecycle_stage",
+        "company": "company_name",
     },
     "deal": {
         "dealname": "name",

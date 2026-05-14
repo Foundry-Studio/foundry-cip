@@ -58,10 +58,20 @@ from cip.integration_mesh.exceptions import (
 
 # Zendesk entity types we sync. Each maps to a cip_* table via ZendeskMapper.
 _OBJECT_TYPES: tuple[tuple[str, str], ...] = (
-    ("organizations", "company"),  # Zendesk orgs ≈ companies in CIP schema
-    ("users", "contact"),           # Zendesk end-users ≈ contacts
+    ("organizations", "company"),  # Zendesk orgs ~= companies in CIP schema
+    ("users", "contact"),           # Zendesk end-users ~= contacts
     ("tickets", "ticket"),
 )
+
+# Cursor-incremental endpoint paths per entity (Zendesk-documented stable
+# cursor pagination — replaces the legacy ``next_page`` URL pattern that
+# silently broke on Wayward's organizations endpoint, causing a 22-hour
+# infinite loop on 2026-05-13/14). All three entities support cursor.
+_CURSOR_INCREMENTAL_PATH: dict[str, str] = {
+    "organizations": "/api/v2/incremental/organizations/cursor.json",
+    "users": "/api/v2/incremental/users/cursor.json",
+    "tickets": "/api/v2/incremental/tickets/cursor.json",
+}
 
 
 class ZendeskConnector(CIPConnectorBase):
@@ -174,17 +184,39 @@ class ZendeskConnector(CIPConnectorBase):
         last_key: datetime | None,
         batch_size: int,
     ) -> Iterator[dict[str, object]]:
-        assert self._http is not None
-        page_size = min(batch_size, 100)
+        """Paginate one entity type via Zendesk's incremental-cursor API.
 
-        # All-records pagination via next_page URL pattern.
-        path = f"/api/v2/{endpoint}.json"
+        Bug history (2026-05-13/14): the previous implementation used the
+        legacy ``next_page`` URL pagination on ``/api/v2/{type}.json``.
+        Zendesk's organizations endpoint (and most others) have migrated
+        to cursor pagination and silently ignore the legacy ``?page=N``
+        param, returning page 1 indefinitely → infinite loop on 100
+        records, 22-hour stuck run on Wayward. Fixed by using the
+        official ``/api/v2/incremental/<type>/cursor.json`` endpoints
+        with ``after_cursor`` chained pagination, ``end_of_stream``
+        termination, and ``start_time`` (or ``after_cursor``) seeding.
+        Cursor incremental APIs are Zendesk's documented-stable
+        pagination + not capped at 10K results.
+        """
+        assert self._http is not None
+        page_size = min(batch_size, 1000)  # cursor APIs allow up to 1000/page
+
+        path = _CURSOR_INCREMENTAL_PATH[endpoint]
+
+        # Seed: start_time=0 for full sync OR last_key for incremental
+        # (cursor incremental APIs accept either start_time epoch-seconds
+        # or after_cursor token; never both).
         params: dict[str, Any] = {"per_page": page_size}
+        if last_key is not None:
+            params["start_time"] = int(last_key.timestamp())
+        else:
+            params["start_time"] = 0  # full from beginning
 
         while True:
             page = self._http.get(path, params=params)
+            # Cursor API returns the entity records under the same key as
+            # the endpoint name (organizations / users / tickets).
             results = page.get(endpoint, [])
-
             for record in results:
                 rec_dict = self._to_record(record, record_type)
                 incremental_key_value = self._record_incremental_key(rec_dict)
@@ -192,18 +224,16 @@ class ZendeskConnector(CIPConnectorBase):
                     continue
                 yield rec_dict
 
-            # Historical backfill is now a SEPARATE method per D-159
-            # redesign (PM 218f67a4). See backfill_history() — invoked
-            # by orchestrator.run_backfill() after run_sync completes.
-
-            # Honor next_page URL (legacy pagination).
-            next_url = page.get("next_page")
-            if not isinstance(next_url, str) or not next_url:
+            # Cursor API terminates when end_of_stream=true.
+            if page.get("end_of_stream") is True:
                 return
-            # next_page is a fully-qualified URL; strip the base to keep
-            # the HTTPTransport's base_url contract intact.
-            path = next_url.split(".zendesk.com", 1)[-1] if ".zendesk.com" in next_url else next_url
-            params = {}  # next_url already encodes the cursor
+            after_cursor = page.get("after_cursor")
+            if not isinstance(after_cursor, str) or not after_cursor:
+                # No further cursor + not explicitly end_of_stream: defensively
+                # return (avoid infinite loop on missing terminator).
+                return
+            # Re-seed for next page: after_cursor replaces start_time.
+            params = {"per_page": page_size, "cursor": after_cursor}
 
     def _to_record(
         self, zd_obj: dict[str, Any], record_type: str

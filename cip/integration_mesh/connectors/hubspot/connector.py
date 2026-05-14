@@ -472,50 +472,14 @@ def _parse_hubspot_ts(ts: str) -> datetime:
     return datetime.fromisoformat(ts)
 
 
-# Per-record-type domain field sets used when reconstructing historical
-# snapshots. Mirrors the HubSpotMapper's _DOMAIN_FIELDS_BY_TYPE so
-# backfill rows have the same column shape as current-state rows.
-_HUBSPOT_DOMAIN_FIELDS_FOR_HISTORY: dict[str, set[str]] = {
-    "company": {
-        "name", "domain", "industry", "city", "country",
-        "employee_count", "annual_revenue",
-        "numberofemployees", "annualrevenue",
-    },
-    "contact": {
-        "first_name", "last_name", "email", "phone", "job_title",
-        "firstname", "lastname", "jobtitle",
-    },
-    "deal": {
-        "name", "amount", "stage", "pipeline", "close_date",
-        "dealname", "dealstage", "closedate",
-    },
-    "ticket": {
-        "subject", "description", "priority", "status",
-        "content", "hs_ticket_priority", "hs_pipeline_stage",
-    },
-}
-
-# HubSpot property-name → cip column-name translation for backfill rows.
-# Same as the mapper's translation table — kept duplicated here so the
-# connector can produce HistoricalRecord directly without a mapper.
-_HUBSPOT_RECORD_TO_SQL_FOR_HISTORY: dict[str, dict[str, str]] = {
-    "company": {
-        "numberofemployees": "employee_count",
-        "annualrevenue": "annual_revenue",
-    },
-    "contact": {
-        "firstname": "first_name",
-        "lastname": "last_name",
-        "jobtitle": "job_title",
-    },
-    "deal": {
-        "dealname": "name",
-        "dealstage": "stage",
-        "closedate": "close_date",
-    },
-    "ticket": {
-        "content": "description",
-        "hs_ticket_priority": "priority",
-        "hs_pipeline_stage": "status",
-    },
-}
+# Backfill-side domain field + translation tables are SOURCED FROM the
+# mapper. Duplicating them here caused a real bug (2026-05-14): the
+# connector's table had stale ``job_title``/``jobtitle`` mappings even
+# after the mapper was fixed for current-state. Mapping the connector
+# table to point at the mapper's table eliminates the class of bug.
+from .mapper import (  # noqa: E402
+    _DOMAIN_FIELDS_BY_TYPE as _HUBSPOT_DOMAIN_FIELDS_FOR_HISTORY,
+)
+from .mapper import (  # noqa: E402
+    _RECORD_TO_SQL_COLUMN as _HUBSPOT_RECORD_TO_SQL_FOR_HISTORY,
+)

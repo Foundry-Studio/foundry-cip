@@ -381,29 +381,56 @@ class HubSpotConnector(CIPConnectorBase):
         self, hubspot_path: str, record_type: str
     ) -> Iterator[HistoricalRecord]:
         """Stream historical revisions for one entity type with the FULL
-        discovered property set. HubSpot caps propertiesWithHistory at
-        50 records/request — that's the loop limit, NOT the property
-        list size cap (verified 2026-05-15 against Wayward portal)."""
+        discovered property set.
+
+        Two-pass flow (post-2026-05-15 fix):
+          1. GET /crm/v3/objects/{type}?limit=50 — returns 50 IDs +
+             pagination cursor. NO ``properties`` or ``propertiesWithHistory``
+             on this call; just the page of IDs.
+          2. POST /crm/v3/objects/{type}/batch/read — body carries the 50
+             IDs PLUS the full ``propertiesWithHistory`` array. Returns
+             history for every property of every record.
+
+        Why POST instead of GET: with ~300-450 properties per entity
+        (Wayward portal — discovered 2026-05-15), the GET URL hit HTTP
+        414 Request-URI Too Large on the contacts endpoint (~443 props
+        × ~30 chars × 2 [properties + propertiesWithHistory] = ~26KB URL).
+        POST puts the property list in the JSON body, no URL limit.
+
+        50-record limit still applies (HubSpot's documented
+        ``propertiesWithHistory`` cap), enforced via ``inputs`` size.
+        """
         target_table = _CIP_TABLE_BY_TYPE[record_type]
         properties = self._discover_properties(hubspot_path)
-        properties_csv = ",".join(properties)
+        properties_list = list(properties)
         after: str | None = None
         while True:
-            params: dict[str, str | int] = {
-                "limit": 50,
-                "properties": properties_csv,
-                "propertiesWithHistory": properties_csv,
-            }
+            list_params: dict[str, str | int] = {"limit": 50}
             if after:
-                params["after"] = after
-            page = self._http.get(
-                f"/crm/v3/objects/{hubspot_path}", params=params
+                list_params["after"] = after
+            id_page = self._http.get(
+                f"/crm/v3/objects/{hubspot_path}", params=list_params
             )
-            for obj in page.get("results", []):
-                yield from self._historical_records_for_obj(
-                    obj, record_type, target_table
+            id_results = id_page.get("results", [])
+            ids: list[str] = [
+                str(r.get("id"))
+                for r in id_results
+                if isinstance(r, dict) and r.get("id") is not None
+            ]
+            if ids:
+                batch_resp = self._http.post(
+                    f"/crm/v3/objects/{hubspot_path}/batch/read",
+                    json_body={
+                        "inputs": [{"id": i} for i in ids],
+                        "properties": properties_list,
+                        "propertiesWithHistory": properties_list,
+                    },
                 )
-            paging = page.get("paging", {})
+                for obj in batch_resp.get("results", []):
+                    yield from self._historical_records_for_obj(
+                        obj, record_type, target_table
+                    )
+            paging = id_page.get("paging", {})
             if isinstance(paging, dict):
                 nxt = paging.get("next", {})
                 after = nxt.get("after") if isinstance(nxt, dict) else None

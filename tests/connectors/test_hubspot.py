@@ -185,11 +185,14 @@ def test_backfill_history_yields_historical_records() -> None:
     conn, stub = _make_connector()
     # auth probe
     stub.queue("GET", "/crm/v3/objects/companies", response={"results": []})
-    # Iteration order: companies → contacts → deals → tickets.
-    # Give companies ONE record with property history, others empty.
+    # Backfill iteration: companies → contacts → deals → tickets.
+    # Post-2026-05-15 (414 URL fix): backfill is two-pass — GET to list
+    # 50 IDs, then POST batch/read with propertiesWithHistory in body.
+    # Companies page: one ID, then POST returns history for that ID.
+    stub.queue("GET", "/crm/v3/objects/companies", response={"results": [{"id": "42"}]})
     stub.queue(
-        "GET",
-        "/crm/v3/objects/companies",
+        "POST",
+        "/crm/v3/objects/companies/batch/read",
         response={
             "results": [
                 {
@@ -206,7 +209,7 @@ def test_backfill_history_yields_historical_records() -> None:
             ],
         },
     )
-    for _ in range(3):  # contacts, deals, tickets — empty
+    for _ in range(3):  # contacts, deals, tickets — empty list page → POST skipped
         stub.queue("GET", "/", response={"results": []})
 
     records = list(conn.backfill_history(TENANT))
@@ -248,12 +251,12 @@ def test_backfill_history_groups_mismatched_precision_timestamps() -> None:
     """
     conn, stub = _make_connector()
     stub.queue("GET", "/crm/v3/objects/companies", response={"results": []})  # auth
-    # Companies: 3 history events. Two have the same logical instant
-    # encoded with/without milliseconds; one is later. Pre-fix code
-    # would order .491 BEFORE the bare second; post-fix groups them.
+    # Two-pass backfill (post-2026-05-15 URL-length fix): GET IDs, then
+    # POST batch/read with propertiesWithHistory.
+    stub.queue("GET", "/crm/v3/objects/companies", response={"results": [{"id": "42"}]})
     stub.queue(
-        "GET",
-        "/crm/v3/objects/companies",
+        "POST",
+        "/crm/v3/objects/companies/batch/read",
         response={
             "results": [
                 {
@@ -270,7 +273,7 @@ def test_backfill_history_groups_mismatched_precision_timestamps() -> None:
             ],
         },
     )
-    for _ in range(3):  # contacts, deals, tickets — empty
+    for _ in range(3):  # contacts, deals, tickets — empty list page → POST skipped
         stub.queue("GET", "/", response={"results": []})
 
     records = list(conn.backfill_history(TENANT))

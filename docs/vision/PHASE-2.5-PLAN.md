@@ -9,7 +9,7 @@ status: provisional
 owner: tim
 authors: [tim, atlas]
 created: 2026-04-20
-last_updated: 2026-04-20
+last_updated: 2026-05-15
 appetite: session-bound (milestone-ordered, not week-ordered)
 primary_tenant: foundry (self-tenant)
 locks: []
@@ -80,12 +80,12 @@ Phase 2.5 exits when **all** of the following are observable:
    - REST: `POST /cip/write` with `{tenant_id, lens_id, payload, source_agent_id, confidence, rationale}`
    - MCP: `foundry_mcp_cip_write` (wraps REST for agent sessions)
    - Python: `cip_write(...)` function in `src/services/cip/write_service.py` for in-repo use
-4. **Writes land in `cip_pending_writes`** (new table, migration cip_10 or whatever numbering lands after Phase 2). Provenance columns populated: `source_agent_id`, `session_id`, `confidence`, `rationale`, `submitted_at`.
+4. **Writes land in `cip_pending_writes`** (new table, migration cip_12 per the 2026-05-15 renumbering — see §"Migrations" below). Provenance columns populated: `source_agent_id`, `session_id`, `confidence`, `rationale`, `submitted_at`.
 5. **Tenant scoping is enforced on writes** — writer session must `SET LOCAL app.current_tenant`; cross-tenant write attempts rejected with an audit log row.
 
 ### Authority model deliverables
 
-6. **`cip_write_authorities` table exists** (migration cip_11) — per-lens authority floors keyed by source_agent_id. Runtime-configurable, not hardcoded.
+6. **`cip_write_authorities` table exists** (migration cip_13 per the 2026-05-15 renumbering) — per-lens authority floors keyed by source_agent_id. Runtime-configurable, not hardcoded.
 7. **Authority check runs on every pending write:**
    - If `confidence ≥ authority_floor_auto_promote` for that (agent, lens): row auto-promotes to the real `cip_*` tables.
    - Otherwise: row stays in `cip_pending_writes` with `status='pending_review'`.
@@ -132,11 +132,11 @@ Phase 2.5 exits when Tim calls `cip_write(...)` from a Cowork session (or runs t
 
 ### S1. Migrations
 
-- **cip_10** — `cip_pending_writes` + `cip_pending_writes_history`. Columns: `pending_write_id`, `tenant_id`, `lens_id`, `target_table`, `payload_jsonb`, `source_agent_id`, `session_id`, `confidence`, `rationale`, `status` enum (`pending_review`, `auto_promoted`, `rejected`), `submitted_at`, plus 9 provenance columns.
-- **cip_11** — `cip_write_authorities`. Columns: `authority_id`, `tenant_id`, `lens_id`, `source_agent_id`, `authority_floor_auto_promote` (numeric confidence threshold), `authority_floor_allow` (below which writes are rejected outright), `created_at`, `updated_at`.
-- **cip_12** — `cip_write_decisions` (append-only audit). Columns: `decision_id`, `pending_write_id`, `decision` enum (`approved`, `rejected`), `reviewer_id`, `rationale`, `decided_at`.
+- **cip_12** — `cip_pending_writes` + `cip_pending_writes_history`. Columns: `pending_write_id`, `tenant_id`, `lens_id`, `target_table`, `payload_jsonb`, `source_agent_id`, `session_id`, `confidence`, `rationale`, `status` enum (`pending_review`, `auto_promoted`, `rejected`), `submitted_at`, plus 9 provenance columns.
+- **cip_13** — `cip_write_authorities`. Columns: `authority_id`, `tenant_id`, `lens_id`, `source_agent_id`, `authority_floor_auto_promote` (numeric confidence threshold), `authority_floor_allow` (below which writes are rejected outright), `created_at`, `updated_at`.
+- **cip_14** — `cip_write_decisions` (append-only audit). Columns: `decision_id`, `pending_write_id`, `decision` enum (`approved`, `rejected`), `reviewer_id`, `rationale`, `decided_at`.
 
-Migration numbering note: cip_09 is reserved for Phase 3 cross-tenant grants schema. Phase 2.5 uses cip_10+ so grants schema can slot in cleanly when Phase 3 lands.
+Migration numbering note (updated 2026-05-15): the original Phase 2.5 plan reserved cip_10/cip_11/cip_12, and the original Phase 1 plan reserved cip_09 for Phase 3 cross-tenant grants. Both reservations are obsolete because the deployed alembic chain on Railway prod has now consumed `cip_09` (metabase role views, landed M5), `cip_10` (history lens views, landed M5), and `cip_11` (sync_mode_backfill — D-159 hotfix added 2026-05-15 during the Wayward incident response so the orchestrator could record `sync_mode='backfill'` rows). Phase 2.5 therefore uses **cip_12 / cip_13 / cip_14** for write-back. Phase 3 cross-tenant grants will use **cip_15** (or whichever slot is next free at Phase 3 kickoff).
 
 ### S2. Foundry Self-Tenant Provisioning
 
@@ -214,7 +214,7 @@ Milestones ordered by dependency. Session-bounded pacing.
 
 - Review Phase 2 retrospective: any Wayward surprises that reshape Phase 2.5?
 - Choose first producer: Foundry internal research agent (A) or Cowork session writer (B). Default A.
-- Confirm migration numbering (cip_10+ for Phase 2.5; cip_09 reserved for Phase 3).
+- Confirm migration numbering (cip_12+ for Phase 2.5 per the 2026-05-15 reconciliation; cip_15+ for Phase 3 cross-tenant grants).
 - Author Phase 2.5 doc skeletons (4 artifacts).
 
 **Exit:** scope locked, producer choice recorded, doc skeletons exist.
@@ -234,7 +234,7 @@ Milestones ordered by dependency. Session-bounded pacing.
 
 **Goal:** REST + MCP + Python call paths all converge on one write_service implementation.
 
-- Apply migration cip_10 (`cip_pending_writes`).
+- Apply migration cip_12 (`cip_pending_writes`).
 - Implement `src/services/cip/write_service.py::cip_write()`. Tenant scoping enforced.
 - Wire REST endpoint `POST /cip/write`.
 - Wire MCP tool `foundry_mcp_cip_write`.
@@ -246,7 +246,7 @@ Milestones ordered by dependency. Session-bounded pacing.
 
 **Goal:** authority floors live; CLI review tool works; audit log captured.
 
-- Apply migrations cip_11 (`cip_write_authorities`) and cip_12 (`cip_write_decisions`).
+- Apply migrations cip_13 (`cip_write_authorities`) and cip_14 (`cip_write_decisions`).
 - Seed default authority rows (global fallback + Foundry-lens-specific).
 - Implement authority check in `write_service.cip_write()` — auto-promote if above threshold, queue if below.
 - Implement `scripts/cip_review.py` CLI.

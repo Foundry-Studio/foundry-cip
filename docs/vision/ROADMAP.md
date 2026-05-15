@@ -6,13 +6,15 @@ pm_project_id: 596825db-61bc-4899-bc6c-e207489ca35d
 status: active
 owner: tim
 created: 2026-04-13
-last_updated: 2026-05-09
+last_updated: 2026-05-15
 supersedes: >
   (1) Previous 8-phase release-shaped roadmap (pre-pillar-restructure) — superseded 2026-04-17 per D-117 + Shape D lock.
   (2) 2026-04-20 M0 Vision Revisit — inserted Phase 2.5 (Foundry Self-Tenant + Early Write-Back) between Phase 2 and Phase 3 per Tim's directive "sooner rather than later" on write-back readiness. Pillar 1 description extended with explicit connector-agnostic posture. Added Related-products pointer at `products/foundry-chatbot/`.
   (3) 2026-04-20 Plain-Jane Reshape — Phase 1 rewired to a blank-slate tenant-neutral product validated against a synthetic FixtureConnector, not Wayward. Wayward onboarding pulled into Phase 2 (now "Wayward Onboarding — Full Round-Trip") so Wayward is its own end-to-end proof instead of a Phase 1 ingredient. cip_09 (cross_tenant_grants) migration moved from Phase 1 to Phase 3 so schema + runtime ship together. Phase 2.5 trimmed to write-back only (push stays in Phase 2). All week-based appetites dropped — phases are session-bound and milestone-ordered, not calendar-bound. Phase 1 now explicitly ships 10 documentation artifacts alongside the plain-jane product.
   (4) 2026-05-09 connector posture refresh — QBO removed from planned connector inventory; Plaid replaces it as the planned financial connector. Bob (current QBO-using app) is being rebuilt against Plaid by Tim; rebuilt Bob is its own product line, not a CIP tenant. CIP framework still connector-agnostic per D-118.
   (5) 2026-05-09 — added Procedures section capturing "Add a Use Case" onboarding ritual (PM scope 0e9b06e6, vision-pending). Cross-phase deliverable surfaced during M4 closeout discussion.
+  (6) 2026-05-15 migration-slot reconciliation — actual deployed `alembic` chain on Railway prod has consumed `cip_09` (metabase role views, M5), `cip_10` (history lens views, M5), and `cip_11` (sync_mode_backfill hotfix for D-159 — added during the Wayward Phase 2 incident response on 2026-05-14/15). The original Phase 2.5 plan reserved `cip_10`/`cip_11`/`cip_12` for write-back tables, and the original Phase 1 plan reserved `cip_09` for `cross_tenant_grants` schema (Phase 3). Both reservations are obsolete. New numbering: Phase 2.5 write-back uses **`cip_12`** (`cip_pending_writes`), **`cip_13`** (`cip_write_authorities`), **`cip_14`** (`cip_write_decisions`). Phase 3 cross-tenant grants uses **`cip_15`** (or next-free at Phase 3 kickoff). Updated in Phase 2.5 block, supersession table, MIGRATION-RUNBOOK.md, PHASE-2.5-PLAN.md.
+  (7) 2026-05-15 — added `vision/PHASE-2-WAYWARD-WDGLL.md` as the Phase 2 What-Does-Good-Look-Like artifact. Per the docs-per-phase pattern ("Each phase gets its own VISION/WDGLL/SPEC/PLAN doc"), this slot was missing for Phase 2 even though Wayward onboarding is the active phase. Tim asked for it during the 2026-05-15 vision review while Wayward HubSpot historical backfill + Zendesk current-state sync were live-running.
 ---
 
 # CIP Roadmap — Pillar-Aligned Phases
@@ -106,7 +108,7 @@ Plain-jane product works against fixture data + all 10 documentation artifacts e
 
 ## Phase 2 — Wayward Onboarding (Full Round-Trip) (Provisional · reshaped 2026-04-20)
 
-**Primary pillars:** Ingestion & Connectors (Zendesk + HubSpot ship here) + Push & Sync (first light). **Owner:** Tim + Atlas + Claude Code. **Depends on:** Phase 1 LIT.
+**Primary pillars:** Ingestion & Connectors (Zendesk + HubSpot ship here) + Push & Sync (first light). **Owner:** Tim + Atlas + Claude Code. **Depends on:** Phase 1 LIT. **WDGLL artifact:** `vision/PHASE-2-WAYWARD-WDGLL.md` (per the per-phase VISION/WDGLL/SPEC/PLAN pattern declared at the top of this roadmap).
 
 Phase 2 is **Wayward's full round-trip** — inbound ingestion, lens validation against real data, and outbound push. Previously Wayward was distributed across Phases 1 (ingest) and 2 (push); the plain-jane reshape pulls the entire Wayward story into one phase so Wayward is a single coherent onboarding proof rather than an ingredient scattered across two phases.
 
@@ -140,7 +142,7 @@ Phase 2.5 pulls **write-back** capability forward from the original Phase 7 slot
 **Scope — what ships:**
 
 - **Foundry self-tenant provisioning.** Foundry is added as a peer tenant in CIP (alongside EcomLever, Project Silk, Rocky Ridge, Personal). `cip_clients` under Foundry represent internal research topics, venture hypotheses, competitive intel threads. Provisioning is the first real test of the Tenant Onboarding Checklist shipped in Phase 1.
-- **Write-back migrations.** `cip_10` (`cip_pending_writes`), `cip_11` (`cip_write_authorities`), `cip_12` (`cip_write_decisions`).
+- **Write-back migrations.** `cip_12` (`cip_pending_writes`), `cip_13` (`cip_write_authorities`), `cip_14` (`cip_write_decisions`). (Renumbered 2026-05-15 from the original `cip_10`/`cip_11`/`cip_12` reservation — those slots are now occupied by M5 history lens views and the D-159 sync_mode_backfill hotfix. See top-of-doc supersession note (6).)
 - **`cip_write` API (three surfaces, one service).** Exposed as:
   - A REST endpoint (`POST /cip/write`) for external apps.
   - An MCP tool (`foundry_mcp_cip_write`) for agent sessions including Claude Cowork.
@@ -347,6 +349,7 @@ Use each use case as an opportunity to add features, improve, AND propagate to e
 - `vision/VISION.md` — product vision (the source of truth)
 - `vision/PHASE-1-PLAN.md` — Phase 1 (plain jane) VISION/WDGLL/SPEC/PLAN
 - `vision/PHASE-1-PLAIN-SPEC.md` — Claude Code handoff doc for Phase 1
+- `vision/PHASE-2-WAYWARD-WDGLL.md` — Phase 2 (Wayward onboarding) WDGLL slot (added 2026-05-15; tracks what "done" looks like for the first real-tenant full round-trip)
 - `vision/PHASE-2.5-PLAN.md` — Phase 2.5 (write-back) VISION/WDGLL/SPEC/PLAN
 - `architecture/ARCHITECTURE.md` — Phase 0 DDL, §13–19 hardening layer
 - `docs/DECISION-LOG.md` — D-117 through D-123 (CIP-specific locks)
@@ -407,5 +410,5 @@ Previous 8-phase roadmap (2026-04-13 draft) was release-shaped rather than pilla
 | Phase 1 exit gate | Metabase against Wayward | **Plain-jane product works against fixture data + all 10 doc artifacts exist + `PHASE-1-PLAIN-SPEC.md` marked complete by Claude Code reviewer subagent.** |
 | `cip_09` (cross_tenant_grants) | Phase 1 (schema-only) | **Phase 3** (schema + runtime ship together). |
 | Phase 2 scope | Push & Sync only | **Wayward Onboarding — Full Round-Trip.** Inbound (Zendesk + HubSpot) + outbound (Chatwoot, PS CRM, Drive) + first-light REST. Wayward is a single coherent onboarding proof instead of an ingredient across Phases 1 and 2. |
-| Phase 2.5 scope | Foundry Self-Tenant + Write-Back (broad) | **Write-back only** (push stays in Phase 2). Three cip_write surfaces (REST / MCP / Python) converge on one `write_service.cip_write()`. Migrations `cip_10` / `cip_11` / `cip_12`. TSP thresholds auto-promote ≥ 0.9, allow ≥ 0.5. Default first producer is the Foundry internal research agent. |
+| Phase 2.5 scope | Foundry Self-Tenant + Write-Back (broad) | **Write-back only** (push stays in Phase 2). Three cip_write surfaces (REST / MCP / Python) converge on one `write_service.cip_write()`. Migrations `cip_12` / `cip_13` / `cip_14` (originally `cip_10`/`cip_11`/`cip_12`; renumbered 2026-05-15 because the earlier slots were consumed). TSP thresholds auto-promote ≥ 0.9, allow ≥ 0.5. Default first producer is the Foundry internal research agent. |
 | Week-based appetites | "~8 weeks" / "~6 weeks" / etc. on every phase | **Dropped.** Phases are session-bound and milestone-ordered. Claude Code operates at AI speed, not human-sprint speed. |

@@ -2,14 +2,14 @@
 kind: doc
 domain: client-intelligence-platform
 status: draft
-last_updated: 2026-05-11
+last_updated: 2026-05-15
 milestone: Phase-1-M7
 ---
 
 # Migration Runbook
 
-> **Status:** draft — M1 migrations applied 2026-04-21; cip_09 (Metabase platform service) added 2026-05-09 in M5. M7 read-through 2026-05-11 corrected the cip_09 / Phase 3 misattribution in §8 (Phase 3 cross-tenant grants now chain at cip_10 since cip_09 is taken).
-> This runbook is the authoritative sequence for applying `cip_*` migrations to any CIP-enabled environment. Phase 1 covers cip_01 → cip_09; cip_10/11/12 are Phase 2.5; cross-tenant grants (Phase 3) chain at cip_10+.
+> **Status:** draft — M1 migrations applied 2026-04-21; cip_09 (Metabase platform service) added 2026-05-09 in M5; cip_10 (history lens views) added 2026-05-11; cip_11 (sync_mode_backfill — D-159 hotfix) added 2026-05-15 during the Wayward Phase 2 incident response. M7 read-through 2026-05-11 corrected the cip_09 / Phase 3 misattribution in §8. **2026-05-15 reconciliation:** Phase 2.5 write-back migrations renumbered from cip_10/cip_11/cip_12 → cip_12/cip_13/cip_14, and Phase 3 cross-tenant grants slot moves from cip_10 → cip_15 (next-free at Phase 3 kickoff).
+> This runbook is the authoritative sequence for applying `cip_*` migrations to any CIP-enabled environment. Phase 1 covers cip_01 → cip_11 (with cip_09–cip_11 added incrementally for M5 + the D-159 backfill hotfix); cip_12/13/14 are Phase 2.5 write-back; cross-tenant grants (Phase 3) chain at cip_15+.
 
 ## Purpose
 
@@ -240,13 +240,13 @@ Debug table `cip_test_trace` created during M1 env.py troubleshooting; dropped 2
 
 ### 8. Phase 2.5 and Phase 3 migrations (preview)
 
-**Do not apply these in Phase 1 ventures.**
+**Do not apply these in Phase 1 ventures.** (Updated 2026-05-15 — see top-of-doc reconciliation note for the renumbering history.)
 
 | Revision (planned) | Phase | Purpose |
 |--------------------|-------|---------|
-| `cip_10_cross_tenant_grants` | Phase 3 | Cross-tenant visibility grants — extends RLS model without breaking D-026 default isolation. (Was earlier sketched as `cip_09`; renumbered to `cip_10` because cip_09 was used by M5 for the Metabase role + lens views.) |
-| `cip_11_*` | Phase 2.5 | Write-back: mutation queue tables. |
-| `cip_12_*` | Phase 2.5 | Write-back: audit trail for mutations. |
-| `cip_13_*` | Phase 2.5 | Write-back: conflict resolution. |
+| `cip_12_cip_pending_writes` | Phase 2.5 | Write-back: mutation queue + `_history` SCD-2. |
+| `cip_13_cip_write_authorities` | Phase 2.5 | Write-back: per-lens authority floors keyed by source_agent_id. |
+| `cip_14_cip_write_decisions` | Phase 2.5 | Write-back: append-only audit of approve/reject decisions. |
+| `cip_15_cross_tenant_grants` | Phase 3 | Cross-tenant visibility grants — extends RLS model without breaking D-026 default isolation. (Was earlier sketched as `cip_09`, then `cip_10` after the 2026-05-11 read-through; renumbered to `cip_15` 2026-05-15 because cip_10 and cip_11 are now occupied.) |
 
-These revisions will chain off `cip_09_metabase_role_views` when authored.
+These revisions chain off `cip_11_sync_mode_backfill` when authored. The actual slot numbers may shift again if additional hotfix migrations land between now and Phase 2.5/3 kickoff — confirm at kickoff against the deployed alembic chain.

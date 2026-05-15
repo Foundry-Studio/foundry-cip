@@ -6,9 +6,9 @@ pm_project_id: 596825db-61bc-4899-bc6c-e207489ca35d
 status: draft-under-revision
 owner: tim
 created: 2026-04-06
-last_updated: 2026-05-09
+last_updated: 2026-05-15
 supersedes: >
-  Original §2 Two Data Layers simplified the storage model — superseded 2026-04-20 by D-120 Three Data Layers (Structured / Derived Knowledge / Originals). Original §4 Tenant Model showed a nested super-tenant → venture → client shape — superseded 2026-04-20 by flat peer-tenant model with first-class `cip_cross_tenant_grants`. Original §10 Roadmap was a 3-phase Wayward-scoped list — superseded 2026-04-20 to point at `ROADMAP.md` as authoritative source; this section is now a hand-synced summary.
+  Original §2 Two Data Layers simplified the storage model — superseded 2026-04-20 by D-120 Three Data Layers (Structured / Derived Knowledge / Originals). Original §4 Tenant Model showed a nested super-tenant → venture → client shape — superseded 2026-04-20 by flat peer-tenant model with first-class `cip_cross_tenant_grants`. Original §10 Roadmap was a 3-phase Wayward-scoped list — superseded 2026-04-20 to point at `ROADMAP.md` as authoritative source; this section is now a hand-synced summary. 2026-05-15 accuracy sweep: §6 "Current stage" updated from "between 0 and 1" to "end of Phase 1 / Wayward Phase 2 onboarding underway"; §4 "what's missing" list trimmed because M1-M5 are now done (connector framework + structured store + lens engine + Metabase platform service all built); §7d connector-contract sketch corrected to match the shipped Protocol (`stream_records` + `backfill_history`, not `pull_full` + `pull_incremental`); §1 Wayward baseline numbers explicitly labeled as the original April 2026 SQLite proof-of-concept (not current Railway prod state); §10 Phase 2.5 migration numbering shifted to `cip_12`/`cip_13`/`cip_14` because `cip_09`/`cip_10`/`cip_11` are already occupied by deployed migrations (metabase role views, history lens views, sync_mode_backfill respectively).
 open_revision_items:
   - "M0 Vision Revisit 2026-04-20 evening — six Tim directives applied (never-defer ethos, Plaid/financial planned connector [updated 2026-05-09 from QBO; Bob rebuild will use Plaid], peer-tenant model, early write-back pulled to Phase 2.5, per-client siloing inside venture tenant, Foundry Chatbot spinoff)."
   - "2026-05-09 connector posture refresh — QBO removed from connector inventory; Plaid replaces it as the planned financial connector. Reflected in §3, §4 connector inventory, §7g registry mention. Bob (current app) defunct; new Bob will be Plaid-based and treated as a separate product. CIP framework still connector-agnostic."
@@ -27,7 +27,7 @@ open_revision_items:
 
 Every venture client engagement starts the same way: pull data from their systems, centralize it, analyze it, generate insights, deliver reports. Today this is done by hand — custom scripts, one-off SQLite files, manual analysis in Claude sessions. Each new client starts from zero.
 
-The Wayward engagement proved the pattern:
+The Wayward engagement proved the pattern (numbers below are from the **April 2026 SQLite proof-of-concept**, NOT current Railway prod ingestion — those moved as live ingestion has run; the POC numbers preserved as the motivating-moment evidence):
 - **Day 1:** Pull Zendesk (1,281 tickets, 18,709 users, 5,214 comments) + HubSpot (45,687 contacts, 65,029 companies, 2,934 deals, 4,734 notes including 1,662 Firefly call transcripts)
 - **Day 1:** Build unified SQLite knowledge base (153,588 records, 139MB)
 - **Day 1:** Generate CEO briefing with operational audit, gap analysis, 7 proposals
@@ -230,7 +230,7 @@ Runtime: when a Project Silk session queries Wayward data, the access layer walk
 | PostgreSQL | ACTIVE | Relational DB on Railway | Structured layer storage |
 | Metabase | DEPLOYED | Analytics/dashboard tool | Dashboard interface (already running at reports.project-silk.com) |
 
-**~70% of the infrastructure already exists.** What's missing: connector framework, structured data normalization, consumption interfaces, filtered views, scheduled reports, anomaly detection, white-label.
+**~90% of the platform infrastructure now exists (M1–M5 of Phase 1 shipped 2026-04 → 2026-05).** Built since the original "70%" snapshot: connector framework (M2, `CIPConnector` + `CIPMapper` Protocols inside the Integration Mesh), structured-data normalization (M1 migrations `cip_01`–`cip_08` with full provenance + SCD-2 history tables), lens engine (M4, with golden-file harness), Metabase platform service with `cip_metabase_role` grant matrix + history-lens view (M5, `cip_09`/`cip_10`). What still needs to ship for CIP to be truly product-ready (per the ROADMAP backlog): scheduled-sync worker / push-and-sync pillar productization (Phase 2 + dedicated PM scope), anomaly detection + freshness alerts (Phase 6), white-label embedding controls (Phase 7), and the hardening milestones M6–M8 (registry completeness, four-access-paths validation, plain-jane lock).
 
 ### Connector Inventory (Planned)
 
@@ -278,7 +278,7 @@ The existing services (pinecone_client, knowledge_ingester, knowledge_retriever)
 
 **Stage 3 (Deployable):** Own service, own CI/CD. External customers could buy this. "Plug in your CRM and ticketing credentials, get a client intelligence dashboard in 24 hours."
 
-**Current stage:** Between 0 and 1. Wayward SQLite proof-of-concept exists. Existing infrastructure covers ~70%. Need to build the product layer on top.
+**Current stage:** End of Phase 1 / start of Phase 2. Plain-jane CIP (Phase 1 M1–M5) is built and deployed on Railway prod. Wayward onboarding (Phase 2) is live as of 2026-05-14 — first real-tenant ingestion in progress, validating the connectors + lens + Metabase stack against real production data for the first time. Multi-tenant + cross-tenant grants (Phase 3, Rocky Ridge) and write-back (Phase 2.5, Foundry self-tenant) remain ahead; together they bring CIP to Stage 2 (multi-tenant platform product).
 
 ---
 
@@ -322,7 +322,7 @@ Treat connectors as managed product capabilities, not bespoke integrations. Brow
 
 **Why plan now:** The connector interface contract must be clean enough that a new connector is a weekend project, not a week-long effort. If the first two connectors (Zendesk, HubSpot) have bespoke patterns, every future connector reinvents the wheel.
 
-**Implementation:** Standard connector contract: `authenticate()`, `discover_schema()`, `pull_full()`, `pull_incremental(since_timestamp)`, `normalize(raw_record) → standard_record`, `get_rate_limits()`. Every connector implements this interface. The marketplace is just a registry of available connectors with their configs.
+**Implementation:** Standard connector contract (shipped in M2 as `CIPConnector` + `CIPMapper` Protocols inside the Integration Mesh per D-118): `authenticate()`, `describe_schema() → list[PropertyDescriptor]`, `stream_records(cursor, batch_size) → Iterator[dict]` (current-state pull, cursor-resumable), `backfill_history(tenant_id) → Iterator[HistoricalRecord]` (D-159 historical pull, per-tenant, mandatory by default), `incremental_key(record) → datetime`, `rate_limit_policy → RateLimitPolicy`, plus the `CIPMapper` side (`map(record) → Iterator[mapped]`). Every connector implements this Protocol pair; `validate_connector_shape()` enforces conformance at orchestrator startup. The marketplace is just a registry of available connectors with their configs (`cip_connector_property_registry` + `cip_connectors` tables).
 
 Source: [CData 2026 Multi-Tenant Integration Playbook](https://www.cdata.com/blog/multi-tenant-data-integration-platform-scalable-saas-2026)
 
@@ -412,7 +412,7 @@ Phase structure at a glance (provisional beyond Phase 1):
 - **Phase 0 — Data Model & Tenant Architecture.** COMPLETE 2026-04-17. Locked 10 decisions (DB, tenant model, provenance, SCD, auth).
 - **Phase 1 — Plain-Jane CIP + Documentation Suite.** LOCKED 2026-04-20 (reshape). Session-bound, milestone-ordered — no calendar appetite. **No real tenant** — validated against a synthetic FixtureConnector producing deterministic test data. 12 code deliverables + 10 documentation artifacts. Two lenses (Lens-A empty / Lens-B `region=EMEA`) on the fixture dataset. Metabase sole consumer. **`cip_09` cross_tenant_grants is NOT in Phase 1** — held until Phase 3 so schema + runtime ship together.
 - **Phase 2 — Wayward Onboarding (Full Round-Trip).** Inbound (Zendesk + HubSpot connectors — HubSpot 20-revision retention clock starts here) + two lenses on real Wayward data + outbound push (Chatwoot, PS Twenty CRM, client Google Drive) + first-light REST API. Primary tenant in EcomLever; PS grant-in deferred to Phase 3.
-- **Phase 2.5 — Foundry Self-Tenant + Write-Back.** NEW per 2026-04-20 M0, trimmed 2026-04-20 plain-jane reshape (push was in scope; now pure write-back). Foundry provisioned as a tenant. Migrations `cip_10`/`cip_11`/`cip_12`. `cip_write` API exposed on REST, MCP, and Python — all converging on one `write_service.cip_write()`. Authority model with TSP thresholds (auto-promote ≥ 0.9, allow ≥ 0.5).
+- **Phase 2.5 — Foundry Self-Tenant + Write-Back.** NEW per 2026-04-20 M0, trimmed 2026-04-20 plain-jane reshape (push was in scope; now pure write-back). Foundry provisioned as a tenant. Migrations `cip_12`/`cip_13`/`cip_14` (renumbered 2026-05-15 — the originally reserved `cip_10`/`cip_11` slots were consumed by M5 history-lens-views and the 2026-05-15 sync_mode_backfill hotfix; see ROADMAP.md and PHASE-2.5-PLAN.md). `cip_write` API exposed on REST, MCP, and Python — all converging on one `write_service.cip_write()`. Authority model with TSP thresholds (auto-promote ≥ 0.9, allow ≥ 0.5).
 - **Phase 3 — Rocky Ridge + Multi-Tenant + Cross-Tenant Grants Runtime.** `cip_09` migration + runtime together. Rocky Ridge onboards as tenant #2. PS grant-in to Wayward lights up. Cross-tenant lens validation. Access-layer observability.
 - **Phase 4 — Agent Access Surfaces (REST + MCP).** Provisional. Chatbot explicitly excluded.
 - **Phase 5 — Chatbot Capability (Internal / Staff-Facing).** Provisional. Three stages: 5A Vision, 5B Architecture, 5C Implementation. First tenant Rocky Ridge, then Wayward via grant. Intended consumers listed in §7g.

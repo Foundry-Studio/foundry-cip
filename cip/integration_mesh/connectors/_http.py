@@ -68,6 +68,26 @@ class HTTPTransport(Protocol):
         """
         ...
 
+    def post(
+        self,
+        path: str,
+        *,
+        json_body: dict[str, Any] | None = None,
+        params: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """Issue a POST to ``base_url + path`` with JSON body; return
+        parsed JSON dict. Same retry / 429 / 5xx semantics as ``get()``.
+
+        Added 2026-05-15 (scope 9c3d1393) so connectors can use POST
+        batch/read endpoints that accept large property lists in the
+        body, avoiding GET URL-length caps (~32KB on most stacks) when
+        a single tenant has 200+ HubSpot properties.
+
+        Raises:
+            HTTPError: non-2xx after retries.
+        """
+        ...
+
 
 class HttpxTransport:
     """httpx-backed default ``HTTPTransport``. Used by production code;
@@ -164,6 +184,66 @@ class HttpxTransport:
             body=f"retries exhausted ({self.max_retries}): {last_body}",
             url=path,
             method="GET",
+        )
+
+    def post(
+        self,
+        path: str,
+        *,
+        json_body: dict[str, Any] | None = None,
+        params: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """POST with JSON body. Same retry semantics as ``get()`` —
+        retries on 429 (honoring Retry-After up to cap) and 5xx
+        (exponential backoff). Raises HTTPError on non-retryable 4xx
+        or after retry budget exhausted."""
+        attempt = 0
+        last_status = 0
+        last_body = ""
+        while attempt <= self.max_retries:
+            response = self._client.post(path, json=json_body, params=params)
+            if 200 <= response.status_code < 300:
+                json_value = response.json()
+                if not isinstance(json_value, dict):
+                    raise HTTPError(
+                        status=response.status_code,
+                        body=f"Unexpected non-dict JSON: {type(json_value).__name__}",
+                        url=str(response.url),
+                        method="POST",
+                    )
+                return json_value
+
+            last_status = response.status_code
+            last_body = response.text
+
+            if response.status_code == 429:
+                wait_str = response.headers.get("Retry-After", "")
+                try:
+                    wait = int(wait_str) if wait_str else 60
+                except ValueError:
+                    wait = 60
+                wait = min(wait, self.retry_after_cap_seconds)
+                _sleep(wait)
+                attempt += 1
+                continue
+
+            if 500 <= response.status_code < 600:
+                _sleep(self.backoff_base_seconds * (2 ** attempt))
+                attempt += 1
+                continue
+
+            raise HTTPError(
+                status=response.status_code,
+                body=response.text,
+                url=str(response.url),
+                method="POST",
+            )
+
+        raise HTTPError(
+            status=last_status,
+            body=f"retries exhausted ({self.max_retries}): {last_body}",
+            url=path,
+            method="POST",
         )
 
     def __enter__(self) -> HttpxTransport:

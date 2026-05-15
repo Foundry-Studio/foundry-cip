@@ -80,3 +80,23 @@ class StubTransport:
             raise next_response.error
         assert next_response.json is not None  # mypy
         return next_response.json
+
+    def post(
+        self,
+        path: str,
+        *,
+        json_body: dict[str, Any] | None = None,
+        params: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        # Record the body too for assertion-friendly debugging.
+        self.calls.append(("POST", path, json_body or params))
+        if not self._queue:
+            raise AssertionError(
+                f"StubTransport: no queued response for POST {path} "
+                f"(body={json_body}); previous calls: {self.calls[:-1]}"
+            )
+        next_response = self._queue.popleft()
+        if next_response.error is not None:
+            raise next_response.error
+        assert next_response.json is not None  # mypy
+        return next_response.json

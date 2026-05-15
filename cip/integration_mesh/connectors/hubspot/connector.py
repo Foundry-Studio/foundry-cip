@@ -72,11 +72,15 @@ _OBJECT_TYPES: tuple[tuple[str, str], ...] = (
     ("tickets", "ticket"),
 )
 
-# Properties we request on every entity. HubSpot returns a stable subset
-# by default; explicit list documents the columns we map. Custom-portal
-# properties are discovered at runtime via the Properties API in
-# describe_schema().
-_DEFAULT_PROPERTIES: dict[str, tuple[str, ...]] = {
+# Fallback property list used ONLY when discovery fails (network error,
+# permission denied on /properties endpoint, etc.). In normal operation,
+# the connector calls _discover_properties() on first use and fetches
+# every property HubSpot exposes for the portal — ~300 per entity — so
+# custom segmentation, ownership, partnership, Amazon, and platform-
+# integration fields all land in cip_*.properties JSONB without having
+# to be enumerated in code. Discovery output is cached per-connector-
+# instance for the lifetime of the run (D-117 / scope 9c3d1393).
+_FALLBACK_PROPERTIES: dict[str, tuple[str, ...]] = {
     "companies": (
         "name", "domain", "industry", "city", "country", "numberofemployees",
         "annualrevenue", "createdate", "hs_lastmodifieddate", "lifecyclestage",
@@ -94,6 +98,8 @@ _DEFAULT_PROPERTIES: dict[str, tuple[str, ...]] = {
         "hs_ticket_priority", "createdate", "hs_lastmodifieddate",
     ),
 }
+# Back-compat alias — some module-level imports reference the old name.
+_DEFAULT_PROPERTIES = _FALLBACK_PROPERTIES
 
 
 class HubSpotConnector(CIPConnectorBase):
@@ -134,6 +140,17 @@ class HubSpotConnector(CIPConnectorBase):
             auth_headers={"Authorization": f"Bearer {self.token}"},
         )
         self._authenticated = False
+        # Per-instance property catalog cache, populated lazily on first
+        # call to _discover_properties(). Maps HubSpot path (e.g.,
+        # "companies") to tuple of property names to fetch. Excludes
+        # calculated and read-only-aggregate properties (HubSpot returns
+        # those as derived values, not stored fields, and they don't
+        # have history). See _discover_properties() for filter logic.
+        self._discovered_properties: dict[str, tuple[str, ...]] = {}
+        # Entities we've already determined we have no permission for
+        # (403 on properties endpoint). Skipped silently on subsequent
+        # access. Per-entity isolation per scope d3311846.
+        self._unavailable_entities: set[str] = set()
 
     def authenticate(self) -> None:
         """Validate the PAT by making a minimal read call. HubSpot PATs
@@ -176,12 +193,74 @@ class HubSpotConnector(CIPConnectorBase):
                 last_key = datetime.fromisoformat(raw)
 
         for hubspot_path, record_type in _OBJECT_TYPES:
-            yield from self._stream_entity(
-                hubspot_path=hubspot_path,
-                record_type=record_type,
-                last_key=last_key,
-                batch_size=batch_size,
-            )
+            if hubspot_path in self._unavailable_entities:
+                continue
+            try:
+                yield from self._stream_entity(
+                    hubspot_path=hubspot_path,
+                    record_type=record_type,
+                    last_key=last_key,
+                    batch_size=batch_size,
+                )
+            except HTTPError as exc:
+                # Per-entity isolation (scope d3311846): if HubSpot says
+                # this token can't access this entity, mark unavailable
+                # and continue with the rest. Equivalent to the Wayward
+                # tickets-403 case that cascade-killed the run on 2026-05-14.
+                if exc.status in {401, 403}:
+                    self._unavailable_entities.add(hubspot_path)
+                    continue
+                # Other HTTP errors are still entity-fatal but not
+                # connector-fatal — let the orchestrator decide.
+                raise
+
+    def _discover_properties(self, hubspot_path: str) -> tuple[str, ...]:
+        """Fetch the full property catalog for an entity type from HubSpot's
+        Properties API and cache it per-instance.
+
+        Calls ``/crm/v3/properties/{type}`` once. Returns every property
+        name except those marked ``calculated`` (HubSpot derives those at
+        read time; they don't represent stored fields and aren't meaningful
+        to backfill). Filtering applies to both stream_records (current
+        state) and backfill_history (so history reads are property-aligned).
+
+        On 403/401: returns the fallback tuple, marks entity unavailable.
+        On other error: returns the fallback tuple, doesn't mark unavailable
+        (caller will hit the same error on the data endpoint and abort
+        cleanly).
+
+        Cached per-instance for the lifetime of the run — a connector that
+        runs current-state then backfill in the same process gets one
+        discovery call total per entity, not two.
+        """
+        cached = self._discovered_properties.get(hubspot_path)
+        if cached is not None:
+            return cached
+
+        try:
+            resp = self._http.get(f"/crm/v3/properties/{hubspot_path}")
+        except HTTPError as exc:
+            if exc.status in {401, 403}:
+                self._unavailable_entities.add(hubspot_path)
+            fallback = _FALLBACK_PROPERTIES.get(hubspot_path, ())
+            self._discovered_properties[hubspot_path] = fallback
+            return fallback
+
+        props = resp.get("results", [])
+        names: list[str] = []
+        for p in props:
+            if not isinstance(p, dict):
+                continue
+            if p.get("calculated"):
+                continue
+            name = p.get("name")
+            if isinstance(name, str) and name:
+                names.append(name)
+        if not names:
+            names = list(_FALLBACK_PROPERTIES.get(hubspot_path, ()))
+        result = tuple(sorted(set(names)))
+        self._discovered_properties[hubspot_path] = result
+        return result
 
     def _stream_entity(
         self,
@@ -191,35 +270,51 @@ class HubSpotConnector(CIPConnectorBase):
         last_key: datetime | None,
         batch_size: int,
     ) -> Iterator[dict[str, object]]:
-        """Paginate one entity type and emit current-state records.
+        """Paginate one entity type and emit current-state records with
+        the FULL discovered property set per record.
 
-        Historical backfill is now a SEPARATE method per D-159 redesign
-        (PM 218f67a4 implementation). See ``backfill_history()`` below;
-        the orchestrator's ``run_backfill()`` invokes it after run_sync
-        finishes current state.
+        Two-pass flow (scope 9c3d1393):
+          1. GET /crm/v3/objects/{type}?limit=100  — returns IDs + a
+             minimal default property set per page, cursor-paginated.
+          2. POST /crm/v3/objects/{type}/batch/read  — body carries up
+             to 100 IDs + the FULL discovered property list, returns
+             every property for every record. Avoids URL-length cap
+             that GET hits at ~250 properties.
+
+        Historical backfill is a separate method per D-159 redesign.
         """
+        properties = self._discover_properties(hubspot_path)
         page_size = min(batch_size, 100)  # HubSpot caps at 100
-        properties = _DEFAULT_PROPERTIES.get(hubspot_path, ())
         after: str | None = None
 
         while True:
-            params: dict[str, str | int] = {
-                "limit": page_size,
-                "properties": ",".join(properties),
-            }
+            list_params: dict[str, str | int] = {"limit": page_size}
             if after:
-                params["after"] = after
-
-            page = self._http.get(f"/crm/v3/objects/{hubspot_path}", params=params)
-            results = page.get("results", [])
-
-            for record in results:
-                rec_dict = self._to_record(record, record_type)
-                # Filter incremental on current-state.
-                incremental_key_value = self._record_incremental_key(rec_dict)
-                if last_key and incremental_key_value <= last_key:
-                    continue
-                yield rec_dict
+                list_params["after"] = after
+            page = self._http.get(
+                f"/crm/v3/objects/{hubspot_path}", params=list_params
+            )
+            id_results = page.get("results", [])
+            ids: list[str] = [
+                str(r.get("id"))
+                for r in id_results
+                if isinstance(r, dict) and r.get("id") is not None
+            ]
+            if ids:
+                # Batch-read full properties for this page of IDs.
+                batch_resp = self._http.post(
+                    f"/crm/v3/objects/{hubspot_path}/batch/read",
+                    json_body={
+                        "inputs": [{"id": i} for i in ids],
+                        "properties": list(properties),
+                    },
+                )
+                for record in batch_resp.get("results", []):
+                    rec_dict = self._to_record(record, record_type)
+                    incremental_key_value = self._record_incremental_key(rec_dict)
+                    if last_key and incremental_key_value <= last_key:
+                        continue
+                    yield rec_dict
 
             paging = page.get("paging", {})
             after = (
@@ -269,67 +364,111 @@ class HubSpotConnector(CIPConnectorBase):
             self.authenticate()
 
         for hubspot_path, record_type in _OBJECT_TYPES:
-            target_table = _CIP_TABLE_BY_TYPE[record_type]
-            properties = _DEFAULT_PROPERTIES.get(hubspot_path, ())
-            properties_csv = ",".join(properties)
-            after: str | None = None
+            if hubspot_path in self._unavailable_entities:
+                continue
+            try:
+                yield from self._backfill_entity(hubspot_path, record_type)
+            except HTTPError as exc:
+                # Per-entity isolation (scope d3311846): 403/401 on one
+                # entity (e.g., Wayward token lacks tickets scope) marks
+                # entity unavailable and continues; doesn't kill backfill.
+                if exc.status in {401, 403}:
+                    self._unavailable_entities.add(hubspot_path)
+                    continue
+                raise
 
-            while True:
-                params: dict[str, str | int] = {
-                    # HubSpot caps propertiesWithHistory requests at 50
-                    # ("You can only request at most 50 objects in one
-                    # request for properties with history"). Verified
-                    # 2026-05-15 against Wayward portal.
-                    "limit": 50,
-                    "properties": properties_csv,
-                    "propertiesWithHistory": properties_csv,
-                }
-                if after:
-                    params["after"] = after
-                page = self._http.get(
-                    f"/crm/v3/objects/{hubspot_path}", params=params
+    def _backfill_entity(
+        self, hubspot_path: str, record_type: str
+    ) -> Iterator[HistoricalRecord]:
+        """Stream historical revisions for one entity type with the FULL
+        discovered property set. HubSpot caps propertiesWithHistory at
+        50 records/request — that's the loop limit, NOT the property
+        list size cap (verified 2026-05-15 against Wayward portal)."""
+        target_table = _CIP_TABLE_BY_TYPE[record_type]
+        properties = self._discover_properties(hubspot_path)
+        properties_csv = ",".join(properties)
+        after: str | None = None
+        while True:
+            params: dict[str, str | int] = {
+                "limit": 50,
+                "properties": properties_csv,
+                "propertiesWithHistory": properties_csv,
+            }
+            if after:
+                params["after"] = after
+            page = self._http.get(
+                f"/crm/v3/objects/{hubspot_path}", params=params
+            )
+            for obj in page.get("results", []):
+                yield from self._historical_records_for_obj(
+                    obj, record_type, target_table
                 )
-                for obj in page.get("results", []):
-                    yield from self._historical_records_for_obj(
-                        obj, record_type, target_table
-                    )
-                paging = page.get("paging", {})
-                if isinstance(paging, dict):
-                    nxt = paging.get("next", {})
-                    after = nxt.get("after") if isinstance(nxt, dict) else None
-                else:
-                    after = None
-                if not after:
-                    break
+            paging = page.get("paging", {})
+            if isinstance(paging, dict):
+                nxt = paging.get("next", {})
+                after = nxt.get("after") if isinstance(nxt, dict) else None
+            else:
+                after = None
+            if not after:
+                break
 
     def _historical_records_for_obj(
         self, hubspot_obj: dict[str, Any], record_type: str, target_table: str
     ) -> Iterator[HistoricalRecord]:
         """For one HubSpot object, yield HistoricalRecord per snapshot
-        across all tracked properties (oldest → newest)."""
+        across all tracked properties (oldest → newest).
+
+        Bug history (2026-05-15): two adjacent HubSpot timestamps for the
+        same instant can serialize with different millisecond precision
+        ("2025-07-15T18:03:26.491Z" and "2025-07-15T18:03:26Z" both
+        appearing in the same property-history stream for the same record).
+        The previous implementation sorted these as RAW STRINGS — ASCII
+        ordering puts "." (0x2E) before "Z" (0x5A), so the higher-precision
+        string sorted BEFORE the lower-precision one even though they
+        represent the same logical instant (or the .491 is later). After
+        sort, valid_from = parsed(".491Z") and valid_to = parsed("Z")
+        produced ``valid_from > valid_to`` → ``ck_*_history_valid_range``
+        violation, which poisoned the persister transaction and killed
+        the rest of the batch. Fixed by parsing all timestamps to
+        ``datetime`` FIRST, then grouping snapshots by parsed datetime
+        (semantic equivalence, not string), then sorting datetime objects,
+        then defensively skipping any snapshot where ``valid_from >=
+        valid_to`` (constraint requires strict greater-than).
+        """
         history = hubspot_obj.get("propertiesWithHistory", {}) or {}
         if not isinstance(history, dict):
             return
 
-        # Flatten (ts, prop, value) tuples across all properties.
-        revisions: list[tuple[str, str, Any]] = []
+        # Parse every (timestamp, property, value) tuple to typed
+        # datetime FIRST. Skip un-parseable timestamps rather than crash.
+        revisions: list[tuple[datetime, str, str, Any]] = []
         for prop_name, prop_history in history.items():
             if not isinstance(prop_history, list):
                 continue
             for rev in prop_history:
                 ts_raw = rev.get("timestamp")
-                if isinstance(ts_raw, str):
-                    revisions.append((ts_raw, prop_name, rev.get("value")))
+                if not isinstance(ts_raw, str):
+                    continue
+                try:
+                    ts_dt = _parse_hubspot_ts(ts_raw)
+                except Exception:  # noqa: BLE001
+                    continue
+                revisions.append((ts_dt, ts_raw, prop_name, rev.get("value")))
         if not revisions:
             return
 
-        # Group by timestamp; build snapshots.
-        revisions.sort(key=lambda r: r[0])
-        snapshots: dict[str, dict[str, Any]] = {}
-        for ts, prop, value in revisions:
-            snapshots.setdefault(ts, {})[prop] = value
+        # Group by PARSED datetime (semantic equivalence) — not raw
+        # string. Multiple property changes at the same logical instant
+        # collapse into a single snapshot regardless of string format.
+        snapshots: dict[datetime, dict[str, Any]] = {}
+        ts_string_for_dt: dict[datetime, str] = {}
+        for ts_dt, ts_raw, prop, value in revisions:
+            snapshots.setdefault(ts_dt, {})[prop] = value
+            # Remember the original string for change_reason audit trail
+            # (first one wins; deterministic given input order).
+            ts_string_for_dt.setdefault(ts_dt, ts_raw)
 
-        ts_sorted = sorted(snapshots.keys())
+        dts_sorted = sorted(snapshots.keys())
         source_id = str(hubspot_obj.get("id", ""))
         if not source_id:
             return
@@ -337,14 +476,19 @@ class HubSpotConnector(CIPConnectorBase):
         domain_keys = _HUBSPOT_DOMAIN_FIELDS_FOR_HISTORY.get(record_type, set())
         translation = _HUBSPOT_RECORD_TO_SQL_FOR_HISTORY.get(record_type, {})
 
-        for idx, ts in enumerate(ts_sorted):
-            snap_props = snapshots[ts]
-            valid_from = _parse_hubspot_ts(ts)
+        for idx, valid_from in enumerate(dts_sorted):
+            snap_props = snapshots[valid_from]
             valid_to = (
-                _parse_hubspot_ts(ts_sorted[idx + 1])
-                if idx + 1 < len(ts_sorted)
-                else None
+                dts_sorted[idx + 1] if idx + 1 < len(dts_sorted) else None
             )
+
+            # Defensive: ck_*_history_valid_range requires
+            # ``valid_to IS NULL OR valid_to > valid_from`` (strict >).
+            # If parsing produced equal datetimes that somehow weren't
+            # grouped, or if HubSpot ever returns out-of-order timestamps,
+            # skip rather than violate the constraint and poison the txn.
+            if valid_to is not None and valid_to <= valid_from:
+                continue
 
             fields: dict[str, object] = {}
             overflow: dict[str, object] = {}
@@ -375,7 +519,10 @@ class HubSpotConnector(CIPConnectorBase):
                 fields=fields,
                 overflow=overflow,
                 changed_by=self.connector_id,
-                change_reason=f"hubspot-property-history-snapshot[{ts}]",
+                change_reason=(
+                    f"hubspot-property-history-snapshot"
+                    f"[{ts_string_for_dt[valid_from]}]"
+                ),
             )
 
     def describe_schema(self) -> list[PropertyDescriptor]:

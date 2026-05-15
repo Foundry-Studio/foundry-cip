@@ -1,30 +1,21 @@
 # foundry: kind=script domain=client-intelligence-platform
-"""Wayward HubSpot historical backfill — companies + contacts + deals only.
+"""Wayward HubSpot historical backfill — clean re-run with full property set.
 
-Why this exists (2026-05-15): on 2026-05-14 the combined Wayward current-state
-sync died on HubSpot tickets with a 403 ("The scope needed for this API call
-isn't available for public use") AFTER successfully ingesting 117,000 rows of
-companies/contacts/deals. The autonomous backfill orchestrator was gated on
-``cs_status in {'success', 'partial'}`` and saw ``failed``, so backfill never
-fired. Tim's "I need the historical data, that was very important" → this
-tactical script pulls history for the 3 entities that DID succeed in
-current-state and skips tickets (whose scope is genuinely unavailable on
-the Wayward token).
-
-This is a workaround until PM scope ``d3311846`` lands (partial-success
-connector orchestration). When that ships, the production orchestrator will
-do this automatically and this script can be deleted.
-
-Approach:
-  - Subclass HubSpotConnector and override ``_OBJECT_TYPES`` at the
-    class-method level by filtering out tickets in ``backfill_history``.
-    Minimal blast radius — no edits to shared connector code.
-  - Reuse run_backfill() from cip.integration_mesh (identical persister
-    contract: looks up cip_<table>.id by source_id and writes to
-    cip_<table>_history with valid_from/valid_to SCD-2 columns).
-  - Records a cip_sync_runs row with sync_mode='backfill' status='success'
-    (or 'partial' if any records were skipped because their current-state
-    row went missing).
+History:
+  - 2026-05-14: combined sync died on HubSpot tickets 403 (Wayward token
+    lacks tickets scope). Cascade-killed Zendesk.
+  - 2026-05-15 morning: tactical subclass override skipped tickets. Worked
+    but emitted the slim 4-property set and hit the valid_range millisecond
+    bug + transaction-poison cascade.
+  - 2026-05-15 afternoon (scope d3311846 + 9c3d1393): HubSpotConnector now
+    has built-in per-entity isolation (403/401 → mark unavailable, continue)
+    + savepoint-per-record in the orchestrator + discovery-driven full
+    property fetch via POST batch/read + timestamp-grouping bugfix in
+    _historical_records_for_obj. The subclass override is no longer needed.
+  - This script now uses plain HubSpotConnector. Tickets entity will 403
+    once, get marked unavailable, and the run continues cleanly through
+    companies + contacts + deals with the full ~300-property catalog per
+    entity.
 
 Usage:
 
@@ -39,70 +30,15 @@ from __future__ import annotations
 import os
 import re
 import sys
-from collections.abc import Iterator
 from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
 from sqlalchemy import create_engine, text
 
 from cip.integration_mesh import run_backfill
-from cip.integration_mesh.base import HistoricalRecord
 from cip.integration_mesh.connectors.hubspot import HubSpotConnector
-from cip.integration_mesh.connectors.hubspot.connector import _OBJECT_TYPES
 
 TENANT_WAYWARD = UUID("b0000000-0000-0000-0000-000000000001")
-SKIP = {"tickets"}  # HubSpot scope unavailable to Wayward token
-
-
-class HubSpotConnectorNoTickets(HubSpotConnector):
-    """Override backfill_history to skip tickets entity.
-
-    Doesn't touch stream_records (current-state) because current-state
-    has already succeeded for companies/contacts/deals on Railway prod;
-    this connector instance is for backfill only.
-    """
-
-    def backfill_history(
-        self, tenant_id: UUID
-    ) -> Iterator[HistoricalRecord]:
-        if not getattr(self, "_authenticated", False):
-            self.authenticate()
-
-        filtered = tuple(
-            (path, rt) for path, rt in _OBJECT_TYPES if path not in SKIP
-        )
-
-        for hubspot_path, record_type in filtered:
-            from cip.integration_mesh.connectors.hubspot.connector import (
-                _CIP_TABLE_BY_TYPE,
-                _DEFAULT_PROPERTIES,
-            )
-            target_table = _CIP_TABLE_BY_TYPE[record_type]
-            properties = _DEFAULT_PROPERTIES.get(hubspot_path, ())
-            properties_csv = ",".join(properties)
-            after: str | None = None
-            while True:
-                params: dict[str, str | int] = {
-                    "limit": 50,  # HubSpot caps propertiesWithHistory at 50
-                    "properties": properties_csv,
-                    "propertiesWithHistory": properties_csv,
-                }
-                if after:
-                    params["after"] = after
-                page = self._http.get(
-                    f"/crm/v3/objects/{hubspot_path}", params=params
-                )
-                for obj in page.get("results", []):
-                    yield from self._historical_records_for_obj(
-                        obj, record_type, target_table
-                    )
-                paging = page.get("paging", {})
-                nxt = (
-                    paging.get("next", {}) if isinstance(paging, dict) else {}
-                )
-                after = nxt.get("after") if isinstance(nxt, dict) else None
-                if not after:
-                    break
 
 
 def _resolve_url() -> str:
@@ -185,7 +121,7 @@ def _record_backfill_run(
                 "id": str(uuid4()),
                 "tid": str(TENANT_WAYWARD),
                 "cid": "hubspot-v1",
-                "cname": "HubSpotConnectorNoTickets",
+                "cname": "HubSpotConnector",
                 "bid": str(uuid4()),
                 "status": status,
                 "n_hist": counters["persisted"],
@@ -216,11 +152,11 @@ def main() -> int:
     started = datetime.now(UTC)
     print(f"\nStarted at {started.isoformat()}")
 
-    connector = HubSpotConnectorNoTickets(tenant_id=TENANT_WAYWARD)
+    connector = HubSpotConnector(tenant_id=TENANT_WAYWARD)
     try:
         counters = run_backfill(
             connector,
-            engine,  # type: ignore[arg-type]
+            engine,
             tenant_id=TENANT_WAYWARD,
             batch_size=200,
             database_url=sa_url,

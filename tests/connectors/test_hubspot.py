@@ -33,13 +33,21 @@ TENANT = UUID("b0000000-0000-0000-0000-000000000001")
 
 
 def _make_connector(
-    *, transport: StubTransport | None = None
+    *, transport: StubTransport | None = None, discover: bool = False,
 ) -> tuple[HubSpotConnector, StubTransport]:
     """Build a connector wired to a stub transport (no real HTTP).
 
     Note (post-PM 218f67a4 redesign): backfill is now a separate method
     (``backfill_history``) on the connector, not a ctor flag. Tests for
     backfill behavior invoke ``conn.backfill_history(tenant_id)`` directly.
+
+    Note (post-scope 9c3d1393, 2026-05-15): stream_records + backfill_history
+    now call ``_discover_properties()`` lazily on first use. Tests that
+    don't care about discovery semantics pre-populate the cache with a
+    minimal property tuple to short-circuit the discovery HTTP call.
+    Tests that DO care about discovery (e.g. testing 403 → fallback path)
+    pass ``discover=True`` to leave the cache empty and queue discovery
+    responses explicitly.
     """
     stub = transport or StubTransport()
     conn = HubSpotConnector(
@@ -47,6 +55,15 @@ def _make_connector(
         token="pat-test-stub",
         http=stub,
     )
+    if not discover:
+        # Short-circuit lazy discovery — tests pre-populate to keep the
+        # data-flow assertions clean.
+        conn._discovered_properties = {
+            "companies": ("name", "domain", "hs_lastmodifieddate", "createdate"),
+            "contacts": ("firstname", "lastname", "email", "hs_lastmodifieddate"),
+            "deals": ("dealname", "amount", "dealstage", "hs_lastmodifieddate"),
+            "tickets": ("subject", "content", "hs_lastmodifieddate"),
+        }
     return conn, stub
 
 
@@ -77,14 +94,25 @@ def test_authenticate_raises_on_unset_token() -> None:
 
 
 def test_stream_records_paginates_via_after_cursor() -> None:
+    """Per entity: GET list page → POST batch/read full props → emit records.
+
+    Post-scope 9c3d1393 (2026-05-15): each page is a two-pass GET-then-POST.
+    GET returns IDs + pagination cursor; POST returns the full property
+    set for each ID. Tests mock both halves.
+    """
     conn, stub = _make_connector()
-    # Each of the 4 _OBJECT_TYPES will iterate. Provide auth + one page each
-    # with no further pagination (no paging.next.after).
     stub.queue("GET", "/crm/v3/objects/companies", response={"results": []})  # auth probe
     for hubspot_path in ("companies", "contacts", "deals", "tickets"):
+        # GET: list IDs (one record, no further pagination)
         stub.queue(
             "GET",
             f"/crm/v3/objects/{hubspot_path}",
+            response={"results": [{"id": "1"}]},
+        )
+        # POST: batch/read full properties
+        stub.queue(
+            "POST",
+            f"/crm/v3/objects/{hubspot_path}/batch/read",
             response={
                 "results": [
                     {
@@ -106,23 +134,37 @@ def test_stream_records_paginates_via_after_cursor() -> None:
 def test_stream_records_pagination_continues_until_no_next() -> None:
     conn, stub = _make_connector()
     stub.queue("GET", "/crm/v3/objects/companies", response={"results": []})  # auth
-    # Companies: 2 pages then stop
+    # Companies: GET page 1 (has cursor), POST batch/read for page 1 IDs,
+    # GET page 2 (no cursor), POST batch/read for page 2 IDs.
     stub.queue(
         "GET",
         "/crm/v3/objects/companies",
         response={
-            "results": [{"id": "1", "properties": {"hs_lastmodifieddate": "2026-05-01T00:00:00Z"}}],
+            "results": [{"id": "1"}],
             "paging": {"next": {"after": "100"}},
         },
     )
     stub.queue(
+        "POST",
+        "/crm/v3/objects/companies/batch/read",
+        response={
+            "results": [{"id": "1", "properties": {"hs_lastmodifieddate": "2026-05-01T00:00:00Z"}}],
+        },
+    )
+    stub.queue(
         "GET",
         "/crm/v3/objects/companies",
+        response={"results": [{"id": "2"}]},
+    )
+    stub.queue(
+        "POST",
+        "/crm/v3/objects/companies/batch/read",
         response={
             "results": [{"id": "2", "properties": {"hs_lastmodifieddate": "2026-05-02T00:00:00Z"}}],
         },
     )
-    # Other 3 entities: single empty page each
+    # Other 3 entities: single empty page each — GET returns no results
+    # so the POST batch/read is skipped (connector's empty-ids guard).
     for _ in range(3):
         stub.queue("GET", "/", response={"results": []})
 
@@ -182,6 +224,61 @@ def test_backfill_history_yields_historical_records() -> None:
     # Domain field captured
     assert records[0].fields.get("name") == "Acme Old"
     assert records[2].fields.get("name") == "Acme"
+
+
+def test_backfill_history_groups_mismatched_precision_timestamps() -> None:
+    """Regression test for the 2026-05-15 valid_range bug.
+
+    HubSpot's property-history stream can carry two timestamps that
+    represent the same logical instant but serialize with different
+    millisecond precision: e.g. "2025-07-15T18:03:26.491Z" and
+    "2025-07-15T18:03:26Z". The pre-fix implementation sorted these as
+    raw strings — ASCII ordering puts "." (0x2E) before "Z" (0x5A) — so
+    the higher-precision string sorted BEFORE the bare-second one, then
+    valid_from/valid_to were assigned from different parsed timestamps,
+    yielding valid_from > valid_to and violating
+    ck_cip_companies_history_valid_range, which poisoned the persister
+    transaction and killed the rest of the batch. Fixed by parsing
+    timestamps to datetime FIRST, then grouping snapshots by parsed
+    datetime, then sorting by datetime — semantic equivalence.
+
+    This test asserts the connector emits NO ``HistoricalRecord``
+    where valid_from >= valid_to, even when the source returns
+    mismatched-precision timestamps in the same property history.
+    """
+    conn, stub = _make_connector()
+    stub.queue("GET", "/crm/v3/objects/companies", response={"results": []})  # auth
+    # Companies: 3 history events. Two have the same logical instant
+    # encoded with/without milliseconds; one is later. Pre-fix code
+    # would order .491 BEFORE the bare second; post-fix groups them.
+    stub.queue(
+        "GET",
+        "/crm/v3/objects/companies",
+        response={
+            "results": [
+                {
+                    "id": "42",
+                    "properties": {"name": "Snappy Socks"},
+                    "propertiesWithHistory": {
+                        "name": [
+                            {"timestamp": "2025-07-15T18:03:26Z", "value": "Old"},
+                            {"timestamp": "2025-07-15T18:03:26.491Z", "value": "Snappy Socks"},
+                            {"timestamp": "2025-08-01T00:00:00Z", "value": "Snappy Socks Renamed"},
+                        ],
+                    },
+                }
+            ],
+        },
+    )
+    for _ in range(3):  # contacts, deals, tickets — empty
+        stub.queue("GET", "/", response={"results": []})
+
+    records = list(conn.backfill_history(TENANT))
+    # Each emitted record must satisfy valid_from < valid_to (or valid_to is None).
+    for rec in records:
+        assert rec.valid_to is None or rec.valid_from < rec.valid_to, (
+            f"valid_range violation: {rec.valid_from} >= {rec.valid_to}"
+        )
 
 
 def test_describe_schema_returns_valid_property_types() -> None:

@@ -2,13 +2,13 @@
 kind: doc
 domain: client-intelligence-platform
 status: skeleton
-last_updated: 2026-04-20
+last_updated: 2026-05-15
 milestone: Phase-1-M0
 ---
 
 # Tenant Onboarding Checklist
 
-> **Status:** skeleton stub — authored Phase 1 M0, populated as Phase 1 milestones land.
+> **Status:** skeleton stub — authored Phase 1 M0, populated as Phase 1 milestones land. **For the full discovery-first onboarding procedure, see [`ONBOARDING-A-NEW-TENANT.md`](ONBOARDING-A-NEW-TENANT.md).** This checklist is the terse mechanical list; that runbook is the "how + why + what to investigate first" version, authored 2026-05-15 after the Wayward Phase 2 onboarding surfaced gaps in the skeleton checklist (slim-property defaults, undiscovered custom properties, etc.).
 > Once final, this checklist is the canonical path for bringing any new tenant onto CIP. Phase 1 validates it against the fixture tenant only; Phase 2 validates it against Wayward; Phase 3 extends it for cross-tenant grants.
 
 ## Purpose

@@ -63,14 +63,36 @@ _OBJECT_TYPES: tuple[tuple[str, str], ...] = (
     ("tickets", "ticket"),
 )
 
-# Cursor-incremental endpoint paths per entity (Zendesk-documented stable
-# cursor pagination — replaces the legacy ``next_page`` URL pattern that
-# silently broke on Wayward's organizations endpoint, causing a 22-hour
-# infinite loop on 2026-05-13/14). All three entities support cursor.
-_CURSOR_INCREMENTAL_PATH: dict[str, str] = {
-    "organizations": "/api/v2/incremental/organizations/cursor.json",
-    "users": "/api/v2/incremental/users/cursor.json",
-    "tickets": "/api/v2/incremental/tickets/cursor.json",
+# Per-entity incremental endpoint + pagination mode.
+#
+# Bug history (2026-05-13/14): legacy ``next_page`` URL pagination on
+# /api/v2/organizations.json silently returned page 1 indefinitely
+# (22-hour infinite loop on Wayward).
+#
+# Bug history (2026-05-15): the prior "all three use cursor" fix
+# assumed parity with tickets/users. Reality: Zendesk has NEVER
+# shipped a ``/api/v2/incremental/organizations/cursor.json`` endpoint
+# (returns 404 "InvalidEndpoint"). Organizations only support
+# ``/api/v2/incremental/organizations.json`` time-based incremental
+# with ``next_page`` URL pagination and ``count < per_page`` /
+# ``end_of_stream`` termination.
+#
+# So: tickets + users use cursor-incremental (documented stable).
+# Organizations use time-based incremental (the only available
+# incremental option). Both terminate cleanly without the legacy
+# offset-pagination footgun.
+_PAGINATION_CURSOR = "cursor"
+_PAGINATION_TIME = "time"
+_INCREMENTAL_PATH: dict[str, tuple[str, str]] = {
+    "organizations": (
+        "/api/v2/incremental/organizations.json",
+        _PAGINATION_TIME,
+    ),
+    "users": ("/api/v2/incremental/users/cursor.json", _PAGINATION_CURSOR),
+    "tickets": (
+        "/api/v2/incremental/tickets/cursor.json",
+        _PAGINATION_CURSOR,
+    ),
 }
 
 
@@ -184,56 +206,128 @@ class ZendeskConnector(CIPConnectorBase):
         last_key: datetime | None,
         batch_size: int,
     ) -> Iterator[dict[str, object]]:
-        """Paginate one entity type via Zendesk's incremental-cursor API.
+        """Dispatch on per-endpoint pagination mode.
 
-        Bug history (2026-05-13/14): the previous implementation used the
-        legacy ``next_page`` URL pagination on ``/api/v2/{type}.json``.
-        Zendesk's organizations endpoint (and most others) have migrated
-        to cursor pagination and silently ignore the legacy ``?page=N``
-        param, returning page 1 indefinitely → infinite loop on 100
-        records, 22-hour stuck run on Wayward. Fixed by using the
-        official ``/api/v2/incremental/<type>/cursor.json`` endpoints
-        with ``after_cursor`` chained pagination, ``end_of_stream``
-        termination, and ``start_time`` (or ``after_cursor``) seeding.
-        Cursor incremental APIs are Zendesk's documented-stable
-        pagination + not capped at 10K results.
+        Zendesk has two incremental APIs:
+          - Cursor-based (``/api/v2/incremental/{type}/cursor.json``)
+            for tickets + users — documented stable, no 10K cap.
+          - Time-based (``/api/v2/incremental/organizations.json``)
+            for organizations — the only incremental option Zendesk
+            ships for orgs; cursor variant returns 404.
+
+        Both use ``start_time`` seeding from ``last_key`` for incremental
+        syncs (``start_time=0`` for full initial sync). Both terminate
+        via explicit ``end_of_stream`` or absence of next-page marker.
         """
         assert self._http is not None
-        page_size = min(batch_size, 1000)  # cursor APIs allow up to 1000/page
+        path, mode = _INCREMENTAL_PATH[endpoint]
+        if mode == _PAGINATION_CURSOR:
+            yield from self._stream_cursor(
+                path=path,
+                endpoint=endpoint,
+                record_type=record_type,
+                last_key=last_key,
+                batch_size=batch_size,
+            )
+        elif mode == _PAGINATION_TIME:
+            yield from self._stream_time_incremental(
+                path=path,
+                endpoint=endpoint,
+                record_type=record_type,
+                last_key=last_key,
+                batch_size=batch_size,
+            )
+        else:
+            raise RuntimeError(
+                f"Unknown pagination mode {mode!r} for endpoint {endpoint}"
+            )
 
-        path = _CURSOR_INCREMENTAL_PATH[endpoint]
-
-        # Seed: start_time=0 for full sync OR last_key for incremental
-        # (cursor incremental APIs accept either start_time epoch-seconds
-        # or after_cursor token; never both).
+    def _stream_cursor(
+        self,
+        *,
+        path: str,
+        endpoint: str,
+        record_type: str,
+        last_key: datetime | None,
+        batch_size: int,
+    ) -> Iterator[dict[str, object]]:
+        """Cursor-incremental pagination (tickets, users)."""
+        assert self._http is not None
+        page_size = min(batch_size, 1000)
         params: dict[str, Any] = {"per_page": page_size}
         if last_key is not None:
             params["start_time"] = int(last_key.timestamp())
         else:
-            params["start_time"] = 0  # full from beginning
+            params["start_time"] = 0
 
         while True:
             page = self._http.get(path, params=params)
-            # Cursor API returns the entity records under the same key as
-            # the endpoint name (organizations / users / tickets).
-            results = page.get(endpoint, [])
-            for record in results:
+            for record in page.get(endpoint, []):
                 rec_dict = self._to_record(record, record_type)
-                incremental_key_value = self._record_incremental_key(rec_dict)
-                if last_key and incremental_key_value <= last_key:
+                ikv = self._record_incremental_key(rec_dict)
+                if last_key and ikv <= last_key:
                     continue
                 yield rec_dict
 
-            # Cursor API terminates when end_of_stream=true.
             if page.get("end_of_stream") is True:
                 return
             after_cursor = page.get("after_cursor")
             if not isinstance(after_cursor, str) or not after_cursor:
-                # No further cursor + not explicitly end_of_stream: defensively
-                # return (avoid infinite loop on missing terminator).
                 return
-            # Re-seed for next page: after_cursor replaces start_time.
             params = {"per_page": page_size, "cursor": after_cursor}
+
+    def _stream_time_incremental(
+        self,
+        *,
+        path: str,
+        endpoint: str,
+        record_type: str,
+        last_key: datetime | None,
+        batch_size: int,
+    ) -> Iterator[dict[str, object]]:
+        """Time-based incremental pagination (organizations).
+
+        Zendesk's time-based incremental returns up to 1000 records per
+        call, sorted by ``updated_at`` ascending. Termination is via:
+          - ``count < per_page`` (canonical), OR
+          - missing ``next_page`` URL, OR
+          - ``end_of_stream`` true (newer responses include this too).
+
+        We advance ``start_time`` from the response's ``end_time`` rather
+        than following ``next_page`` URLs, because the latter caused the
+        2026-05-13 infinite loop when Zendesk returned page 1 forever for
+        a non-cursor-aware endpoint.
+        """
+        assert self._http is not None
+        page_size = min(batch_size, 1000)
+        start_time = (
+            int(last_key.timestamp()) if last_key is not None else 0
+        )
+
+        while True:
+            params: dict[str, Any] = {
+                "per_page": page_size,
+                "start_time": start_time,
+            }
+            page = self._http.get(path, params=params)
+            records = page.get(endpoint, [])
+            for record in records:
+                rec_dict = self._to_record(record, record_type)
+                ikv = self._record_incremental_key(rec_dict)
+                if last_key and ikv <= last_key:
+                    continue
+                yield rec_dict
+
+            count = page.get("count")
+            if isinstance(count, int) and count < page_size:
+                return
+            if page.get("end_of_stream") is True:
+                return
+            end_time = page.get("end_time")
+            if not isinstance(end_time, int) or end_time <= start_time:
+                # No forward progress; defensive exit to avoid infinite loop.
+                return
+            start_time = end_time
 
     def _to_record(
         self, zd_obj: dict[str, Any], record_type: str

@@ -64,28 +64,50 @@ def test_authenticate_raises_on_unset_credentials() -> None:
         conn.authenticate()
 
 
-def test_stream_records_yields_one_per_entity_type_via_cursor_api() -> None:
-    """Cursor-incremental API contract (post-2026-05-14 fix). Each
-    entity is paginated via /api/v2/incremental/<type>/cursor.json with
-    end_of_stream termination."""
+def test_stream_records_yields_one_per_entity_type_via_incremental_apis() -> None:
+    """Per-entity incremental API contract.
+
+    Post-2026-05-15 fix: organizations uses time-based incremental at
+    /api/v2/incremental/organizations.json (cursor variant returns 404
+    on Wayward — Zendesk has never shipped one for orgs). Users +
+    tickets use cursor-incremental.
+    """
     conn, stub = _make_connector()
     stub.queue("GET", "/api/v2/users/me.json", response={"user": {"id": 1}})  # auth
-    org = {"id": 10, "name": "Acme", "updated_at": "2026-05-01T00:00:00Z"}
-    user = {
-        "id": 20, "name": "Jane Doe", "email": "j@d.co",
-        "updated_at": "2026-05-01T00:00:00Z",
-    }
-    ticket = {"id": 30, "subject": "Login broke", "updated_at": "2026-05-01T00:00:00Z"}
-    for entity, sample in (
-        ("organizations", org),
-        ("users", user),
-        ("tickets", ticket),
-    ):
-        stub.queue(
-            "GET",
-            f"/api/v2/incremental/{entity}/cursor.json",
-            response={entity: [sample], "end_of_stream": True},
-        )
+    stub.queue(
+        "GET",
+        "/api/v2/incremental/organizations.json",
+        response={
+            "organizations": [
+                {"id": 10, "name": "Acme", "updated_at": "2026-05-01T00:00:00Z"},
+            ],
+            "count": 1,
+            "end_time": 1714521600,
+        },
+    )
+    stub.queue(
+        "GET",
+        "/api/v2/incremental/users/cursor.json",
+        response={
+            "users": [
+                {
+                    "id": 20, "name": "Jane Doe", "email": "j@d.co",
+                    "updated_at": "2026-05-01T00:00:00Z",
+                },
+            ],
+            "end_of_stream": True,
+        },
+    )
+    stub.queue(
+        "GET",
+        "/api/v2/incremental/tickets/cursor.json",
+        response={
+            "tickets": [
+                {"id": 30, "subject": "Login broke", "updated_at": "2026-05-01T00:00:00Z"},
+            ],
+            "end_of_stream": True,
+        },
+    )
 
     records = list(conn.stream_records(cursor=None, batch_size=100))
     assert len(records) == 3
@@ -93,11 +115,11 @@ def test_stream_records_yields_one_per_entity_type_via_cursor_api() -> None:
     assert kinds == ["company", "contact", "ticket"]
 
 
-def test_stream_records_handles_cursor_pagination_until_end_of_stream() -> None:
+def test_cursor_pagination_chains_users_until_end_of_stream() -> None:
     """Regression test for 2026-05-13/14 Wayward stuck-loop bug. The
     legacy `next_page` pagination would silently loop on the same page
-    because Zendesk's organizations endpoint migrated to cursor API and
-    ignored the legacy `?page=N` param. New cursor-incremental code MUST:
+    because the endpoint silently ignored the legacy `?page=N` param.
+    Cursor-incremental code (users + tickets) MUST:
       - Send `start_time=0` (or last_key timestamp) on first page
       - Send `cursor=<after_cursor>` on subsequent pages
       - Terminate when `end_of_stream=true`
@@ -105,13 +127,18 @@ def test_stream_records_handles_cursor_pagination_until_end_of_stream() -> None:
     """
     conn, stub = _make_connector()
     stub.queue("GET", "/api/v2/users/me.json", response={"user": {"id": 1}})  # auth
-    # organizations: 2 pages chained via after_cursor
     stub.queue(
         "GET",
-        "/api/v2/incremental/organizations/cursor.json",
+        "/api/v2/incremental/organizations.json",
+        response={"organizations": [], "count": 0, "end_time": 0},
+    )
+    stub.queue(
+        "GET",
+        "/api/v2/incremental/users/cursor.json",
         response={
-            "organizations": [
-                {"id": 1, "name": "A", "updated_at": "2026-05-01T00:00:00Z"},
+            "users": [
+                {"id": 1, "name": "A", "email": "a@x.io",
+                 "updated_at": "2026-05-01T00:00:00Z"},
             ],
             "after_cursor": "cursor-page-2-token",
             "end_of_stream": False,
@@ -119,19 +146,14 @@ def test_stream_records_handles_cursor_pagination_until_end_of_stream() -> None:
     )
     stub.queue(
         "GET",
-        "/api/v2/incremental/organizations/cursor.json",
+        "/api/v2/incremental/users/cursor.json",
         response={
-            "organizations": [
-                {"id": 2, "name": "B", "updated_at": "2026-05-02T00:00:00Z"},
+            "users": [
+                {"id": 2, "name": "B", "email": "b@x.io",
+                 "updated_at": "2026-05-02T00:00:00Z"},
             ],
             "end_of_stream": True,
         },
-    )
-    # users + tickets: empty single page each, immediately terminate.
-    stub.queue(
-        "GET",
-        "/api/v2/incremental/users/cursor.json",
-        response={"users": [], "end_of_stream": True},
     )
     stub.queue(
         "GET",
@@ -140,29 +162,82 @@ def test_stream_records_handles_cursor_pagination_until_end_of_stream() -> None:
     )
 
     records = list(conn.stream_records(cursor=None, batch_size=100))
-    orgs = [r for r in records if r["__cip_kind__"] == "company"]
-    assert len(orgs) == 2, f"expected 2 orgs across 2 cursor pages, got {len(orgs)}"
+    contacts = [r for r in records if r["__cip_kind__"] == "contact"]
+    assert len(contacts) == 2, f"expected 2 contacts across cursor pages, got {len(contacts)}"
 
 
-def test_stream_records_defensively_returns_when_cursor_missing() -> None:
+def test_cursor_pagination_defensively_returns_when_cursor_missing() -> None:
     """If end_of_stream is False AND after_cursor is absent/empty, the
-    connector must STILL terminate to avoid the kind of infinite-loop
+    cursor pager must STILL terminate to avoid the kind of infinite-loop
     bug the legacy pagination had. Defense-in-depth termination."""
     conn, stub = _make_connector()
     stub.queue("GET", "/api/v2/users/me.json", response={"user": {"id": 1}})  # auth
-    # Malformed cursor response: no terminator + no cursor. Should NOT loop.
     stub.queue(
         "GET",
-        "/api/v2/incremental/organizations/cursor.json",
+        "/api/v2/incremental/organizations.json",
+        response={"organizations": [], "count": 0, "end_time": 0},
+    )
+    stub.queue(
+        "GET",
+        "/api/v2/incremental/users/cursor.json",
         response={
-            "organizations": [
-                {"id": 1, "name": "A", "updated_at": "2026-05-01T00:00:00Z"},
+            "users": [
+                {"id": 1, "name": "A", "email": "a@x.io",
+                 "updated_at": "2026-05-01T00:00:00Z"},
             ],
             # Neither end_of_stream nor after_cursor
         },
     )
     stub.queue(
         "GET",
+        "/api/v2/incremental/tickets/cursor.json",
+        response={"tickets": [], "end_of_stream": True},
+    )
+
+    records = list(conn.stream_records(cursor=None, batch_size=100))
+    contacts = [r for r in records if r["__cip_kind__"] == "contact"]
+    assert len(contacts) == 1, f"expected 1 contact (defensive terminate), got {len(contacts)}"
+
+
+def test_time_incremental_pagination_advances_start_time() -> None:
+    """Time-based incremental (organizations) must:
+      - Chain pages by setting start_time = previous response's end_time
+      - Terminate when count < per_page (or end_of_stream true)
+      - Defensive exit when end_time fails to advance (no forward progress)
+    Regression test for the 2026-05-15 fix that moved organizations from
+    a non-existent cursor.json endpoint to time-based incremental.
+    """
+    conn, stub = _make_connector()
+    stub.queue("GET", "/api/v2/users/me.json", response={"user": {"id": 1}})  # auth
+    # Page 1: full page (count == per_page)  →  chain via end_time
+    stub.queue(
+        "GET",
+        "/api/v2/incremental/organizations.json",
+        response={
+            "organizations": [
+                {"id": i, "name": f"Org{i}",
+                 "updated_at": f"2026-05-01T00:00:0{i}Z"}
+                for i in range(100)
+            ],
+            "count": 100,
+            "end_time": 1714525200,
+        },
+    )
+    # Page 2: short page (count < per_page)  →  terminates
+    stub.queue(
+        "GET",
+        "/api/v2/incremental/organizations.json",
+        response={
+            "organizations": [
+                {"id": 101, "name": "Org101",
+                 "updated_at": "2026-05-02T00:00:00Z"},
+            ],
+            "count": 1,
+            "end_time": 1714611600,
+        },
+    )
+    stub.queue(
+        "GET",
         "/api/v2/incremental/users/cursor.json",
         response={"users": [], "end_of_stream": True},
     )
@@ -174,7 +249,7 @@ def test_stream_records_defensively_returns_when_cursor_missing() -> None:
 
     records = list(conn.stream_records(cursor=None, batch_size=100))
     orgs = [r for r in records if r["__cip_kind__"] == "company"]
-    assert len(orgs) == 1, f"expected 1 org (defensive terminate), got {len(orgs)}"
+    assert len(orgs) == 101, f"expected 101 orgs (100 + 1), got {len(orgs)}"
 
 
 def test_backfill_history_yields_historical_records_for_tickets() -> None:

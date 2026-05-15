@@ -276,7 +276,11 @@ class HubSpotConnector(CIPConnectorBase):
 
             while True:
                 params: dict[str, str | int] = {
-                    "limit": 100,  # HubSpot max
+                    # HubSpot caps propertiesWithHistory requests at 50
+                    # ("You can only request at most 50 objects in one
+                    # request for properties with history"). Verified
+                    # 2026-05-15 against Wayward portal.
+                    "limit": 50,
                     "properties": properties_csv,
                     "propertiesWithHistory": properties_csv,
                 }

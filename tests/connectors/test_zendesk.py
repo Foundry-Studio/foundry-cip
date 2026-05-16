@@ -392,6 +392,59 @@ def test_backfill_history_paginates_via_cursor_until_end_of_stream() -> None:
     )
 
 
+def test_backfill_history_skips_same_second_audit_events() -> None:
+    """Regression test for the 2026-05-16 valid_range bug.
+
+    Zendesk emits audit timestamps at SECOND resolution (no ms). If two
+    audit events on the same ticket happen within the same second, the
+    earlier one would produce valid_from == valid_to_of_next == same
+    instant. ck_cip_tickets_history_valid_range requires strict
+    `valid_to > valid_from`, so the persister rejects the row with a
+    CheckViolation. Pre-fix: 6 same-second audit events on Wayward
+    tickets failed during backfill (0.03% loss, caught by per-record
+    SAVEPOINTs so they didn't cascade — but still missed history).
+    Post-fix: defensive `continue` skips snapshots where
+    valid_to <= valid_from. Same fix shape as HubSpot connector's
+    _historical_records_for_obj (shipped earlier 2026-05-15).
+    """
+    conn, stub = _make_connector()
+    stub.queue("GET", "/api/v2/users/me.json", response={"user": {"id": 1}})  # auth
+    stub.queue(
+        "GET",
+        "/api/v2/incremental/tickets/cursor.json",
+        response={
+            "tickets": [
+                {"id": 300, "subject": "T", "status": "open",
+                 "updated_at": "2026-05-01T00:00:00Z"},
+            ],
+            "end_of_stream": True,
+        },
+    )
+    # Three audits: two share the same second (valid_from == valid_to of next),
+    # third is later. Expect only the second + third to yield (first dropped).
+    stub.queue(
+        "GET",
+        "/api/v2/tickets/300/audits.json",
+        response={
+            "audits": [
+                {"created_at": "2025-12-01T08:00:00Z",
+                 "events": [{"type": "Create", "field_name": "subject", "value": "T"}]},
+                {"created_at": "2025-12-01T08:00:00Z",
+                 "events": [{"type": "Change", "field_name": "status", "value": "pending"}]},
+                {"created_at": "2025-12-02T08:00:00Z",
+                 "events": [{"type": "Change", "field_name": "status", "value": "closed"}]},
+            ],
+        },
+    )
+
+    records = list(conn.backfill_history(TENANT))
+    # Constraint: every emitted record must have valid_to is None OR valid_to > valid_from.
+    for r in records:
+        assert r.valid_to is None or r.valid_to > r.valid_from, (
+            f"valid_range violation: {r.valid_from} >= {r.valid_to}"
+        )
+
+
 def test_backfill_history_defensively_returns_when_cursor_missing() -> None:
     """If a response carries neither end_of_stream nor after_cursor, the
     backfill loop must STILL terminate to avoid the page-1-loop pattern.

@@ -451,6 +451,17 @@ class ZendeskConnector(CIPConnectorBase):
                 if isinstance(next_ts, str) and next_ts else None
             )
 
+            # Defensive: ck_cip_tickets_history_valid_range requires
+            # ``valid_to IS NULL OR valid_to > valid_from`` (strict >).
+            # Zendesk emits audit timestamps at SECOND resolution (no
+            # millisecond), so two events on the same ticket within the
+            # same second produce valid_from == valid_to. Skip the
+            # earlier snapshot rather than violate the constraint.
+            # (Same defensive shape as the HubSpot connector's
+            # _historical_records_for_obj fix shipped 2026-05-15.)
+            if valid_to is not None and valid_to <= valid_from:
+                continue
+
             fields = {k: v for k, v in snapshot.items() if v is not None}
             if "subject" not in fields:
                 fields["subject"] = "(no subject)"

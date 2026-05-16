@@ -558,6 +558,25 @@ Tim 2026-05-12: historical reporting (deal-stage trends, ticket-state transition
 
 ---
 
+### 14. Property Glossary — connector authors ship a starter glossary
+
+**As of 2026-05-16 (PM scope `0246851d`)**, every connector ships a `STARTER-GLOSSARY.md` in its connector folder (`cip/integration_mesh/connectors/<connector>/STARTER-GLOSSARY.md`). This file is the connector author's best-effort annotation of the canonical properties the connector fetches — vendor description, plausible plain-English meaning, top sample values for typical tenants. Tenant onboarding (per `ONBOARDING-A-NEW-TENANT.md` Phase 4.5) copies the starter glossary into the per-tenant glossary AS A BASELINE, then the operator overrides / extends per tenant-specific knowledge.
+
+**Why it matters:** vendor `label` and `description` rarely carry the actual operational meaning at a tenant. The 2026-05-16 Wayward `source`-vs-`paid_referral` discovery is the canonical example — `source` is labeled simply "Source" by HubSpot but Wayward uses it for affiliate-owner attribution with values like `"China Referral - Tim"`. A connector author who knew this could have shipped that detail in the starter glossary instead of leaving every future tenant to re-discover.
+
+**What to put in a starter glossary entry:**
+- Source name (canonical)
+- Vendor label + description (you got this from the API)
+- Plain-English meaning at a TYPICAL tenant (mark `inferred` — tenant-onboarding will confirm/correct)
+- Sample top values from any test data
+- Confidence: `inferred` (never `verified` from the connector side — only a tenant operator can mark `verified`)
+- Aliases / lookup hints
+- Watch out for (common gotchas you noticed while building the connector)
+
+**See:** [`PROPERTY-GLOSSARY-PATTERN.md`](PROPERTY-GLOSSARY-PATTERN.md) for the full pattern + the Wayward glossary as a working example.
+
+---
+
 ## v5.4 plan-hygiene TODOs surfaced by this guide
 
 Captured for the next plan-hygiene pass:

@@ -178,11 +178,16 @@ python -u scripts/run_wayward_hubspot_backfill_no_tickets.py
 | 2026-05-15 | One bad record poisoned the whole batch (200 spurious failures) | `db.begin()` per batch, no savepoints | Per-record SAVEPOINT (`db.begin_nested()`) |
 | 2026-05-16 | Backfill of engagement-heavy contacts ran at ~4 contacts/min (8-day projected total for 47K Wayward contacts) | Single-record persister: ~130 DB roundtrips per contact (65 history snapshots × 2 ops each) on Railway-distance network | Batched persister: `persist_history_records_batch` does 1 SELECT + 1 executemany INSERT per flush (~200 records), ~100-200x speedup. Per-record SAVEPOINT fallback retained for cascade safety. See `SYNC-ORCHESTRATOR-GUIDE.md` §11. |
 
+## 15. Property meaning — read the Glossary
+
+HubSpot's `label` and `description` fields don't carry the tenant-specific meaning. The same property name can have different operational uses across tenants (e.g., Wayward uses `source` for affiliate-owner attribution; another tenant might use it for marketing campaign tracking). Before issuing any non-trivial query, **read the tenant's glossary** at `docs/tenants/<tenant_uuid>/GLOSSARY.md` to find the plain-English meaning + confidence level for each column you intend to use. See [`PROPERTY-GLOSSARY-PATTERN.md`](PROPERTY-GLOSSARY-PATTERN.md) for the pattern; Wayward's glossary at [`tenants/b0000000-0000-0000-0000-000000000001/GLOSSARY.md`](tenants/b0000000-0000-0000-0000-000000000001/GLOSSARY.md) is the working example.
+
 ## Cross-references
 
 - [`CONNECTOR-AUTHORING-GUIDE.md`](CONNECTOR-AUTHORING-GUIDE.md) — generic Protocol contract for writing new connectors
 - [`ZENDESK-CONNECTOR-GUIDE.md`](ZENDESK-CONNECTOR-GUIDE.md) — sibling guide, same shape
 - [`ONBOARDING-A-NEW-TENANT.md`](ONBOARDING-A-NEW-TENANT.md) — per-tenant discovery + onboarding procedure
+- [`PROPERTY-GLOSSARY-PATTERN.md`](PROPERTY-GLOSSARY-PATTERN.md) — the tenant property glossary system
 - [`SYNC-ORCHESTRATOR-GUIDE.md`](SYNC-ORCHESTRATOR-GUIDE.md) — orchestrator run-loop, advisory locks, retry policy
 - [`MIGRATION-RUNBOOK.md`](MIGRATION-RUNBOOK.md) — applying `cip_*` migrations
 - HubSpot API docs: https://developers.hubspot.com/docs/api/overview

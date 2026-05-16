@@ -93,6 +93,20 @@ For each property in the discovery output, decide:
 
 **Custom property handling**: ALWAYS take them. They're tenant-specific and represent the tenant's real business model (partner registry, segmentation, ROAS targets, etc.). Never skip a custom property without a documented reason in the Tenant Profile.
 
+### Phase 4.5 — Property Annotation Interview (the glossary)
+
+After mapping decisions land but before the trial sync, the operator + an AI agent walk through a **Property Annotation Interview** to populate `docs/tenants/<tenant_uuid>/GLOSSARY.md`. This is the plain-English semantic layer over every important column — without it, future humans + agents have to guess what each field means at this tenant. See [`PROPERTY-GLOSSARY-PATTERN.md`](PROPERTY-GLOSSARY-PATTERN.md) for the full pattern.
+
+The interview, per entity:
+1. Auto-baseline runs (machine mode) — pulls top-N distinct values + coverage stats for every column. Writes `tentative` entries.
+2. AI surfaces each first-class column: "This column is `<name>`, vendor says `<label>`, top values are X / Y / Z, coverage is N%. The values look like they encode `<best guess>`. Confirm?"
+3. Operator either **confirms** (bumps confidence to `verified`), **corrects** (overwrites + marks `verified`), or **skips** ("I don't know" — stays `tentative`).
+4. Repeat for every JSONB key the tenant cares about. Long tail of unused vendor fields stays `tentative` indefinitely (per the not-every-column rule in the pattern doc).
+
+Output: `docs/tenants/<tenant_uuid>/GLOSSARY.md` with at least `verified` entries for every domain column and `verified` or `inferred` for every key used in any planned query.
+
+**Skipping this phase is not allowed.** The 2026-05-16 affiliate-owner search (where Claude took 4 round-trips guessing at `paid_referral` / `rev_share_partner` / `deal_owner` before finding `source`) is exactly what this phase prevents. Lessons table at the end of this doc has the citation.
+
 ### Phase 4 — Trial sync (small batch)
 
 Before the full sync:
@@ -144,6 +158,7 @@ After current-state succeeds:
 | Source's legacy endpoint silently page-1-loops on cursor-migrated portals | Wayward 2026-05-13 (orgs) + 2026-05-15 (tickets backfill) | When a vendor offers both legacy + cursor pagination, ALWAYS use cursor (even in code paths that look superficially fine). Test against a real tenant's data, not just a stub: stubs don't reproduce the silent-loop behavior. Validate via "unique source_ids covered grows monotonically" — if it plateaus, you're looping. |
 | Audit-style backfill re-iterates same records, generating 1000x duplicate history rows | Wayward 2026-05-15 (Zendesk ticket backfill) | Monitor `COUNT(DISTINCT source_id)` in the history table during long-running backfills. A flat curve = pagination bug. A reasonable per-source-id history row count (1-100, depending on source) should be the upper bound; anything >>100 suggests re-iteration. |
 | Persister single-record path is too slow for engagement-heavy entities | Wayward 2026-05-16 (HubSpot contacts backfill ran at 4 contacts/min) | The batched insert path (`persist_history_records_batch`, added 2026-05-16) is the default for backfill flushes. If a future bug forces a fallback to per-record SAVEPOINTs for many flushes in a row, the throughput will tank. Watch `cip_sync_runs.error_detail` for "batched persist failed; falling back" log signatures. |
+| Vendor labels + descriptions don't carry tenant-specific meaning; agents/humans waste time guessing what each column means | Wayward 2026-05-16 (4 round-trips guessing at `paid_referral`/`rev_share_partner`/`deal_owner` before discovering `source` is the actual affiliate-owner field) | Every tenant gets a `GLOSSARY.md` with plain-English meaning + confidence level per column. **Phase 4.5 of this runbook produces it during onboarding.** See [`PROPERTY-GLOSSARY-PATTERN.md`](PROPERTY-GLOSSARY-PATTERN.md). Never assume; investigate; mark `tentative` / `unknown` when confidence is low. |
 
 ## Outputs of a complete onboarding
 

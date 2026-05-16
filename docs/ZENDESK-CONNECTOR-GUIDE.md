@@ -194,11 +194,16 @@ If the top 10 are reasonable (< 200 per ticket), the backfill is healthy.
 | 2026-05-15 | 3 consecutive connection-drop batch failures aborted run | Transient Railway DB blip; orchestrator's 3-strike abort | Per-record SAVEPOINTs (the next-run succeeded) |
 | 2026-05-16 | Backfill flush latency dominated by per-record DB roundtrips | Single-INSERT-per-record path; ~2 roundtrips × N records per flush | Batched persister + executemany INSERT per flush; see `SYNC-ORCHESTRATOR-GUIDE.md` §11. Zendesk benefits less than HubSpot because Zendesk per-ticket avg ~7 history rows (low) vs HubSpot contacts ~65 (high), but the win compounds for any future engagement-heavy entity. |
 
-## 14. Cross-references
+## 14. Property meaning — read the Glossary
+
+Same principle as HubSpot: Zendesk's `title` field on ticket_fields doesn't always carry the operational meaning. Read the tenant's `docs/tenants/<tenant_uuid>/GLOSSARY.md` before querying. See [`PROPERTY-GLOSSARY-PATTERN.md`](PROPERTY-GLOSSARY-PATTERN.md).
+
+## 15. Cross-references
 
 - [`CONNECTOR-AUTHORING-GUIDE.md`](CONNECTOR-AUTHORING-GUIDE.md) — generic Protocol contract
 - [`HUBSPOT-CONNECTOR-GUIDE.md`](HUBSPOT-CONNECTOR-GUIDE.md) — sibling guide
 - [`ONBOARDING-A-NEW-TENANT.md`](ONBOARDING-A-NEW-TENANT.md) — per-tenant discovery + onboarding
+- [`PROPERTY-GLOSSARY-PATTERN.md`](PROPERTY-GLOSSARY-PATTERN.md) — tenant property glossary
 - [`SYNC-ORCHESTRATOR-GUIDE.md`](SYNC-ORCHESTRATOR-GUIDE.md) — orchestrator run-loop, advisory locks
 - Zendesk API docs: https://developer.zendesk.com/api-reference/
 - Zendesk incremental exports: https://developer.zendesk.com/documentation/ticketing/managing-tickets/using-the-incremental-export-api/

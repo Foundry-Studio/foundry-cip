@@ -143,6 +143,7 @@ After current-state succeeds:
 | Source has a hidden 50-record cap on property-history requests | Wayward 2026-05-15 | Read the docs. Test against real data, not stub. |
 | Source's legacy endpoint silently page-1-loops on cursor-migrated portals | Wayward 2026-05-13 (orgs) + 2026-05-15 (tickets backfill) | When a vendor offers both legacy + cursor pagination, ALWAYS use cursor (even in code paths that look superficially fine). Test against a real tenant's data, not just a stub: stubs don't reproduce the silent-loop behavior. Validate via "unique source_ids covered grows monotonically" — if it plateaus, you're looping. |
 | Audit-style backfill re-iterates same records, generating 1000x duplicate history rows | Wayward 2026-05-15 (Zendesk ticket backfill) | Monitor `COUNT(DISTINCT source_id)` in the history table during long-running backfills. A flat curve = pagination bug. A reasonable per-source-id history row count (1-100, depending on source) should be the upper bound; anything >>100 suggests re-iteration. |
+| Persister single-record path is too slow for engagement-heavy entities | Wayward 2026-05-16 (HubSpot contacts backfill ran at 4 contacts/min) | The batched insert path (`persist_history_records_batch`, added 2026-05-16) is the default for backfill flushes. If a future bug forces a fallback to per-record SAVEPOINTs for many flushes in a row, the throughput will tank. Watch `cip_sync_runs.error_detail` for "batched persist failed; falling back" log signatures. |
 
 ## Outputs of a complete onboarding
 

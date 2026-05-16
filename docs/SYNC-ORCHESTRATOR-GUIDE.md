@@ -2,13 +2,13 @@
 kind: doc
 domain: client-intelligence-platform
 status: draft
-last_updated: 2026-05-11
+last_updated: 2026-05-16
 milestone: Phase-1-M7
 ---
 
 # Sync Orchestrator Guide
 
-> **Status:** draft — M2 orchestrator live 2026-05-05; M7 read-through 2026-05-11 corrected the §Related M5 row (M5 was Metabase platform service, NOT Knowledge+Graph wiring — wiring lives in the monorepo platform service per `docs/FOUR-ACCESS-PATHS.md` §§2-3). Sections §§1–6, 8–10 populated; §7 documents the M2 stub contract that foundry-cip owns (the orchestrator dispatches through a no-op hook; the monorepo Knowledge service is what eventually replaces the stub).
+> **Status:** draft — M2 orchestrator live 2026-05-05; M7 read-through 2026-05-11 corrected the §Related M5 row (M5 was Metabase platform service, NOT Knowledge+Graph wiring — wiring lives in the monorepo platform service per `docs/FOUR-ACCESS-PATHS.md` §§2-3). Sections §§1–6, 8–10 populated; §7 documents the M2 stub contract that foundry-cip owns. **2026-05-16: backfill flush path rewired to use batched persister INSERT (one round trip per ~200-record flush instead of ~400 per flush); per-record SAVEPOINT fallback retained for cascade safety. See §11.**
 > This guide explains the CIP ingestion pipeline orchestrator — the component that drives a connector through `authenticate → stream_records → map → persist → ingest_as_knowledge` and records the run in `cip_sync_runs`.
 
 ## Purpose
@@ -342,6 +342,47 @@ LIMIT 25;
 **History tables are intentionally non-idempotent.** Each genuine domain mutation creates one new history row. Re-running a sync against unchanged source data produces zero new history rows. Re-running after a real source mutation produces one history row per mutation. This is correct: history is the audit trail of changes, not a deduplicated set.
 
 **`batch_id` is unique per run** (UUIDv4). The orchestrator does NOT dedupe against prior `batch_id`s — concurrent runs on different processes get different batch_ids by construction. Phase 3's advisory-lock dual-run prevention will close the at-most-one-concurrent-run-per-(tenant,connector) gap; M2 relies on caller-side coordination.
+
+---
+
+### 11. Backfill flush — batched insert with per-record SAVEPOINT fallback (added 2026-05-16)
+
+`run_backfill()` consumes `connector.backfill_history(tenant_id)` lazily and chunks emitted `HistoricalRecord` instances into in-memory batches of `batch_size` (default 200, configurable per call). When `pending` reaches `batch_size`, `_flush()` is called.
+
+**The flush path has two tiers:**
+
+**Primary — batched insert (fast path):**
+
+1. Open a `Session` + outer `db.begin()`.
+2. `apply_tenant_context(db, tenant_id)`.
+3. Wrap a SAVEPOINT around `persister.persist_history_records_batch(records)`. The persister:
+   - Groups records by `target_table`.
+   - Executes ONE `SELECT id, source_id FROM cip_<table> WHERE source_id = ANY(:source_ids)` to look up all current-row ids in a single roundtrip.
+   - Computes the union of domain columns present across the batch.
+   - Builds an `INSERT INTO cip_<table>_history (...) VALUES (...)` template with NULL for record-level missing fields.
+   - Executes via SQLAlchemy `executemany` (psycopg3 pipelines this efficiently).
+4. On success: counters merge, return.
+
+**Fallback — per-record SAVEPOINTs (cascade-safe path):**
+
+5. If the batched insert raises `PersistenceError` or `SQLAlchemyError`: SAVEPOINT rolls back. Log a warning.
+6. Iterate the same records one by one, each wrapped in its own `db.begin_nested()` and call `persist_history_record()` (the single-record path). One bad record fails alone; the rest still commit.
+
+**Why two-tier:**
+
+- Single-record path is ~2 DB roundtrips per HistoricalRecord. For Wayward contacts with ~65 history snapshots per contact, that was 130 roundtrips per contact ≈ 4 contacts/min sustained on Railway prod. Untenable for any backfill of millions of records.
+- Batched path is ~2 roundtrips per FLUSH (typically 200 records). 100-200x improvement when the batch succeeds.
+- Fallback path preserves the 2026-05-15 cascade-safety guarantee (one bad record can never poison the rest of the batch).
+
+**Defensive guards already in place** (so the batched path rarely falls back):
+
+- `ck_*_history_valid_range` (strict valid_to > valid_from) — connectors defensively skip records where `valid_to <= valid_from` BEFORE yielding (HubSpot + Zendesk both apply this).
+- `NOT NULL` violations — mappers apply fallback values for required fields (e.g., HubSpot company `name` defaults to `"(unnamed hubspot company #<source_id>)"`).
+- Mismatched-precision timestamps — HubSpot connector groups property-history revisions by parsed datetime, sorts semantically.
+
+When a fallback DOES fire, the warning log line names the offending error type and the flush size; the per-record retry isolates the bad record and continues.
+
+**Idempotency note:** like the current-state path, re-running backfill against unchanged source data produces zero new history rows IF the source's audit/history endpoint returns the same set of events. The history table doesn't have a UNIQUE on `(record_id, valid_from, valid_to)`, so a buggy connector that re-emits the same audit event TWICE would create duplicate rows. The earlier Zendesk `next_page` infinite-loop bug (2026-05-15) was exactly this — the bug was on the connector side, not the persister. Solution lives in the connector (cursor pagination + `COUNT(DISTINCT source_id)` monitoring), not in the persister.
 
 ---
 

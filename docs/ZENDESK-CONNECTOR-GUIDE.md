@@ -192,6 +192,7 @@ If the top 10 are reasonable (< 200 per ticket), the backfill is healthy.
 | 2026-05-15 | Backfill ingest 1,128 rows/ticket × 100 tickets repeatedly | Legacy `next_page` pagination on tickets backfill path | Cursor-incremental for backfill (matches current-state shape) |
 | 2026-05-16 | 6 `valid_range` CheckViolations during backfill | Same-second audit timestamps | Defensive `valid_to <= valid_from: continue` in `_historical_records_for_ticket` |
 | 2026-05-15 | 3 consecutive connection-drop batch failures aborted run | Transient Railway DB blip; orchestrator's 3-strike abort | Per-record SAVEPOINTs (the next-run succeeded) |
+| 2026-05-16 | Backfill flush latency dominated by per-record DB roundtrips | Single-INSERT-per-record path; ~2 roundtrips × N records per flush | Batched persister + executemany INSERT per flush; see `SYNC-ORCHESTRATOR-GUIDE.md` §11. Zendesk benefits less than HubSpot because Zendesk per-ticket avg ~7 history rows (low) vs HubSpot contacts ~65 (high), but the win compounds for any future engagement-heavy entity. |
 
 ## 14. Cross-references
 

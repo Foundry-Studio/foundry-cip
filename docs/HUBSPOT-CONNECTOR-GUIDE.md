@@ -176,6 +176,7 @@ python -u scripts/run_wayward_hubspot_backfill_no_tickets.py
 | 2026-05-15 | SCD-2 `valid_range` violation on same-instant snapshots | ASCII string sort + mixed-precision timestamps | Parse to datetime first, group by semantic value, defensive `<=` guard |
 | 2026-05-15 | 414 URL too long on contacts backfill (~443 props) | GET with property list in URL | POST `batch/read` with property list in body |
 | 2026-05-15 | One bad record poisoned the whole batch (200 spurious failures) | `db.begin()` per batch, no savepoints | Per-record SAVEPOINT (`db.begin_nested()`) |
+| 2026-05-16 | Backfill of engagement-heavy contacts ran at ~4 contacts/min (8-day projected total for 47K Wayward contacts) | Single-record persister: ~130 DB roundtrips per contact (65 history snapshots × 2 ops each) on Railway-distance network | Batched persister: `persist_history_records_batch` does 1 SELECT + 1 executemany INSERT per flush (~200 records), ~100-200x speedup. Per-record SAVEPOINT fallback retained for cascade safety. See `SYNC-ORCHESTRATOR-GUIDE.md` §11. |
 
 ## Cross-references
 

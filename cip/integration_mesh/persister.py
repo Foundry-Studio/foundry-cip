@@ -213,6 +213,220 @@ class CIPRowPersister:
         except SQLAlchemyError as sqle:
             raise PersistenceError(str(sqle)) from sqle
 
+    def persist_history_records_batch(
+        self,
+        records: list[HistoricalRecord],
+        *,
+        tenant_id: UUID,
+        connector_id: str,
+        batch_id: UUID,
+    ) -> dict[str, int]:
+        """Batched D-159 historical backfill entry point.
+
+        For each (target_table, source_id) cohort in the batch:
+          1. Single SELECT to look up all current-row ids by source_id
+             (one round trip instead of N).
+          2. Single INSERT to write all history rows (executemany — one
+             round trip's worth of parameter sets instead of N statements).
+
+        Why this matters: the per-record path issued ~2 DB roundtrips
+        per HistoricalRecord (1 SELECT + 1 INSERT). For Wayward contacts
+        with avg 65 history snapshots per contact, that meant 130
+        roundtrips per contact = ~4 contacts/min sustained throughput
+        on Railway prod. Batching brings it down to 2 roundtrips per
+        FLUSH (typically 200 records), unlocking the HubSpot HTTP
+        rate-limit ceiling (~22 records/sec) as the binding constraint.
+
+        Returns counters dict {persisted, skipped_missing_current, failed}.
+
+        Caller responsibilities (SAME as persist_history_record):
+          - ``apply_tenant_context()`` BEFORE this call.
+          - Hold the transaction.
+
+        On INSERT failure: raises PersistenceError — caller's SAVEPOINT
+        (db.begin_nested) rolls back the failed batch; the orchestrator
+        is expected to retry record-by-record via persist_history_record
+        as a fallback. The full-batch-vs-singletons split is the
+        caller's responsibility, not this method's.
+        """
+        counters = {"persisted": 0, "skipped_missing_current": 0, "failed": 0}
+        if not records:
+            return counters
+
+        # Group by target_table since each table has its own column set +
+        # extras_col + history_table mapping.
+        by_target: dict[str, list[HistoricalRecord]] = {}
+        for r in records:
+            by_target.setdefault(r.target_table, []).append(r)
+
+        for target_table, group in by_target.items():
+            sub = self._persist_history_records_for_table(
+                records=group,
+                target_table=target_table,
+                tenant_id=tenant_id,
+                connector_id=connector_id,
+                batch_id=batch_id,
+            )
+            counters["persisted"] += sub["persisted"]
+            counters["skipped_missing_current"] += sub["skipped_missing_current"]
+            counters["failed"] += sub["failed"]
+        return counters
+
+    def _persist_history_records_for_table(
+        self,
+        *,
+        records: list[HistoricalRecord],
+        target_table: str,
+        tenant_id: UUID,
+        connector_id: str,
+        batch_id: UUID,
+    ) -> dict[str, int]:
+        """Single-table batched history insert. Used by
+        persist_history_records_batch. See that method's docstring."""
+        counters = {"persisted": 0, "skipped_missing_current": 0, "failed": 0}
+
+        # Validation (defense-in-depth — mirrors persist_history_record).
+        if target_table not in ALLOWED_CIP_TABLES:
+            raise PersistenceError(
+                f"Unknown target_table {target_table!r}; "
+                f"allowed: {sorted(ALLOWED_CIP_TABLES)}"
+            )
+        history_table = HISTORY_TABLE_BY_CURRENT.get(target_table)
+        if history_table is None:
+            raise PersistenceError(
+                f"Table {target_table!r} has no history table "
+                f"(per HISTORY_TABLE_BY_CURRENT)"
+            )
+        extras_col = EXTRAS_COLUMN_BY_TABLE.get(target_table)
+
+        for r in records:
+            _assert_tz_aware(r.valid_from, "HistoricalRecord.valid_from")
+            if r.valid_to is not None:
+                _assert_tz_aware(r.valid_to, "HistoricalRecord.valid_to")
+            for k, v in r.fields.items():
+                _assert_tz_aware(v, f"HistoricalRecord.fields[{k!r}]")
+                _safe_column_name(k)
+            if r.overflow and extras_col is None:
+                raise PersistenceError(
+                    f"table {target_table} has no overflow column but "
+                    f"backfill produced overflow keys: "
+                    f"{sorted(r.overflow.keys())}"
+                )
+
+        # Step 1: batch lookup of current IDs.
+        source_ids = sorted({r.source_id for r in records})
+        try:
+            lookup_rows = self.db.execute(
+                sa.text(
+                    f"SELECT id, source_id FROM {target_table} "
+                    f"WHERE tenant_id = :tid "
+                    f"  AND source_connector = :sc "
+                    f"  AND source_id = ANY(:sids)"
+                ),
+                {
+                    "tid": str(tenant_id),
+                    "sc": connector_id,
+                    "sids": source_ids,
+                },
+            ).all()
+        except SQLAlchemyError as sqle:
+            raise PersistenceError(str(sqle)) from sqle
+        id_by_source: dict[str, object] = {row[1]: row[0] for row in lookup_rows}
+
+        found_records: list[HistoricalRecord] = []
+        for r in records:
+            if r.source_id in id_by_source:
+                found_records.append(r)
+            else:
+                counters["skipped_missing_current"] += 1
+
+        if not found_records:
+            return counters
+
+        # Step 2: compute the union of domain columns present in this batch
+        # AND on the history table. Columns missing from a given record's
+        # fields → NULL in that row.
+        history_cols = self._get_table_columns(history_table)
+        history_col_set = set(history_cols)
+        domain_cols_set: set[str] = set()
+        for r in found_records:
+            for f in r.fields:
+                safe = _safe_column_name(f)
+                if safe in history_col_set:
+                    domain_cols_set.add(safe)
+        domain_cols = sorted(domain_cols_set)
+
+        # Step 3: build INSERT template with provenance + domain columns + extras.
+        fixed_columns: list[tuple[str, str]] = [
+            # (column_name, value_expression)
+            ("history_id", "gen_random_uuid()"),
+            ("record_id", ":record_id"),
+            ("tenant_id", ":tenant_id"),
+            ("valid_from", ":valid_from"),
+            ("valid_to", ":valid_to"),
+            ("changed_by", ":changed_by"),
+            ("change_reason", ":change_reason"),
+            ("source_connector", ":source_connector"),
+            ("source_id", ":source_id"),
+            ("ingested_at", ":ingested_at"),
+            ("refreshed_at", ":refreshed_at"),
+            ("ingestion_batch_id", ":ingestion_batch_id"),
+            ("authority", ":authority"),
+            ("previous_version_id", "NULL"),
+        ]
+        col_exprs: list[tuple[str, str]] = [
+            (col, expr) for col, expr in fixed_columns if col in history_col_set
+        ]
+        for col in domain_cols:
+            col_exprs.append((col, f":f_{col}"))
+        if extras_col is not None and extras_col in history_col_set:
+            col_exprs.append((extras_col, "CAST(:extras AS jsonb)"))
+
+        cols_sql = ", ".join(c for c, _ in col_exprs)
+        vals_sql = ", ".join(e for _, e in col_exprs)
+        insert_sql = (
+            f"INSERT INTO {history_table} ({cols_sql}) VALUES ({vals_sql})"
+        )
+
+        # Step 4: build per-row params dict.
+        rows_params: list[dict[str, object]] = []
+        for r in found_records:
+            row_params: dict[str, object] = {
+                "record_id": str(id_by_source[r.source_id]),
+                "tenant_id": str(tenant_id),
+                "valid_from": r.valid_from,
+                "valid_to": r.valid_to,
+                "changed_by": r.changed_by or connector_id,
+                "change_reason": r.change_reason,
+                "source_connector": connector_id,
+                "source_id": r.source_id,
+                "ingested_at": r.valid_from,
+                "refreshed_at": r.valid_from,
+                "ingestion_batch_id": str(batch_id),
+                "authority": "ingested",
+            }
+            for col in domain_cols:
+                row_params[f"f_{col}"] = r.fields.get(col)
+            if extras_col is not None and extras_col in history_col_set:
+                row_params["extras"] = (
+                    json.dumps(r.overflow, sort_keys=True, default=str)
+                    if r.overflow else None
+                )
+            rows_params.append(row_params)
+
+        # Step 5: single executemany. SQLAlchemy + psycopg3 pipelines
+        # this efficiently across the wire.
+        try:
+            self.db.execute(sa.text(insert_sql), rows_params)
+        except SQLAlchemyError as sqle:
+            # On batch failure, raise so caller's SAVEPOINT rolls back.
+            # Caller is expected to retry one-by-one via
+            # persist_history_record as a fallback.
+            raise PersistenceError(str(sqle)) from sqle
+
+        counters["persisted"] = len(found_records)
+        return counters
+
     def _persist_history_with_lookup(
         self,
         *,

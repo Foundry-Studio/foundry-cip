@@ -1041,34 +1041,64 @@ def _run_backfill_body(
     pending: list[HistoricalRecord] = []
 
     def _flush() -> None:
-        """Persist a batch of HistoricalRecords with PER-RECORD SAVEPOINTS.
+        """Persist a batch of HistoricalRecords with batched DB IO + per-record
+        SAVEPOINT fallback.
 
-        Bug history (2026-05-15): the previous implementation opened ONE
-        transaction per batch (``db.begin()``) and looped through records
-        inside it. When a single record raised ``PersistenceError`` (e.g.,
-        ``ck_*_history_valid_range`` violation), Postgres aborted the
-        transaction. The except clause caught the Python exception but
-        Postgres' transaction state was already poisoned — every
-        subsequent ``persist_history_record`` raised ``InFailedSqlTransaction``
-        and was logged as a failure even though the records were fine.
-        Net effect: ONE bad record turned a 200-record batch into 199
-        spurious failures, then EVERY following batch hit the same
-        pattern as the connection stayed in a bad state.
+        Strategy:
+          1. PRIMARY: call ``persister.persist_history_records_batch()`` —
+             single SELECT for all current-row ids + single executemany
+             INSERT. ~2 DB roundtrips per ~200-record flush instead of
+             ~400 (single-record path was 2 per record). Wraps the whole
+             batch in a SAVEPOINT so a constraint violation on any one
+             row rolls back ONLY the batch attempt, not the outer txn.
+          2. FALLBACK on batch failure: per-record SAVEPOINTs (the
+             original 2026-05-15 cascade-prevention path). One bad record
+             doesn't kill the rest; isolated record-by-record persistence.
 
-        Fix: wrap each record in ``db.begin_nested()`` (SQL SAVEPOINT).
-        A failing record rolls back to its savepoint, leaving the outer
-        transaction valid for subsequent records. Outer transaction
-        commits at end of batch (or rolls back if a non-recoverable
-        error like a connection drop occurs).
+        Bug history (2026-05-15): the per-record path opened ~2 DB
+        roundtrips per HistoricalRecord. For Wayward contacts with
+        ~65 history snapshots per contact, that was 130 roundtrips per
+        contact = ~4 contacts/min sustained throughput on Railway prod.
+        Batched path brings it to ~2 roundtrips per flush total — the
+        HubSpot HTTP rate-limit (~22 records/sec) becomes the binding
+        constraint, not the persister.
         """
         if not pending:
             return
+        records_to_persist = list(pending)
+        pending.clear()
         with Session(engine, autoflush=False, expire_on_commit=False) as db, db.begin():
             apply_tenant_context(db, tenant_id)
             persister = CIPRowPersister(db, differ)
-            for record in pending:
+
+            # Primary path: batched insert in a SAVEPOINT.
+            batched_ok = False
+            try:
+                with db.begin_nested():
+                    sub = persister.persist_history_records_batch(
+                        records_to_persist,
+                        tenant_id=tenant_id,
+                        connector_id=connector.connector_id,
+                        batch_id=batch_id,
+                    )
+                counters["persisted"] += sub["persisted"]
+                counters["skipped_missing_current"] += sub["skipped_missing_current"]
+                counters["failed"] += sub["failed"]
+                batched_ok = True
+            except (PersistenceError, sa.exc.SQLAlchemyError) as exc:
+                log.warning(
+                    "backfill batched persist failed (%s); falling back to "
+                    "per-record SAVEPOINTs for this flush of %d records",
+                    exc, len(records_to_persist),
+                )
+
+            if batched_ok:
+                return
+
+            # Fallback path: per-record SAVEPOINTs (cascade-safe; slower).
+            for record in records_to_persist:
                 try:
-                    with db.begin_nested():  # SAVEPOINT per record
+                    with db.begin_nested():
                         ok = persister.persist_history_record(
                             record,
                             tenant_id=tenant_id,
@@ -1080,22 +1110,17 @@ def _run_backfill_body(
                         else:
                             counters["skipped_missing_current"] += 1
                 except PersistenceError as exc:
-                    # SAVEPOINT already rolled back by the context manager's
-                    # __exit__; outer txn stays clean for subsequent records.
                     log.warning(
                         "backfill persist failed for source_id=%s on %s: %s",
                         record.source_id, record.target_table, exc,
                     )
                     counters["failed"] += 1
                 except sa.exc.SQLAlchemyError as exc:
-                    # Connection-level / unexpected SQL error — same savepoint
-                    # rollback semantics; count and continue.
                     log.warning(
                         "backfill persist SQL error for source_id=%s on %s: %s",
                         record.source_id, record.target_table, exc,
                     )
                     counters["failed"] += 1
-        pending.clear()
 
     for record in history_iter:
         pending.append(record)

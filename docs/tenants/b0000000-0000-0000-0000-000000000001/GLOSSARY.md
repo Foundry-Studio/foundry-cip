@@ -58,12 +58,10 @@ Wayward is an Amazon affiliate marketing platform. Brands pay Wayward a commissi
 
 ### `properties->>'customer_target_segment'` (CUSTOM enum)
 - **Location:** `cip_companies.properties->>'customer_target_segment'` (JSONB key)
-- **Confidence:** `tentative` (field exists in HubSpot's property catalog; ZERO values currently populated on Wayward's data)
+- **Confidence:** `unknown` — field exists in HubSpot catalog, 0 values populated, Tim 2026-05-16 said leave blank for now.
 - **Vendor label:** "Customer Target Segment"
-- **Meaning (best guess):** A segmentation label Wayward intended for tagging brands by their target customer market. Currently unused — every queried row has it NULL.
-- **Watch out for:** Empty in current data. Don't rely on it.
-- **Open question for Tim:** Was this field meant to be used and never got populated? Or deprecated?
-- **Last reviewed:** 2026-05-16 by Claude
+- **Meaning:** *(not yet defined — empty in current data; will populate when/if Wayward starts using it)*
+- **Last reviewed:** 2026-05-16 by Tim Jordan
 
 ### `properties->>'hubspot_owner_id'` + `properties->>'owneremail'` + `properties->>'ownername'`
 - **Location:** `cip_companies.properties->>'hubspot_owner_id'` (and similar)
@@ -87,18 +85,19 @@ Wayward is an Amazon affiliate marketing platform. Brands pay Wayward a commissi
 - **Used to answer:** "What category does this brand sell in?" "How established is the brand on Amazon (review counts)?"
 - **Last reviewed:** 2026-05-16 by Claude
 
-### Hyphen-platform fields (custom — likely Wayward's internal platform)
+### Hyphen-platform fields (custom — internal Wayward acquisition product)
 - **Fields:** `hyphen_gmv_rank`, `hyphen_overlapping_gmv`, `hyphen_units_sold_rank`
-- **Confidence:** `inferred`
-- **Meaning (best guess):** Internal platform analytics ranks. `hyphen_gmv_rank` ranks the brand among Wayward's portfolio by GMV. `hyphen_overlapping_gmv` may track GMV overlap between Hyphen's affiliate program and other channels (probably Amazon Associates).
-- **Open question for Tim:** What's "Hyphen" exactly? Is it Wayward's internal product name? How are these ranks computed and when?
+- **Confidence:** `verified`
+- **Meaning:** "Hyphen" is **Hyphen Social** — a company Wayward purchased; treated as an internal Wayward product/platform. These fields capture Hyphen-platform analytics rolled up to the company level. `hyphen_gmv_rank` ranks the brand among the Hyphen portfolio by GMV. `hyphen_overlapping_gmv` tracks GMV overlap between the Hyphen affiliate program and other channels. `hyphen_units_sold_rank` ranks by units sold.
+- **Watch out for:** Computed by the Hyphen platform internally; refresh cadence not externally documented — check with Wayward ops if the numbers seem stale.
+- **Last reviewed:** 2026-05-16 by Tim Jordan
 
 ### Warmly-* fields (custom — third-party integration)
-- **Fields:** `warmlymatchedsegments`, `warmlymatchedsegmentslist`, `warmlyutmcampaigns`, etc. (18 fields total)
-- **Confidence:** `inferred`
-- **Meaning:** Warmly is a prospect-intent / website-visitor-identification platform. These fields record signals from Warmly's enrichment (Warmly-tagged segments, traffic sources, last-page-viewed timestamps, etc.) for prospect intelligence. Most rows have these empty — only enriched prospects.
-- **Used to answer:** Prospecting prioritization, intent signaling.
-- **Open question for Tim:** Confirm Wayward uses Warmly for prospect intelligence and these are the signals that matter?
+- **Fields:** `warmlymatchedsegments`, `warmlymatchedsegmentslist`, `warmlyutmcampaigns`, etc. (18 fields total on companies, 21 on contacts)
+- **Confidence:** `verified`
+- **Meaning:** Warmly is the prospect-intent / website-visitor-identification platform Wayward uses for prospecting. These fields record Warmly's enrichment signals — matched segments (audience buckets the prospect fits), traffic sources, last-page-viewed timestamps, total active time on Wayward's site, etc. Most rows are empty since only enriched prospects get the data.
+- **Used to answer:** Prospecting prioritization, intent signaling, "is this prospect showing buying intent?".
+- **Last reviewed:** 2026-05-16 by Tim Jordan
 
 ---
 
@@ -137,10 +136,11 @@ Wayward is an Amazon affiliate marketing platform. Brands pay Wayward a commissi
 - **Last reviewed:** 2026-05-16 by Tim Jordan + Claude
 
 ### Calendly-* fields (20 custom fields on contacts)
-- **Confidence:** `tentative`
-- **Meaning (best guess):** Custom answers from Calendly meeting-booking forms. `calendly_question_1` through `calendly_question_10` are the question prompts; `calendly_answer_1` through `calendly_answer_10` are the contact's answers.
-- **Used to answer:** Probably scoring prospects based on their booking-form responses.
-- **Open question for Tim:** Confirm Calendly is Wayward's meeting-booking tool and these capture prospect intake answers?
+- **Confidence:** `verified`
+- **Meaning:** Wayward used Calendly for **demo-meeting bookings as a lead-capture mechanism**. `calendly_question_1` through `calendly_question_10` are the question prompts presented in the booking form; `calendly_answer_1` through `calendly_answer_10` are the prospect's answers. These captured intake info at the moment a prospect booked a demo with the Wayward team.
+- **Used to answer:** Prospect-intake context — what did this lead say they needed when they booked the demo?
+- **Watch out for:** Most contacts have these empty — only those who actually booked through Calendly populated them.
+- **Last reviewed:** 2026-05-16 by Tim Jordan
 
 ### Engagement metrics (HubSpot-standard)
 - **Fields:** `hs_email_open`, `hs_email_click`, `hs_email_bounce`, `hs_email_last_send_date`, etc.
@@ -191,10 +191,10 @@ Wayward is an Amazon affiliate marketing platform. Brands pay Wayward a commissi
 
 ### `properties->>'segment'` (CUSTOM enum)
 - **Location:** JSONB key on deals
-- **Confidence:** `verified`
-- **Meaning:** A deal-level segmentation tag Wayward applies. Values: `Chinese Brand` (37 deals), `Other` (32), `LV` (14), `HyphenSocial - High Pri 1-5` (small counts), `Search Arb` (2).
+- **Confidence:** `verified` for the `Chinese Brand` value; `unknown` for other enum values.
+- **Meaning:** A deal-level segmentation tag Wayward applies. The `Chinese Brand` value tags deals associated with Chinese-region brands. Other enum values seen — `Other`, `LV`, `HyphenSocial - High Pri 1-5`, `Search Arb` — are *(meanings not yet defined; Tim 2026-05-16 said leave blank for now)*.
 - **Used to answer:** "Show me Chinese-Brand-tagged deals" — but see watch-out.
-- **Watch out for:** **Severely under-applied.** Only 37 deals have `segment='Chinese Brand'` even though 564 producing deals are on country-tagged Chinese companies. Do NOT trust `segment='Chinese Brand'` as the canonical "is this a Chinese-brand deal?" signal. Use `country IN ('CN','China','HK','Hong Kong','TW','Taiwan')` on the associated company + the `source` field's `China Referral - *` prefix as more reliable signals.
+- **Watch out for:** **`Chinese Brand` tag is severely under-applied.** Only 37 deals have `segment='Chinese Brand'` even though 564 producing deals are on country-tagged Chinese companies. Do NOT trust `segment='Chinese Brand'` as the canonical "is this a Chinese-brand deal?" signal. Use `country IN ('CN','China','HK','Hong Kong','TW','Taiwan')` on the associated company + the `source` field's `China Referral - *` prefix as more reliable signals.
 - **Last reviewed:** 2026-05-16 by Tim Jordan
 
 ### Money fields on deals — CRITICAL for commission accounting
@@ -206,20 +206,21 @@ Wayward is an Amazon affiliate marketing platform. Brands pay Wayward a commissi
 - **`properties->>'total_partnership_value'`** — All zero in current data. **`unknown`** — open question for Tim: was this intended to be used?
 
 ### Partnership / referral fields (mostly EMPTY)
-- **`paid_referral`** (enumeration) — Custom property exists in catalog. **ZERO deals have it set.** **`unknown`** — was this intended to capture referral partner names? Superseded by `source`?
-- **`rev_share_partner`** (enumeration) — same — ZERO deals have it set. **`unknown`**.
-- **`rev_share_structure`** (string) — same — ZERO deals have it set. **`unknown`**.
+- **`paid_referral`** (enumeration) — Custom property exists in catalog. **ZERO deals have it set.** **`unknown`** — Tim 2026-05-16 said leave blank for now. May populate later.
+- **`rev_share_partner`** (enumeration) — same — ZERO deals have it set. **`unknown`** (leave blank).
+- **`rev_share_structure`** (string) — same — ZERO deals have it set. **`unknown`** (leave blank).
+- **`total_partnership_value`** (number) — all zero in current data. **`unknown`** (leave blank).
 - **`deal_owner`** (CUSTOM enum) — Only Wayward internal staff names appear: `Mackenzie Clemens` (340 deals), `Jake Coburn` (95 deals). NOT for affiliate attribution. **`verified`** — internal-staff-only field.
 
 ### Other custom deal fields
-- **`brand_involvement_level`** (enum) — `tentative` — describes how engaged the brand is in the affiliate program. Possible values include various engagement tiers; needs Tim to confirm distinct values.
-- **`agency_type`** (enum) — `tentative` — agency-category tag. Distinct values seen: empty. Open question.
+- **`brand_involvement_level`** (enum) — **`unknown`** — Tim 2026-05-16 said leave blank for now.
+- **`agency_type`** (enum) — **`unknown`** — Tim 2026-05-16 said leave blank for now.
 - **`agency_deal_amount`** (number) — `inferred` — amount for agency-pipeline deals specifically.
 - **`active_on_creator_connections`** (enum) — `inferred` — whether the brand is actively using HubSpot's Creator Connections module.
-- **`d2c_affiliate_platform`** (enum) — `inferred` — third-party D2C affiliate platform the brand also uses (if any).
-- **`d2c_ecomm_platform`** (enum) — `inferred` — D2C ecommerce platform (Shopify, etc.) used by the brand.
+- **`d2c_affiliate_platform`** (enum) — **`unknown`** — Tim 2026-05-16 said leave blank for now.
+- **`d2c_ecomm_platform`** (enum) — **`unknown`** — Tim 2026-05-16 said leave blank for now.
 - **`has_existing_affiliate_program`** (enum) — `inferred` — whether the brand had an existing affiliate program before joining Wayward.
-- **`amazon_seller_type`** (enum) — `inferred`. Distinct value seen: `3P` (third-party seller). Other possible values: `1P` (first-party), `Hybrid`. Needs confirmation.
+- **`amazon_seller_type`** (enum) — **`verified`**. Enum: `1P` (first-party Amazon seller), `3P` (third-party seller), `Hybrid` (both). Confirmed by Tim 2026-05-16.
 - **`account_creation_date`** (date) — `inferred` — when the brand's Wayward account was created.
 - **`first_meeting_date`** (date) — `inferred` — first meeting between Wayward and the brand contact.
 
@@ -240,12 +241,15 @@ Wayward is an Amazon affiliate marketing platform. Brands pay Wayward a commissi
 - **Confidence:** `verified`
 - **Wayward CS team identification:** assignees commonly include `Rebecca Jessup` (US CS), `Roselle Falculan` (US CS), `Monica Rovetto` (China CS), `Rhea Deng` (China CS). Leadership in threads: `Jake Coburn`, `Mackenzie Clemens`. CEO: `Ali Marino`.
 
-### `properties->>'via'` (JSONB)
-- **Confidence:** `inferred` — Zendesk-standard "channel" of ingress (email, chat, web, etc.). Sub-fields include `channel`, `source`.
+### `properties->>'via'->>'channel'`
+- **Confidence:** `verified`
+- **Meaning:** The channel through which the ticket entered Zendesk. Wayward's data shows two distinct values: `email` (2,012 tickets, 70%) and `web` (878 tickets, 30%). 100% coverage on Wayward's data — no other channels seen (no chat, phone, mobile-app, etc.).
+- **Used to answer:** "Did this ticket come in via email or the help-center web form?"
+- **Last reviewed:** 2026-05-16 by Tim Jordan
 
-### `properties->>'tags'` (array)
-- **Confidence:** `tentative` — Zendesk ticket tags. Used for ad-hoc categorization.
-- **Open question for Tim:** Does Wayward CS use ticket tags consistently? Conventions?
+### `tags` (array)
+- **Confidence:** `unknown` — column exists in `cip_tickets` but **0% of Wayward tickets have tags populated** (0 of 2,890). Tim 2026-05-16 said leave blank for now since nothing is populated.
+- **Meaning:** *(not in use on Wayward — will populate when/if Wayward CS starts tagging tickets)*
 
 ---
 
@@ -260,22 +264,27 @@ Wayward is an Amazon affiliate marketing platform. Brands pay Wayward a commissi
 
 ---
 
-## Open questions for Tim
+## Open questions for Tim — 2026-05-16 review status
 
-The following items I'm marking `unknown` or `tentative` because confidence is low. Please clarify when you have a minute:
+Resolved (entries above updated to `verified` or `unknown` with notes):
+- ✅ #4 Hyphen → `verified` (Hyphen Social, a company Wayward purchased; treated as internal product)
+- ✅ #5 Warmly → `verified` (prospect-intent platform Wayward uses for prospecting)
+- ✅ #6 Calendly → `verified` (demo-meeting booking + lead capture)
+- ✅ #9 amazon_seller_type → `verified` (`1P` / `3P` / `Hybrid`)
+- ✅ #11 Zendesk tags → `unknown` + noted 0% populated on Wayward (Tim: leave blank)
+- ✅ #12 Zendesk via.channel → `verified` (`email` 70%, `web` 30%)
 
-1. **`customer_target_segment` on companies** — never populated in our data. Was it intended for use? Deprecated? Should Wayward populate it?
-2. **`paid_referral` and `rev_share_partner` on deals** — both have zero values populated. Were these field intended to replace `source`? Or are they newer fields not yet rolled out?
-3. **`rev_share_structure` on deals** — same as above. Zero populated.
-4. **`total_partnership_value` on deals** — all zero. What was this intended for?
-5. **`Hyphen` platform fields on companies** (`hyphen_gmv_rank`, `hyphen_overlapping_gmv`, `hyphen_units_sold_rank`) — what is Hyphen? Is it Wayward's internal product name? How are these ranks computed?
-6. **`Warmly` fields on contacts and companies** — confirm Warmly is the prospect-intent platform and these are the signals Wayward cares about?
-7. **`Calendly` fields on contacts** — confirm meeting-booking-form question/answer mapping. Any standard questions Wayward asks?
-8. **`segment` enum on deals** — beyond `Chinese Brand`, `Other`, `LV`, `HyphenSocial - High Pri 1-5`, `Search Arb` — what's `LV`? What's the full intended set?
-9. **`agency_type`, `brand_involvement_level` on deals** — what's the enum?
-10. **`amazon_seller_type` on deals** — confirm 1P / 3P / Hybrid is the full enum?
-11. **Zendesk ticket `tags`** — does CS use them? Any conventions?
-12. **Zendesk `via.channel` distinct values** — what channels does Wayward see?
+Tim 2026-05-16: "leave blank for now" — kept as `unknown`, will populate when/if Wayward starts using them:
+- #1 customer_target_segment (0 values populated)
+- #2 paid_referral (0)
+- #2 rev_share_partner (0)
+- #3 rev_share_structure (0)
+- #4 total_partnership_value (all zero)
+- #7 `segment` enum values beyond `Chinese Brand` (LV / Other / HyphenSocial / Search Arb meanings)
+- #8 agency_type, brand_involvement_level enums
+- #10 d2c_affiliate_platform, d2c_ecomm_platform enums
+
+These will be revisited if/when Wayward starts populating them OR if a query needs them and surfaces a clarification question.
 
 ## Cross-references
 

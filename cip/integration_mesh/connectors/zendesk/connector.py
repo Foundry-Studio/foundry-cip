@@ -355,16 +355,33 @@ class ZendeskConnector(CIPConnectorBase):
 
         Caller responsibility: run ``run_sync()`` first to materialize
         ``cip_tickets`` current state.
+
+        Bug history (2026-05-15): the previous implementation iterated
+        tickets via /api/v2/tickets.json with next_page URL pagination.
+        That endpoint silently returns page 1 forever on Wayward's
+        cursor-migrated portal (same root cause as the 2026-05-13 orgs
+        infinite-loop bug). Net effect: 6h 45min of backfill processed
+        only 100 unique tickets repeatedly, generating 112,400 duplicate
+        cip_tickets_history rows (avg 1,128/ticket; real tickets have
+        ~10-30 audit events). Fixed by iterating tickets via the same
+        cursor-incremental endpoint used in stream_records
+        (/api/v2/incremental/tickets/cursor.json with after_cursor +
+        end_of_stream termination + defensive return) — the
+        Zendesk-documented stable pagination, not the legacy URL.
         """
         if not self._authenticated:
             self.authenticate()
         if self._http is None:
             return
 
-        # Paginate tickets endpoint, but ONLY fetch audits per ticket
-        # (orgs/users skipped — no audit endpoint).
-        path = "/api/v2/tickets.json"
-        params: dict[str, Any] = {"per_page": 100}
+        # Cursor-incremental tickets endpoint (same as stream_records
+        # uses). per_page max 1000. start_time=0 = "from the beginning."
+        path = _INCREMENTAL_PATH["tickets"][0]  # cursor-mode path
+        page_size = 100
+        params: dict[str, Any] = {
+            "per_page": page_size,
+            "start_time": 0,
+        }
 
         while True:
             page = self._http.get(path, params=params)
@@ -372,14 +389,14 @@ class ZendeskConnector(CIPConnectorBase):
             for ticket in tickets:
                 yield from self._historical_records_for_ticket(ticket)
 
-            next_url = page.get("next_page")
-            if not isinstance(next_url, str) or not next_url:
+            if page.get("end_of_stream") is True:
                 return
-            path = (
-                next_url.split(".zendesk.com", 1)[-1]
-                if ".zendesk.com" in next_url else next_url
-            )
-            params = {}
+            after_cursor = page.get("after_cursor")
+            if not isinstance(after_cursor, str) or not after_cursor:
+                # No further cursor + not end_of_stream: defensively
+                # return (avoid infinite loop on missing terminator).
+                return
+            params = {"per_page": page_size, "cursor": after_cursor}
 
     def _historical_records_for_ticket(
         self, ticket_obj: dict[str, Any]

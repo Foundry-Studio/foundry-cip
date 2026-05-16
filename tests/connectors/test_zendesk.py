@@ -254,17 +254,23 @@ def test_time_incremental_pagination_advances_start_time() -> None:
 
 def test_backfill_history_yields_historical_records_for_tickets() -> None:
     """Post-PM 218f67a4 design: Zendesk backfill walks ticket audits +
-    yields one HistoricalRecord per audit event."""
+    yields one HistoricalRecord per audit event.
+
+    Post-2026-05-15 fix: backfill iterates tickets via the
+    cursor-incremental endpoint (/api/v2/incremental/tickets/cursor.json),
+    NOT the legacy /api/v2/tickets.json which silently page-1-loops on
+    cursor-migrated portals.
+    """
     from cip.integration_mesh.base import HistoricalRecord
 
     conn, stub = _make_connector()
     stub.queue(
         "GET", "/api/v2/users/me.json", response={"user": {"id": 1}}
     )  # auth probe
-    # Tickets endpoint: one ticket
+    # Tickets endpoint (CURSOR-INCREMENTAL, not legacy)
     stub.queue(
         "GET",
-        "/api/v2/tickets.json",
+        "/api/v2/incremental/tickets/cursor.json",
         response={
             "tickets": [
                 {
@@ -275,7 +281,7 @@ def test_backfill_history_yields_historical_records_for_tickets() -> None:
                     "updated_at": "2026-05-01T00:00:00Z",
                 }
             ],
-            "next_page": None,
+            "end_of_stream": True,
         },
     )
     # Audits for that ticket: 2 events (Create + status Change)
@@ -312,6 +318,108 @@ def test_backfill_history_yields_historical_records_for_tickets() -> None:
     # First audit's valid_to == second audit's valid_from
     assert records[0].valid_to == records[1].valid_from
     assert records[1].valid_to is None  # most-recent historical
+
+
+def test_backfill_history_paginates_via_cursor_until_end_of_stream() -> None:
+    """Regression test for the 2026-05-15 backfill infinite-loop bug.
+
+    Pre-fix: backfill iterated /api/v2/tickets.json with next_page URL
+    pagination. Zendesk's tickets endpoint silently returned page 1
+    forever for the Wayward portal (same root cause as the 2026-05-13
+    organizations infinite-loop), generating 1,128 duplicate history
+    rows per ticket on 100 tickets repeatedly until the operator killed
+    the script. Fixed by switching to cursor-incremental pagination
+    with after_cursor + end_of_stream termination.
+
+    This test asserts the cursor chains correctly across 2 pages with
+    distinct tickets, and terminates cleanly on end_of_stream.
+    """
+    conn, stub = _make_connector()
+    stub.queue("GET", "/api/v2/users/me.json", response={"user": {"id": 1}})  # auth
+    # Page 1: ticket 100, with after_cursor pointing to page 2
+    stub.queue(
+        "GET",
+        "/api/v2/incremental/tickets/cursor.json",
+        response={
+            "tickets": [
+                {"id": 100, "subject": "T1", "status": "open",
+                 "updated_at": "2026-05-01T00:00:00Z"},
+            ],
+            "after_cursor": "cursor-page-2",
+            "end_of_stream": False,
+        },
+    )
+    # Audits for ticket 100
+    stub.queue(
+        "GET",
+        "/api/v2/tickets/100/audits.json",
+        response={
+            "audits": [
+                {"created_at": "2025-12-01T08:00:00Z",
+                 "events": [{"type": "Create", "field_name": "subject", "value": "T1"}]},
+            ],
+        },
+    )
+    # Page 2: ticket 101, with end_of_stream=True terminating cleanly
+    stub.queue(
+        "GET",
+        "/api/v2/incremental/tickets/cursor.json",
+        response={
+            "tickets": [
+                {"id": 101, "subject": "T2", "status": "closed",
+                 "updated_at": "2026-05-02T00:00:00Z"},
+            ],
+            "end_of_stream": True,
+        },
+    )
+    stub.queue(
+        "GET",
+        "/api/v2/tickets/101/audits.json",
+        response={
+            "audits": [
+                {"created_at": "2025-12-02T08:00:00Z",
+                 "events": [{"type": "Create", "field_name": "subject", "value": "T2"}]},
+            ],
+        },
+    )
+
+    records = list(conn.backfill_history(TENANT))
+    source_ids = {r.source_id for r in records}
+    # Must cover BOTH distinct tickets exactly once each — proves cursor
+    # advances and doesn't loop back to page 1.
+    assert source_ids == {"100", "101"}, (
+        f"expected {{100, 101}} unique tickets across cursor pages, got {source_ids}"
+    )
+
+
+def test_backfill_history_defensively_returns_when_cursor_missing() -> None:
+    """If a response carries neither end_of_stream nor after_cursor, the
+    backfill loop must STILL terminate to avoid the page-1-loop pattern.
+    Defense-in-depth termination (same shape as the stream_records
+    defensive exit added 2026-05-14 for organizations)."""
+    conn, stub = _make_connector()
+    stub.queue("GET", "/api/v2/users/me.json", response={"user": {"id": 1}})  # auth
+    # Page 1: malformed — no end_of_stream + no after_cursor
+    stub.queue(
+        "GET",
+        "/api/v2/incremental/tickets/cursor.json",
+        response={
+            "tickets": [
+                {"id": 200, "subject": "T", "status": "open",
+                 "updated_at": "2026-05-01T00:00:00Z"},
+            ],
+            # Neither end_of_stream nor after_cursor → must defensively return.
+        },
+    )
+    stub.queue(
+        "GET",
+        "/api/v2/tickets/200/audits.json",
+        response={"audits": []},
+    )
+
+    records = list(conn.backfill_history(TENANT))
+    # Should have processed exactly one ticket then terminated.
+    assert all(r.source_id == "200" for r in records)
 
 
 def test_describe_schema_returns_valid_property_types() -> None:

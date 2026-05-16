@@ -141,6 +141,8 @@ After current-state succeeds:
 | Source-side custom property has unstable type (was string, now array) | Hypothetical, but very likely | Mapper field-resilience: unknown → overflow, never crash. Drift detector flags the change for promotion review. |
 | Source returns 414 on large property lists in GET | Wayward 2026-05-15 (contacts backfill) | Use POST batch/read endpoints for any property list > ~100 items. Keep URL params minimal. |
 | Source has a hidden 50-record cap on property-history requests | Wayward 2026-05-15 | Read the docs. Test against real data, not stub. |
+| Source's legacy endpoint silently page-1-loops on cursor-migrated portals | Wayward 2026-05-13 (orgs) + 2026-05-15 (tickets backfill) | When a vendor offers both legacy + cursor pagination, ALWAYS use cursor (even in code paths that look superficially fine). Test against a real tenant's data, not just a stub: stubs don't reproduce the silent-loop behavior. Validate via "unique source_ids covered grows monotonically" — if it plateaus, you're looping. |
+| Audit-style backfill re-iterates same records, generating 1000x duplicate history rows | Wayward 2026-05-15 (Zendesk ticket backfill) | Monitor `COUNT(DISTINCT source_id)` in the history table during long-running backfills. A flat curve = pagination bug. A reasonable per-source-id history row count (1-100, depending on source) should be the upper bound; anything >>100 suggests re-iteration. |
 
 ## Outputs of a complete onboarding
 

@@ -418,61 +418,143 @@ When authoring a new connector (Phase 2 onward), copy `cip/integration_mesh/conn
 
 ---
 
-### 13. Historical Backfill Contract (per D-159)
+### 13. Historical Backfill Contract (per D-159 + PM scope 218f67a4)
 
-**Every CIP connector MUST backfill whatever historical data the source system retains, into the corresponding `cip_*_history` tables, on first sync for any new tenant.** This is the framework's default behavior, not an opt-in feature. Locked 2026-05-12 by D-159.
+> **Status:** rewritten 2026-05-16 to reflect the implemented design. The earlier draft of this section described an inline `__cip_backfill__` marker pattern threaded through `stream_records`. That design was superseded during the persister-extension implementation (PM scope `218f67a4`) by a cleaner separation: `backfill_history()` is its own method on the connector, `run_backfill()` is its own orchestrator entry point, and the persister has a dedicated `persist_history_records_batch()` for high-throughput history writes.
 
-**The contract:**
+**Every CIP connector MUST emit whatever historical data the source system retains, into the corresponding `cip_*_history` tables.** Default behavior, not opt-in. Locked 2026-05-12 by D-159.
 
-1. On a tenant's first sync via a given connector, the connector calls the source system's history / audit / revision endpoint for every record it pulls, in addition to the current-state endpoint.
-2. For each prior revision the source still retains, the connector emits a **synthesized record** that flows through the orchestrator's SCD-2 differ. The synthesized record carries three special markers the mapper recognizes:
-    - `__cip_backfill__: True` — tells the framework this is a historical revision, not current state. (The orchestrator + persister inspect this to route the row to `cip_*_history` directly without bumping the current-state row in the main table.)
-    - `__cip_valid_from__: <ISO timestamp>` — the timestamp the source recorded for this revision. Becomes `cip_*_history.valid_from`.
-    - `__cip_valid_to__: <ISO timestamp | None>` — the timestamp of the NEXT revision, or `None` if this is the most-recent historical entry. Becomes `cip_*_history.valid_to`.
-3. Backfill records are yielded **chronologically (oldest → newest)** so the differ writes history rows in valid_from order.
-4. Backfill records share the same `ingestion_batch_id` as the initial current-state sync — one operation, multiple synthesized records.
-5. On subsequent syncs, history accumulates normally via the differ's change-detection (no backfill re-runs; backfill is per-tenant-per-connector one-shot).
+#### 13.1 The two-method shape
 
-**Source-system retention is a known constraint, not a failure mode:**
+Your connector ships TWO methods that the orchestrator drives:
 
-- HubSpot retains up to 20 revisions per property via the Property History API; the connector pulls all 20 if available.
-- Zendesk audit log retention varies by plan; the connector pulls what's still available without erroring on retention-window boundaries.
-- A 404 / 403 on the history endpoint for a specific record is non-fatal; the connector continues with current-state ingestion.
+- **`stream_records(cursor, batch_size)`** — current state only. Called by `run_sync()`. See §4.
+- **`backfill_history(tenant_id)`** — historical revisions only. Called by `run_backfill()`. Returns `Iterator[HistoricalRecord]`. NEW method introduced 2026-05-12.
 
-**Connectors WITHOUT a history endpoint:** when the source system genuinely has no history endpoint OR the connector author cannot retrieve revisions for technical reasons, the connector documents the limitation in its module docstring + `describe_schema()` output. The framework does NOT REJECT a connector that lacks backfill — it FLAGS the gap. Tim/Atlas evaluate per-connector whether the gap is acceptable for the specific venture.
+Splitting the two surfaces means:
+- Current-state runs are fast and idempotent (re-runnable per schedule).
+- Historical backfills are one-shot per tenant per connector, run AFTER current-state lands, using their own advisory lock + batched persister path.
+- Connectors that genuinely have no history endpoint return an empty iterator from `backfill_history()` without polluting `stream_records`.
 
-**Implementation pattern (reference: `cip/integration_mesh/connectors/hubspot/connector.py`):**
+#### 13.2 The `HistoricalRecord` shape
 
 ```python
-def stream_records(self, cursor, batch_size):
-    # ...pagination loop...
-    for record in page.get("results", []):
-        # 1. Yield current-state record first
-        yield self._to_record(record, record_type)
+from cip.integration_mesh.base import HistoricalRecord
 
-        # 2. Yield synthesized backfill records for each prior revision
-        if self.backfill_history:
-            yield from self._yield_history_revisions(record, record_type)
-
-
-def _yield_history_revisions(self, source_obj, record_type):
-    """Emit one synthesized record per historical revision, oldest first."""
-    revisions = self._fetch_revisions(source_obj)  # source-system history call
-    for ts, snapshot, next_ts in revisions:
-        yield {
-            "__cip_kind__": record_type,
-            "__cip_backfill__": True,
-            "__cip_valid_from__": ts,
-            "__cip_valid_to__": next_ts,
-            "source_id": str(source_obj["id"]),
-            **snapshot,
-            "updated_at": ts,
-        }
+yield HistoricalRecord(
+    target_table="cip_companies",         # cip_<table>; persister maps to cip_<table>_history
+    source_id="42",                       # natural key into the current-state row
+    valid_from=datetime(...),             # tz-aware; the moment this revision became true
+    valid_to=datetime(...) | None,        # tz-aware OR None for the most-recent historical
+    fields={"name": "Acme", ...},         # domain columns on the history table
+    overflow={"hubspot_owner_id": "12345", ...},  # routes to properties JSONB
+    changed_by="hubspot-v1",              # connector_id (default; can be more specific)
+    change_reason="hubspot-property-history-snapshot[<ts>]",
+)
 ```
 
-**Knowledge-text emission and backfill:** by convention, mapper's `ingest_as_knowledge()` returns an EMPTY list for backfill records — historical revisions don't re-emit knowledge text. The current-state record drives knowledge ingestion; backfill is purely structural for time-series reporting.
+**Contract rules:**
 
-**Why this is the default, not an opt-in:** Tim 2026-05-12 — historical reporting (deal-stage trends, ticket-state transitions over time, company-property changes) is core to the BI use case CIP exists to serve. Accepting "from-sync-onward" history means losing what the source system still has retained, which is irrecoverable once the retention window passes.
+1. Yield records **chronologically (oldest → newest)** per source_id when feasible. Many history endpoints emit in this order natively; if yours doesn't, sort inside the connector before yielding.
+2. **`valid_to` MUST be strictly greater than `valid_from`** when not None. `ck_*_history_valid_range` enforces this at the DB. If your source emits two revisions at the exact same instant (Zendesk audits are second-resolution; HubSpot occasionally emits mixed-precision timestamps for the same logical moment), your connector MUST defensively skip the conflicting snapshot — `if valid_to is not None and valid_to <= valid_from: continue`.
+3. Parse timestamps to typed `datetime` values BEFORE sorting / comparing. Never sort ISO-8601 strings — mixed-precision serializations break ASCII ordering.
+4. `target_table` must be in the `ALLOWED_CIP_TABLES` allow-list; missing tables raise `PersistenceError`.
+
+#### 13.3 The orchestrator: `run_backfill()`
+
+```python
+from cip.integration_mesh import run_backfill
+
+counters = run_backfill(
+    connector,
+    engine,
+    tenant_id=tenant_id,
+    batch_size=200,                # records per persister flush
+    database_url=sa_url,           # for the advisory-lock holder connection
+)
+# counters = {"persisted": ..., "skipped_missing_current": ..., "failed": ...}
+```
+
+`run_backfill()`:
+1. Validates the connector shape (`validate_connector_shape`).
+2. Acquires the per-`(tenant, connector)` advisory lock (same lock as `run_sync()` — so concurrent run_sync + run_backfill for the same tenant/connector is impossible).
+3. Iterates `connector.backfill_history(tenant_id)`. Chunks into batches of `batch_size`.
+4. **Per flush:** calls `persister.persist_history_records_batch()` as the **primary path** (batched insert, ~2 DB roundtrips per flush). On failure, falls back to per-record SAVEPOINTs via `persister.persist_history_record()` (cascade-safe, slower). See `SYNC-ORCHESTRATOR-GUIDE.md` §11 for the two-tier flow.
+
+#### 13.4 The persister: batched is first-class
+
+The persister exposes both methods:
+
+- **`persist_history_records_batch(records, ...)`** — **PRIMARY (use this).** Groups by target_table, single SELECT for all current-row ids, single `executemany` INSERT. ~100-200x faster than per-record on engagement-heavy entities. Returns counters dict. **This is what the orchestrator's run_backfill calls in production.**
+- **`persist_history_record(record, ...)`** — single-record path. Kept as the fallback the orchestrator drops to on batch failure, AND as a testable unit-of-persistence for connectors that want to exercise the path directly. Not the primary production path.
+
+**Why this matters for connector authors:** you don't call the persister directly. You yield `HistoricalRecord` objects from `backfill_history()` and the orchestrator handles the persist. But the perf properties cascade — yielding 65 history snapshots per source record is fine because the persister batches them efficiently. (Pre-2026-05-16 it was not fine; the persister was the bottleneck. That's now fixed.)
+
+#### 13.5 Implementation pattern (reference: HubSpot)
+
+```python
+from cip.integration_mesh.base import HistoricalRecord
+
+class MyConnector(CIPConnectorBase):
+    connector_id: str = "my-connector-v1"
+
+    def stream_records(self, cursor, batch_size):
+        # Current-state only — see §4.
+        ...
+
+    def backfill_history(self, tenant_id):
+        """D-159 historical backfill. Emit HistoricalRecord per revision."""
+        if not self._authenticated:
+            self.authenticate()
+
+        for entity_type in self._object_types:
+            try:
+                yield from self._backfill_entity(entity_type)
+            except HTTPError as exc:
+                # Per-entity isolation (scope d3311846): 401/403 on one
+                # entity marks it unavailable and continues with others.
+                if exc.status in {401, 403}:
+                    self._unavailable_entities.add(entity_type)
+                    continue
+                raise
+
+    def _backfill_entity(self, entity_type):
+        # Pull pages from the source's history endpoint.
+        # For each source record, emit ordered HistoricalRecords with
+        # strict valid_from < valid_to ordering.
+        for revision in self._fetch_revisions(entity_type):
+            valid_from, valid_to = revision.timestamps
+            if valid_to is not None and valid_to <= valid_from:
+                continue  # defensive: same-instant collision
+            yield HistoricalRecord(
+                target_table=...,
+                source_id=...,
+                valid_from=valid_from,
+                valid_to=valid_to,
+                fields=...,
+                overflow=...,
+                changed_by=self.connector_id,
+                change_reason=f"my-connector-history[{revision.ts_raw}]",
+            )
+```
+
+#### 13.6 Source-system retention is a known constraint
+
+- HubSpot retains up to 20 revisions per property via the Property History API.
+- Zendesk audit log retention varies by plan.
+- A 404 / 403 on the history endpoint for a specific record is non-fatal — log + continue.
+
+#### 13.7 Connectors WITHOUT a history endpoint
+
+When the source genuinely has no history endpoint, the connector either omits `backfill_history()` entirely (returns empty iterator via the `CIPConnectorBase` default) or implements it as an explicit no-op with a comment. Document the limitation in the connector module docstring. The framework FLAGS the gap; it does not REJECT the connector.
+
+#### 13.8 Knowledge-text emission and backfill
+
+By convention, `ingest_as_knowledge()` is only invoked on current-state records (the `stream_records` path), not on historical revisions. Historical revisions are purely structural for time-series reporting. If a future use case needs the full conversational text of every prior revision in the knowledge layer, that's a separate scope.
+
+#### 13.9 Why backfill is the default, not opt-in
+
+Tim 2026-05-12: historical reporting (deal-stage trends, ticket-state transitions over time, company-property changes) is core to the BI use case CIP exists to serve. Accepting "from-sync-onward" history means losing what the source system still has retained, which is irrecoverable once the retention window passes.
 
 ---
 

@@ -153,12 +153,26 @@ class CIPRowPersister:
         connector_id: str,
         batch_id: UUID,
     ) -> bool:
-        """D-159 backfill entry point: write a known-historical revision
-        directly to ``cip_{entity}_history`` with explicit valid_from /
-        valid_to from the source system.
+        """Single-record D-159 backfill entry point.
 
-        Bypasses the SCD-2 differ (the differ exists to DETECT changes;
-        backfill records are known-historical, not change-detected).
+        **Status (2026-05-16):** FALLBACK PATH. The orchestrator's
+        run_backfill calls ``persist_history_records_batch()`` as the
+        PRIMARY production path (one SELECT + one INSERT per flush).
+        This method is the per-record SAVEPOINT fallback the orchestrator
+        drops to on batch failure (cascade safety) — and a stable
+        per-record entry point for tests + connectors that want to
+        exercise the path directly.
+
+        New connector authors / orchestrator integrations should call
+        ``persist_history_records_batch()`` instead. See
+        ``CONNECTOR-AUTHORING-GUIDE.md`` §13 and
+        ``SYNC-ORCHESTRATOR-GUIDE.md`` §11.
+
+        Writes a known-historical revision directly to
+        ``cip_{entity}_history`` with explicit valid_from / valid_to from
+        the source system. Bypasses the SCD-2 differ (the differ exists
+        to DETECT changes; backfill records are known-historical, not
+        change-detected).
 
         Looks up the current row's ``id`` by (tenant_id, source_connector,
         source_id) for the ``record_id`` FK. If the current row doesn't
@@ -221,7 +235,12 @@ class CIPRowPersister:
         connector_id: str,
         batch_id: UUID,
     ) -> dict[str, int]:
-        """Batched D-159 historical backfill entry point.
+        """**PRIMARY D-159 historical backfill entry point.**
+
+        First-class as of 2026-05-16 — the orchestrator's run_backfill
+        calls this method on every flush. The single-record
+        ``persist_history_record`` is the FALLBACK the orchestrator
+        drops to on batch failure (cascade safety).
 
         For each (target_table, source_id) cohort in the batch:
           1. Single SELECT to look up all current-row ids by source_id
@@ -233,9 +252,17 @@ class CIPRowPersister:
         per HistoricalRecord (1 SELECT + 1 INSERT). For Wayward contacts
         with avg 65 history snapshots per contact, that meant 130
         roundtrips per contact = ~4 contacts/min sustained throughput
-        on Railway prod. Batching brings it down to 2 roundtrips per
-        FLUSH (typically 200 records), unlocking the HubSpot HTTP
-        rate-limit ceiling (~22 records/sec) as the binding constraint.
+        on Railway prod (8-day projected total for 47K contacts).
+        Batched path brings it down to 2 roundtrips per FLUSH (typically
+        200 records), unlocking the HubSpot HTTP rate-limit ceiling
+        (~22 records/sec at 11 req/sec × 50 records/page × 2 calls/page)
+        as the binding constraint. ~100-200x speedup measured against
+        Wayward prod.
+
+        See ``CONNECTOR-AUTHORING-GUIDE.md`` §13 (the canonical pattern
+        for authoring a new connector's backfill) and
+        ``SYNC-ORCHESTRATOR-GUIDE.md`` §11 (the two-tier flush path
+        documentation) for context.
 
         Returns counters dict {persisted, skipped_missing_current, failed}.
 
@@ -245,9 +272,9 @@ class CIPRowPersister:
 
         On INSERT failure: raises PersistenceError — caller's SAVEPOINT
         (db.begin_nested) rolls back the failed batch; the orchestrator
-        is expected to retry record-by-record via persist_history_record
-        as a fallback. The full-batch-vs-singletons split is the
-        caller's responsibility, not this method's.
+        retries record-by-record via persist_history_record as a
+        fallback. The full-batch-vs-singletons split is the orchestrator's
+        responsibility, not this method's.
         """
         counters = {"persisted": 0, "skipped_missing_current": 0, "failed": 0}
         if not records:

@@ -29,7 +29,8 @@ from cip.integration_mesh.exceptions import (
 )
 from tests.connectors.stub_transport import StubTransport
 
-TENANT = UUID("b0000000-0000-0000-0000-000000000001")
+# Synthetic UUID for tests — see test_zendesk.py for the rationale.
+TENANT = UUID("00000000-0000-0000-0000-00000000ffff")
 
 
 def _make_connector(

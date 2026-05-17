@@ -58,7 +58,18 @@ from cip.integration_mesh.connectors.zendesk import (
     ZendeskMapper,
 )
 
-TENANT_WAYWARD = UUID("b0000000-0000-0000-0000-000000000001")
+from cip.integration_mesh.wayward_constants import (
+    ECOMLEVER_TENANT_ID,
+    WAYWARD_CLIENT_ID,
+    set_wayward_client_id_on_null_rows,
+)
+
+# Wayward data lives at (EcomLever tenant, Wayward client). See
+# `cip/integration_mesh/wayward_constants.py` for the canonical UUIDs
+# and `docs/ONBOARDING-A-NEW-TENANT.md` Phase 0 for the rule against
+# placeholder UUIDs. `TENANT_WAYWARD` is the legacy local name; resolves
+# to EcomLever's tenant_id (the venture).
+TENANT_WAYWARD = ECOMLEVER_TENANT_ID
 
 
 def _resolve_url() -> str:

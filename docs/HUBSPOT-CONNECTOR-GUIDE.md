@@ -180,7 +180,7 @@ python -u scripts/run_wayward_hubspot_backfill_no_tickets.py
 
 ## 15. Property meaning — read the Glossary
 
-HubSpot's `label` and `description` fields don't carry the tenant-specific meaning. The same property name can have different operational uses across tenants (e.g., Wayward uses `source` for affiliate-owner attribution; another tenant might use it for marketing campaign tracking). Before issuing any non-trivial query, **read the tenant's glossary** at `docs/tenants/<tenant_uuid>/GLOSSARY.md` to find the plain-English meaning + confidence level for each column you intend to use. See [`PROPERTY-GLOSSARY-PATTERN.md`](PROPERTY-GLOSSARY-PATTERN.md) for the pattern; Wayward's glossary at [`tenants/b0000000-0000-0000-0000-000000000001/GLOSSARY.md`](tenants/b0000000-0000-0000-0000-000000000001/GLOSSARY.md) is the working example.
+HubSpot's `label` and `description` fields don't carry the tenant-specific meaning. The same property name can have different operational uses across tenants (e.g., Wayward uses `source` for affiliate-owner attribution; another tenant might use it for marketing campaign tracking). Before issuing any non-trivial query, **read the tenant's glossary** at `docs/tenants/<tenant_uuid>/GLOSSARY.md` to find the plain-English meaning + confidence level for each column you intend to use. See [`PROPERTY-GLOSSARY-PATTERN.md`](PROPERTY-GLOSSARY-PATTERN.md) for the pattern; Wayward's glossary at [`tenants/dec814db-722a-4730-8e60-51afc4a5dad9/GLOSSARY.md`](tenants/dec814db-722a-4730-8e60-51afc4a5dad9/GLOSSARY.md) is the working example.
 
 ## Cross-references
 

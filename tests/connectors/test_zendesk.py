@@ -20,7 +20,12 @@ from cip.integration_mesh.exceptions import (
 )
 from tests.connectors.stub_transport import StubTransport
 
-TENANT = UUID("b0000000-0000-0000-0000-000000000001")
+# Synthetic UUID for tests — does NOT correspond to a real tenant. Tests
+# never touch the production DB; this is just a stable id for assertions.
+# Use a clearly-synthetic value to avoid confusion with the canonical
+# EcomLever tenant_id (`dec814db-...`); see `docs/ONBOARDING-A-NEW-TENANT.md`
+# Phase 0 for the rule against placeholder UUIDs in production paths.
+TENANT = UUID("00000000-0000-0000-0000-00000000ffff")
 
 
 def _make_connector(

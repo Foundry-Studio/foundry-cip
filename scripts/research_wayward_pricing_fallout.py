@@ -13,7 +13,8 @@ from collections import defaultdict
 from datetime import datetime
 from sqlalchemy import create_engine, text
 
-TID = "b0000000-0000-0000-0000-000000000001"
+from cip.integration_mesh.wayward_constants import ECOMLEVER_TENANT_ID
+TID = str(ECOMLEVER_TENANT_ID)  # EcomLever tenant; Wayward client_id 661ecab4-...
 DATE_LO = "2026-02-01"
 DATE_HI = "2026-05-16"
 
@@ -308,7 +309,7 @@ def main() -> int:
 
     lines.append("## Methodology")
     lines.append("")
-    lines.append("- Data source: CIP (cip_tickets + cip_tickets_history), live PostgreSQL query against Railway prod, tenant_id `b0000000-0000-0000-0000-000000000001`. Original Zendesk subdomain: `waywardsupport.zendesk.com`. CIP backfill completed 2026-05-16 01:28 UTC.")
+    lines.append(f"- Data source: CIP (cip_tickets + cip_tickets_history), live PostgreSQL query against Railway prod, tenant_id `{TID}` (EcomLever venture; Wayward client_id `661ecab4-dddb-5924-a34d-af1c5133132d`). Original Zendesk subdomain: `waywardsupport.zendesk.com`. CIP backfill completed 2026-05-16 01:28 UTC; tenant-id correction landed 2026-05-16.")
     lines.append(f"- Date range searched: {DATE_LO} → {DATE_HI} (inclusive).")
     lines.append(f"- Tickets in date range (audit-event activity): 1,389 unique tickets.")
     lines.append(f"- History snapshots scanned in window: ~12,000 (Feb-May 2026 partition).")

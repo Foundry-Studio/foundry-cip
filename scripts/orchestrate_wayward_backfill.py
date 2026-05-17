@@ -56,7 +56,12 @@ from cip.integration_mesh import run_backfill
 from cip.integration_mesh.connectors.hubspot import HubSpotConnector
 from cip.integration_mesh.connectors.zendesk import ZendeskConnector
 
-TENANT_WAYWARD = UUID("b0000000-0000-0000-0000-000000000001")
+from cip.integration_mesh.wayward_constants import (
+    ECOMLEVER_TENANT_ID,
+    WAYWARD_CLIENT_ID,
+)
+
+TENANT_WAYWARD = ECOMLEVER_TENANT_ID  # Wayward data lives at EcomLever tenant + Wayward client
 POLL_SECONDS = int(os.environ.get("ORCHESTRATOR_POLL_SECONDS", "900"))  # 15 min default
 LOG_PATH = Path(__file__).parent / "wayward_backfill_orchestrator.log"
 

@@ -137,7 +137,7 @@ When an agent (chatbot, MCP-tool-using agent, or anything querying CIP) needs to
 
 ## Working example
 
-See `docs/tenants/b0000000-0000-0000-0000-000000000001/GLOSSARY.md` — Wayward's glossary, populated as the first real-world instance. Use it as the model for any future tenant's glossary.
+See `docs/tenants/dec814db-722a-4730-8e60-51afc4a5dad9/GLOSSARY.md` — EcomLever tenant / Wayward client glossary, populated as the first real-world instance. Use it as the model for any future tenant's glossary.
 
 ## Cross-references
 

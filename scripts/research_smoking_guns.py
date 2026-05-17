@@ -6,7 +6,8 @@ from collections import defaultdict
 from datetime import datetime
 from sqlalchemy import create_engine, text
 
-TID = "b0000000-0000-0000-0000-000000000001"
+from cip.integration_mesh.wayward_constants import ECOMLEVER_TENANT_ID
+TID = str(ECOMLEVER_TENANT_ID)  # EcomLever tenant; Wayward client_id 661ecab4-...
 DATE_LO = "2026-02-01"
 DATE_HI = "2026-05-16"
 

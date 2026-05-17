@@ -28,7 +28,16 @@ from cip.integration_mesh.connectors.hubspot import (
     HubSpotMapper,
 )
 
-TENANT_WAYWARD = UUID("b0000000-0000-0000-0000-000000000001")
+from cip.integration_mesh.wayward_constants import (
+    ECOMLEVER_TENANT_ID,
+    WAYWARD_CLIENT_ID,
+    set_wayward_client_id_on_null_rows,
+)
+
+# Wayward data lives at (EcomLever tenant, Wayward client). Canonical
+# UUIDs in `cip/integration_mesh/wayward_constants.py`. Legacy local
+# name `TENANT_WAYWARD` retained for readability; resolves to EcomLever.
+TENANT_WAYWARD = ECOMLEVER_TENANT_ID
 
 
 def _resolve_url() -> str:

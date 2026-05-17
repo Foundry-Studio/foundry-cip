@@ -1,16 +1,26 @@
 ---
 kind: doc
 domain: client-intelligence-platform
-tenant_uuid: b0000000-0000-0000-0000-000000000001
-tenant_name: Wayward
+tenant_uuid: dec814db-722a-4730-8e60-51afc4a5dad9
+tenant_name: EcomLever
+client_uuid: 661ecab4-dddb-5924-a34d-af1c5133132d
+client_name: Wayward
 status: active
 last_updated: 2026-05-16
 authors: [tim, cc-session-2026-05-16]
+supersedes: >
+  Glossary originally lived at `docs/tenants/b0000000-0000-0000-0000-000000000001/GLOSSARY.md` (the placeholder tenant_id). Moved 2026-05-16 to the canonical path under EcomLever's tenant_id; Wayward is now properly modeled as a client inside the EcomLever venture-tenant per VISION §4. All data re-tagged via `scripts/migrate_b0_to_ecomlever.py` (1,257,771 rows).
 ---
 
-# Wayward Tenant — Property Glossary
+# EcomLever Tenant / Wayward Client — Property Glossary
 
-> Plain-English semantic layer over Wayward's CIP data. Authored 2026-05-16 after the initial full-property HubSpot + Zendesk ingest. Confidence levels per `docs/PROPERTY-GLOSSARY-PATTERN.md`. Last comprehensive review: 2026-05-16 by Tim Jordan + cc-session-2026-05-16.
+> Plain-English semantic layer over Wayward's CIP data. Wayward is the first (and currently only) client inside the **EcomLever** venture-tenant. Authored 2026-05-16 after the initial full-property HubSpot + Zendesk ingest. Confidence levels per `docs/PROPERTY-GLOSSARY-PATTERN.md`. Last comprehensive review: 2026-05-16 by Tim Jordan + cc-session-2026-05-16.
+>
+> **Tenant model**:
+> - `tenant_id = dec814db-722a-4730-8e60-51afc4a5dad9` (EcomLever, venture)
+> - `client_id = 661ecab4-dddb-5924-a34d-af1c5133132d` (Wayward, client)
+>
+> All cip_* rows reference both — filter on BOTH to scope to Wayward specifically (e.g., `WHERE tenant_id = '<EcomLever>' AND client_id = '<Wayward>'`). Future EcomLever clients (additional consulting engagements) would get their own client_id under the same tenant.
 
 ## Conventions
 

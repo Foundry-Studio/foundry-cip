@@ -50,7 +50,8 @@ def set_wayward_client_id_on_null_rows(engine: object) -> dict[str, int]:
     from sqlalchemy import text
     tables = (
         "cip_companies", "cip_contacts", "cip_deals", "cip_tickets",
-        "cip_files", "cip_sync_runs", "cip_views",
+        "cip_ticket_comments", "cip_engagements", "cip_files",
+        "cip_sync_runs", "cip_views",
     )
     updated: dict[str, int] = {}
     with engine.begin() as conn:  # type: ignore[attr-defined]

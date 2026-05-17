@@ -29,6 +29,7 @@ _TARGET_TABLE_BY_TYPE: dict[str, str] = {
     "company": "cip_companies",
     "contact": "cip_contacts",
     "ticket": "cip_tickets",
+    "ticket_comment": "cip_ticket_comments",
 }
 
 # Domain columns per cip_* table accepting Zendesk values directly.
@@ -36,6 +37,11 @@ _DOMAIN_FIELDS_BY_TYPE: dict[str, set[str]] = {
     "company": {"name", "domain"},  # cip_companies columns the mapper can fill
     "contact": {"first_name", "last_name", "email", "phone"},
     "ticket": {"subject", "description", "priority", "status"},
+    "ticket_comment": {
+        "ticket_source_id", "author_id", "author_email", "body", "html_body",
+        "is_public", "via_channel", "attachments_count", "attachment_urls",
+        "source_created_at",
+    },
 }
 
 # Zendesk field name → cip_* SQL column name. Identity where omitted.
@@ -58,6 +64,22 @@ _RESERVED: set[str] = {
     "updated_at",
     "record_type",
 }
+
+# Datetime fields per kind that need ISO-string → datetime conversion
+# before they reach the persister (which asserts tz-aware datetimes).
+_DATETIME_FIELDS: dict[str, set[str]] = {
+    "ticket_comment": {"source_created_at"},
+}
+
+
+def _parse_zendesk_datetime(value: object) -> object:
+    """Convert Zendesk ISO-8601 string (with Z suffix) to tz-aware datetime."""
+    if not isinstance(value, str):
+        return value
+    from datetime import datetime as _dt
+    if value.endswith("Z"):
+        return _dt.fromisoformat(value.replace("Z", "+00:00"))
+    return _dt.fromisoformat(value)
 
 
 class ZendeskMapper(CIPMapperBase):
@@ -97,6 +119,7 @@ class ZendeskMapper(CIPMapperBase):
             if isinstance(domains, list) and domains:
                 fields["domain"] = str(domains[0])
 
+        dt_fields = _DATETIME_FIELDS.get(kind, set())
         for k, v in record.items():
             if k in _RESERVED:
                 continue
@@ -106,7 +129,9 @@ class ZendeskMapper(CIPMapperBase):
                 continue  # already handled above
             sql_col = _RECORD_TO_SQL_COLUMN.get(kind, {}).get(k, k)
             if sql_col in domain_keys:
-                fields[sql_col] = v
+                fields[sql_col] = (
+                    _parse_zendesk_datetime(v) if sql_col in dt_fields else v
+                )
             else:
                 overflow[k] = v
 
@@ -117,6 +142,13 @@ class ZendeskMapper(CIPMapperBase):
         # cip_companies requires non-null name
         if kind == "company" and "name" not in fields:
             fields["name"] = f"(zendesk org #{record.get('source_id', '?')})"
+
+        # Comments: ticket_source_id is NOT NULL in the schema; fail loud
+        # if the connector forgot to set it (would indicate a bug upstream).
+        if kind == "ticket_comment" and not fields.get("ticket_source_id"):
+            raise SchemaDriftError(
+                "ZendeskMapper: ticket_comment record missing ticket_source_id"
+            )
 
         yield CIPRow(
             target_table=target,
@@ -140,18 +172,31 @@ class ZendeskMapper(CIPMapperBase):
     def ingest_as_knowledge(
         self, record: dict[str, object]
     ) -> list[KnowledgeText]:
-        if record.get("__cip_kind__") != "ticket":
-            return []
         if record.get("__cip_backfill__"):
             return []
-        body = record.get("description") or record.get("content") or ""
-        if not isinstance(body, str) or not body.strip():
-            return []
-        return [
-            KnowledgeText(
-                text=body,
-                metadata=KnowledgeTextMetadata(
-                    source_id=str(record.get("source_id", "")),
-                ),
-            )
-        ]
+        kind = record.get("__cip_kind__")
+        if kind == "ticket":
+            body = record.get("description") or record.get("content") or ""
+            if not isinstance(body, str) or not body.strip():
+                return []
+            return [
+                KnowledgeText(
+                    text=body,
+                    metadata=KnowledgeTextMetadata(
+                        source_id=str(record.get("source_id", "")),
+                    ),
+                )
+            ]
+        if kind == "ticket_comment":
+            body = record.get("body") or ""
+            if not isinstance(body, str) or not body.strip():
+                return []
+            return [
+                KnowledgeText(
+                    text=body,
+                    metadata=KnowledgeTextMetadata(
+                        source_id=str(record.get("source_id", "")),
+                    ),
+                )
+            ]
+        return []

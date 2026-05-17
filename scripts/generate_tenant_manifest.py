@@ -122,9 +122,15 @@ def main() -> int:
         lines.append("|---|---|---|")
         for tbl in (
             "cip_companies", "cip_contacts", "cip_deals", "cip_tickets",
-            "cip_files", "cip_companies_history", "cip_contacts_history",
+            "cip_ticket_comments", "cip_engagements", "cip_files",
+            "cip_companies_history", "cip_contacts_history",
             "cip_deals_history", "cip_tickets_history",
+            "cip_ticket_comments_history", "cip_engagements_history",
         ):
+            # SAVEPOINT-isolate each per-table query — a missing table
+            # (e.g., cip_engagements pre-cip_16 application) shouldn't
+            # poison the outer transaction for downstream queries.
+            sp = c.begin_nested()
             try:
                 n = c.execute(
                     text(f"SELECT COUNT(*) FROM {tbl} WHERE tenant_id = :t"),
@@ -153,7 +159,9 @@ def main() -> int:
                         parts.append(f"{cid}={bd[1]:,}")
                     breakdown = ", ".join(parts)
                 lines.append(f"| `{tbl}` | {n:,} | {breakdown or '—'} |")
+                sp.commit()
             except Exception as e:  # noqa: BLE001
+                sp.rollback()
                 lines.append(f"| `{tbl}` | ERR | {e.__class__.__name__} |")
         lines.append("")
 

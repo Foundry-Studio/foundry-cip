@@ -63,6 +63,11 @@ _OBJECT_TYPES: tuple[tuple[str, str], ...] = (
     ("tickets", "ticket"),
 )
 
+# Ticket comments are a sub-resource per ticket (no incremental endpoint).
+# Streamed inline after each ticket is yielded so commenters can correlate
+# back to the parent ticket via ticket_source_id. PM scope 28739b6e.
+_INCLUDE_COMMENTS_DURING_STREAM = True
+
 # Per-entity incremental endpoint + pagination mode.
 #
 # Bug history (2026-05-13/14): legacy ``next_page`` URL pagination on
@@ -268,6 +273,17 @@ class ZendeskConnector(CIPConnectorBase):
                 if last_key and ikv <= last_key:
                     continue
                 yield rec_dict
+                # PM scope 28739b6e: after each ticket, stream its comments.
+                # Comments have no incremental endpoint of their own; they're
+                # a sub-resource of the parent ticket. Comment rows carry the
+                # ticket's source_id in ticket_source_id for join purposes.
+                if (
+                    record_type == "ticket"
+                    and _INCLUDE_COMMENTS_DURING_STREAM
+                ):
+                    yield from self._stream_ticket_comments(
+                        ticket_source_id=str(record.get("id", "")),
+                    )
 
             if page.get("end_of_stream") is True:
                 return
@@ -275,6 +291,75 @@ class ZendeskConnector(CIPConnectorBase):
             if not isinstance(after_cursor, str) or not after_cursor:
                 return
             params = {"per_page": page_size, "cursor": after_cursor}
+
+    def _stream_ticket_comments(
+        self, *, ticket_source_id: str
+    ) -> Iterator[dict[str, object]]:
+        """Stream one ticket's comments. Paginated via next_page URL.
+
+        Zendesk's /api/v2/tickets/{id}/comments.json uses legacy next_page
+        pagination. The 2026-05-13 organizations infinite-loop bug doesn't
+        apply here: comments are bounded per-ticket (usually <100), and
+        we defensively cap at 50 pages to avoid runaway.
+        """
+        assert self._http is not None
+        if not ticket_source_id:
+            return
+        path = f"/api/v2/tickets/{ticket_source_id}/comments.json"
+        params: dict[str, Any] = {"per_page": 100}
+        max_pages = 50
+        page_n = 0
+        while page_n < max_pages:
+            page_n += 1
+            try:
+                page = self._http.get(path, params=params)
+            except HTTPError as exc:
+                if exc.status in (403, 404):
+                    return
+                raise
+            for comment in page.get("comments", []):
+                yield self._comment_to_record(comment, ticket_source_id)
+            next_page = page.get("next_page")
+            if not isinstance(next_page, str) or not next_page:
+                return
+            # next_page is a fully-qualified URL; HttpxTransport requires a
+            # path so extract it
+            from urllib.parse import urlparse
+            parsed = urlparse(next_page)
+            path = parsed.path + ("?" + parsed.query if parsed.query else "")
+            params = {}
+
+    def _comment_to_record(
+        self, comment: dict[str, Any], ticket_source_id: str
+    ) -> dict[str, object]:
+        """Flatten a Zendesk comment object into a mapper-consumable record."""
+        attachments = comment.get("attachments") or []
+        attachment_urls = [
+            a.get("content_url") for a in attachments
+            if isinstance(a, dict) and isinstance(a.get("content_url"), str)
+        ]
+        via = comment.get("via") or {}
+        via_channel = via.get("channel") if isinstance(via, dict) else None
+        return {
+            "__cip_kind__": "ticket_comment",
+            "id": str(comment.get("id", "")),
+            "source_id": str(comment.get("id", "")),
+            "ticket_source_id": ticket_source_id,
+            "author_id": (
+                str(comment.get("author_id"))
+                if comment.get("author_id") is not None else None
+            ),
+            "body": comment.get("body"),
+            "html_body": comment.get("html_body"),
+            "is_public": comment.get("public"),
+            "via_channel": via_channel,
+            "attachments_count": len(attachments),
+            "attachment_urls": attachment_urls,
+            "source_created_at": comment.get("created_at"),
+            "via": via,  # full via object goes to properties JSONB
+            "metadata": comment.get("metadata"),
+            "updated_at": comment.get("created_at"),  # comments are immutable
+        }
 
     def _stream_time_incremental(
         self,

@@ -321,6 +321,8 @@ ALLOWED_CIP_TABLES: frozenset[str] = frozenset(
         "cip_deals",
         "cip_files",
         "cip_tickets",
+        "cip_ticket_comments",
+        "cip_engagements",
         "cip_views",
         "cip_connector_property_registry",
     }
@@ -336,6 +338,8 @@ HISTORY_TABLE_BY_CURRENT: dict[str, str] = {
     "cip_deals": "cip_deals_history",
     "cip_files": "cip_files_history",
     "cip_tickets": "cip_tickets_history",
+    "cip_ticket_comments": "cip_ticket_comments_history",
+    "cip_engagements": "cip_engagements_history",
     "cip_views": "cip_views_history",
 }
 

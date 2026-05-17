@@ -6,11 +6,11 @@ type: spec
 owner: tim
 solve_for: Phase boundary handoff doc — enumerates Phase 1 final state and Phase 2
   entry criteria. Atlas finalizes on M8 close.
-stage_label: trial
+stage_label: adopt
 domain: meta
 version: '1.0'
 created: '2026-04-21'
-last_modified: '2026-05-11'
+last_modified: '2026-05-16'
 last_reviewed: '2026-05-16'
 review_cadence: 180
 milestone: Phase-1-M7
@@ -77,7 +77,7 @@ Cross-ref: [`docs/vision/PHASE-1-PLAN.md`](vision/PHASE-1-PLAN.md) (Phase 1 bind
 - Conformance harness: `tests/fixtures/connector_conformance/` — 8 tests every connector must pass (including post-commit RLS isolation per PATCH-NR-1 and concurrent-sync advisory-lock per M3).
 - Integration mesh: 21 test files covering orchestrator, persister, recorder, lens engine, fixture connector, M5 metabase role + views, M6 discoverability completeness, M7 four-access-paths validation.
 - Migrations: 9 RLS smoke tests (one per `cip_*` table; 36 sub-cases).
-- Total at HEAD `<set by M8>`: 300+ pass, ~38 skipped (Path 2/3 monorepo-deferred).
+- Total at HEAD `d6f7223` (M8 close 2026-05-16): 300+ pass, ~38 skipped (Path 2/3 monorepo-deferred).
 
 **Public API (`cip/integration_mesh/__init__.py`):** `CIPConnector`, `CIPMapper`, `CIPRow`, `CorpusSize`, `FixtureConnector`, `FixtureMapper`, `KnowledgeText`, `Lens`, `PropertyDescriptor`, `RateLimitPolicy`, `apply_lens`, `compile_filter`, `lens_query_for_table`, `load_lens`, `run_sync` (+ exceptions).
 
@@ -96,7 +96,7 @@ Cross-ref: [`docs/vision/PHASE-1-PLAN.md`](vision/PHASE-1-PLAN.md) (Phase 1 bind
 | Lens golden-snapshot determinism | `test_lens_golden_snapshots.py` (SHA-256 locked, Python 3.12 + PYTHONHASHSEED=0) |
 | Fixture corpus byte-identical determinism | `test_fixture_corpus_determinism.py` (regression guard for any Faker / random-RNG drift) |
 
-CI matrix at Phase 1 close: 4-Python matrix + CodeQL + wheel-install + cross-pollution-guard + lockfile-freshness (FND-S13). All green at HEAD `<set by M8>`.
+CI matrix at Phase 1 close: 4-Python matrix + CodeQL + wheel-install + cross-pollution-guard + lockfile-freshness (FND-S13). All green at HEAD `d6f7223` (M8 close 2026-05-16).
 
 ## 3. Phase 1 final state — docs
 

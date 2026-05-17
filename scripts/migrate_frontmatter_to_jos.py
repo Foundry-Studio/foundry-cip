@@ -88,8 +88,8 @@ DOC_MAPPING: dict[str, tuple[str, str, str, str, int, str]] = {
         "CIP-SPEC-001", "spec", "doc", "adopt", 180,
         "Spec for the four ways data leaves CIP: structured SQL, knowledge layer, knowledge graph, originals."),
     "docs/PHASE-1-TO-PHASE-2-HANDOFF.md": (
-        "CIP-SPEC-002", "spec", "meta", "trial", 180,
-        "Phase boundary handoff doc — enumerates Phase 1 final state and Phase 2 entry criteria. Atlas finalizes on M8 close."),
+        "CIP-SPEC-002", "spec", "meta", "adopt", 180,
+        "Phase boundary handoff doc — enumerates Phase 1 final state and Phase 2 entry criteria. Finalized at M8 close 2026-05-16."),
     "docs/architecture/ARCHITECTURE.md": (
         "CIP-SPEC-003", "spec", "eng", "trial", 180,
         "Authoritative architecture spec — components, data flow, RLS pattern, lens engine, SCD-2 persister, four-paths consumption."),
@@ -130,8 +130,8 @@ DOC_MAPPING: dict[str, tuple[str, str, str, str, int, str]] = {
 
     # --- Diagnostics (calibration / retrospective) ---
     "docs/vision/PHASE-1-RETROSPECTIVE.md": (
-        "CIP-DIAG-001", "diagnostic", "meta", "trial", 365,
-        "Phase 1 retrospective — what went right, what went wrong, calibration insights carried into Phase 2."),
+        "CIP-DIAG-001", "diagnostic", "meta", "adopt", 365,
+        "Phase 1 retrospective — what went right, what went wrong, calibration insights carried into Phase 2. Includes 2026-05-16 addendum covering post-M8 Wayward push + JOS adoption."),
 
     # --- Scaffolded directory READMEs (JOS-onboarding output) ---
     "docs/README.md": (

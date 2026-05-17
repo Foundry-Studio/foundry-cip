@@ -6,11 +6,11 @@ type: diagnostic
 owner: tim
 solve_for: Phase 1 retrospective — what went right, what went wrong, calibration insights
   carried into Phase 2.
-stage_label: trial
+stage_label: adopt
 domain: meta
 version: '1.0'
 created: '2026-05-12'
-last_modified: '2026-05-12'
+last_modified: '2026-05-16'
 last_reviewed: '2026-05-16'
 review_cadence: 365
 milestone: Phase-1-M8
@@ -147,3 +147,70 @@ When Atlas returns from vacation, the following sit waiting:
 7. Decide the parked-scope queue: scope-gating design (`fa802d2f`), agent-access design (`e1e599b6`), Add-a-Use-Case procedure v1 (`0e9b06e6`), cip_files semantics (`8eebad28`), knowledge migration sub-scope.
 
 Welcome back.
+
+---
+
+## 2026-05-16 addendum — post-M8 Wayward push + JOS adoption
+
+The retrospective above closed Phase 1 at HEAD `ad04e72` (2026-05-12). In the 4 days that followed, Phase 2 Wayward Onboarding ran end-to-end and the M8 Product-Ready Gate was formally completed. This addendum captures what happened so the retrospective stays current.
+
+### Wayward Phase 2 ingestion shipped (2026-05-12 → 2026-05-16)
+
+| Connector | Outcome |
+|-----------|---------|
+| HubSpot (Wayward portal 242173321) | 119,729 companies + 68,084 contacts + 3,057 deals ingested via the batched persister (100-200× speedup vs per-record). |
+| Zendesk (waywardsupport subdomain) | 2,890 tickets ingested. Comments + attachments deferred to Block 2 of M8 follow-on. |
+| Total rows | 1,257,771 across `cip_*` tables and SCD-2 history siblings. |
+
+### Tenant model correction
+
+A discrepancy surfaced 2026-05-16 between the data layer (using placeholder `b0000000-0000-0000-0000-000000000001` tenant) and VISION §4 (which mandates tenants = operators/ventures = EcomLever, clients = subjects-of-intelligence = Wayward). Corrected end-to-end:
+
+- New canonical UUIDs locked: `dec814db-722a-4730-8e60-51afc4a5dad9` (EcomLever tenant) + `661ecab4-dddb-5924-a34d-af1c5133132d` (Wayward client, UUIDv5 deterministic).
+- 1,257,771 rows re-tagged across 14 tables via `scripts/migrate_b0_to_ecomlever.py` (per-table SAVEPOINT isolation to prevent transaction poisoning — a naive `with engine.begin()` would have rolled back ALL prior updates on the first table failure).
+- 8 Wayward orchestration scripts migrated to import canonical UUIDs from `cip/integration_mesh/wayward_constants.py`.
+- `docs/ONBOARDING-A-NEW-TENANT.md` (CIP-SOP-009) Phase 0 added: forbids placeholder UUIDs, explains tenant-vs-client model, adds 2 lessons-table entries.
+- PM decision `c575c81c-047d-42b1-a453-c858423b171d` filed.
+
+**Carry-forward:** every new tenant follows the canonical-UUID rule from Day 0. Block 1c's [`CIP-SOP-010 TENANT-ONBOARDING-CHECKLIST`](../TENANT-ONBOARDING-CHECKLIST.md) Phase 0 is the operationalization.
+
+### Property Glossary pattern (PM scope 0246851d, DONE)
+
+The Tim/Eric attribution research surfaced the pain — 4 round-trips guessing `paid_referral` / `rev_share_partner` / `deal_owner` before finding `source`. The vendor `label` and `description` didn't carry the meaning. Solution shipped:
+
+- `docs/PROPERTY-GLOSSARY-PATTERN.md` (CIP-SOP-016) — the meta-doc defining confidence levels (verified / inferred / tentative / unknown) and behavioral rules.
+- `docs/tenants/dec814db-.../GLOSSARY.md` — first real instance, populated for Wayward with 14 verified entries.
+- Schema migration `cip_13_extend_property_registry` — 11 new semantic-layer columns on `cip_connector_property_registry` with a CHECK constraint on the confidence enum.
+- `scripts/seed_glossary_into_registry.py` — materializes markdown → DB rows.
+
+**Carry-forward:** every new tenant gets a glossary; auto-baseline `tentative` confidence + operator interview promotes to `verified` for the top ~30 columns per entity. Long tail stays tentative indefinitely.
+
+### Tenant Manifest framework (PM scope bfc3d5d0, DONE)
+
+Self-describing data directory per tenant — the "what's in CIP for this tenant?" surface that agents and humans both query:
+
+- Migration `cip_14_lens_tenant_manifest` — two views: `lens_tenant_manifest_properties` + `lens_tenant_manifest_sync_health` (with freshness buckets: fresh / stale_gt_24h / stale_gt_7d / never_succeeded).
+- `scripts/generate_tenant_manifest.py` — reads the views + tenant identity + clients + lenses, writes `docs/tenants/<uuid>/MANIFEST.md`.
+- First MANIFEST shipped at 162 lines for EcomLever, proving the markdown → DB → view → generated-doc pipeline end-to-end.
+
+**Carry-forward:** v1.5 will wire the generator as a post-sync hook so the manifest auto-refreshes after every connector run.
+
+### M8 ceremony + JOS adoption (Block 1 of M8, 2026-05-16)
+
+The original M8 plan (PHASE-1-TO-PHASE-2-HANDOFF.md vintage 2026-05-11) was a doc-suite hardening pass. Tim 2026-05-16 expanded it: **full JOS-S03 governance compliance + full QC.** Sub-blocks shipped:
+
+| Block | Outcome |
+|-------|---------|
+| 1a | CIP onboarded as JOS venture per JOS-SOP-009. Master charter at `jordan-operating-system/distribution/charters/foundry-cip.yaml` (full tier, venture=foundry, 9 domains, 10 SOs, 8 rules, 7 contracts). Venture-side scaffolding: `.jos/`, `context-bundle/`, `scripts/jos` shim, `docs/_registry.yaml`. |
+| 1b | 54 CIP docs migrated to JOS-conformant frontmatter (id/uuid/title/type/owner/solve_for/stage_label/domain/version/created/last_modified/last_reviewed/review_cadence). 36 active + 19 retired (stage_label: retire) registered objects. CLAUDE.md gets jos:begin/end managed block per JOS-R18. `scripts/migrate_frontmatter_to_jos.py` is idempotent; preserves uuids on re-run. |
+| 1c | 3 skeleton docs authored: TENANT-ONBOARDING-CHECKLIST (220 lines, from real Wayward experience), FIXTURE-TENANT-HANDBOOK (190 lines, from FixtureConnector code), CSS-CLASSIFICATION-CONTRACT (filled §1, §4–§9). |
+| 1d-1j | Final-pass review + handoff finalize + ROADMAP flip + PM scope closure + full pytest + JOS-S14 verification (this addendum + parallel work). |
+
+**`scripts/jos check` PASSes** at the close of Block 1c. JOS-S14 verification is implicit in jos check; M8 Block 1j makes it explicit.
+
+### Phase 1 LOCKED — for real this time
+
+Phase 1 closed 2026-05-12 by the test surface. M8 closes 2026-05-16 by the governance surface. Both gates green.
+
+The framework is ready for Phase 2 Wayward Onboarding **continuation** — the first sync already shipped; remaining work is Engagements (HubSpot calls/notes/transcripts via Firefly-through-HubSpot, PM scope 9952dd26) and Zendesk Comments (PM scope 28739b6e), then Wayward-specific lens views, then Raw Knowledge Ingestion (paused pending design call per PM decision e68add85).
+

@@ -83,9 +83,9 @@ Locked 10 decisions covering DB location, client table shape, tenant model, prov
 
 ---
 
-## Phase 1 — Plain-Jane CIP + Documentation Suite (LOCKED 2026-04-20 · NEXT)
+## Phase 1 — Plain-Jane CIP + Documentation Suite (LIT — closed 2026-05-16)
 
-**Owner:** Tim + Atlas (spec) → Claude Code (implementation). **Primary tenant:** none — fixture tenant only. **Authoritative plan:** `vision/PHASE-1-PLAN.md`. **Claude Code handoff:** `vision/PHASE-1-PLAIN-SPEC.md`.
+**Owner:** Tim + Atlas (spec) → Claude Code (implementation). **Primary tenant:** none — fixture tenant only. **Authoritative plan:** `vision/PHASE-1-PLAN.md`. **Claude Code handoff:** `vision/PHASE-1-PLAIN-SPEC.md`. **Retrospective:** `vision/PHASE-1-RETROSPECTIVE.md`. **Handoff:** `PHASE-1-TO-PHASE-2-HANDOFF.md`. **Closing HEAD:** `d6f7223` (M8 close 2026-05-16, full JOS adoption + 3 skeleton docs authored).
 
 ### The bet
 

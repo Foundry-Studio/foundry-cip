@@ -1,0 +1,72 @@
+schema_version: '1.0'
+venture: foundry
+repo_root: C:\Users\Tim Jordan\code\foundry-cip
+charter_schema: '1.9'
+onboarding_complete: true
+started_at: '2026-05-17T04:19:31.392529+00:00'
+completed_at: '2026-05-17T04:19:31.399659+00:00'
+activation_profile: balanced
+next_action: Onboarding complete. Charter sync handles ongoing updates.
+phases:
+  scaffold:
+    name: scaffold
+    status: done
+    findings:
+    - severity: ok
+      code: scaffolded
+      message: Created .jos\registry.yaml.
+    - severity: ok
+      code: scaffolded
+      message: Created .jos\ownership.yaml.
+    - severity: ok
+      code: scaffolded
+      message: Created docs\_registry.yaml.
+    - severity: ok
+      code: scaffolded
+      message: Created docs\README.md.
+    - severity: ok
+      code: scaffolded
+      message: Created context-bundle\manifest.yaml.
+    - severity: ok
+      code: scaffolded
+      message: Created context-bundle\vision.md.
+    - severity: ok
+      code: scaffolded
+      message: Created context-bundle\wdgll.md.
+    - severity: ok
+      code: scaffolded
+      message: Created context-bundle\strategy.md.
+    - severity: ok
+      code: scaffolded
+      message: Created context-bundle\stakeholders.md.
+    - severity: ok
+      code: scaffolded
+      message: Created context-bundle\risk-appetite.md.
+    - severity: ok
+      code: scaffolded
+      message: Created docs\capabilities\README.md.
+    - severity: ok
+      code: scaffolded
+      message: Created docs\catalogue\README.md.
+    - severity: ok
+      code: scaffolded
+      message: Created docs\features\README.md.
+    - severity: ok
+      code: scaffolded
+      message: Created scripts\jos.
+    completed_at: '2026-05-17T04:19:31.399659+00:00'
+    scaffolded_paths:
+    - .jos\registry.yaml
+    - .jos\ownership.yaml
+    - docs\_registry.yaml
+    - docs\README.md
+    - context-bundle\manifest.yaml
+    - context-bundle\vision.md
+    - context-bundle\wdgll.md
+    - context-bundle\strategy.md
+    - context-bundle\stakeholders.md
+    - context-bundle\risk-appetite.md
+    - docs\capabilities\README.md
+    - docs\catalogue\README.md
+    - docs\features\README.md
+    - scripts\jos

@@ -1,0 +1,27 @@
+# Context bundle manifest for foundry.
+# Schema: JOS-D0044 (Context Bundle), JOS-R06 (Context Bundle Required).
+# Required by JOS-K04 (Context Bundle Completeness Contract).
+
+schema_version: '1.0'
+venture: foundry
+components:
+  - name: vision
+    path: vision.md
+    required: true
+    status: stub
+  - name: wdgll
+    path: wdgll.md
+    required: true
+    status: stub
+  - name: strategy
+    path: strategy.md
+    required: true
+    status: stub
+  - name: stakeholders
+    path: stakeholders.md
+    required: true
+    status: stub
+  - name: risk-appetite
+    path: risk-appetite.md
+    required: true
+    status: stub

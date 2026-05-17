@@ -1,0 +1,12 @@
+# Ownership manifest for foundry
+# Per JOS-SO-001: every governed object has a solid-line owner.
+# Per JOS-R03: ownership is required and discoverable.
+
+schema_version: '1.0'
+venture: foundry
+default_owner: tim
+owners: []
+# Example entry:
+# - object_id: <prefix>-R01
+#   owner: tim
+#   backup: van

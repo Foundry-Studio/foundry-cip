@@ -1,0 +1,8 @@
+# Venture's local governance registry for foundry.
+# Schema: JOS-D0045. Empty for new ventures; populated as the
+# venture introduces its own R/S/D objects.
+
+schema_version: '1.0'
+venture: foundry
+id_prefix: CIP
+objects: []

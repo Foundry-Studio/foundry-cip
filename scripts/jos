@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+# scripts/jos — venture-side shim. Forwards to the JOS CLI.
+#
+# Resolves a JOS clone via (in order):
+#   1. $JOS_LOCAL          (explicit path)
+#   2. ../jordan-operating-system   (sibling clone)
+#   3. ~/code/jordan-operating-system  (Tim's default)
+#
+# If none exist, the shim prints a clear error so an agent knows to
+# install one. The charter still declares this script, satisfying R17;
+# this shim makes the declaration true rather than aspirational.
+set -euo pipefail
+
+CANDIDATES=("${JOS_LOCAL:-}" "$(dirname "$0")/../../jordan-operating-system" "$HOME/code/jordan-operating-system")
+JOS_ROOT=""
+for c in "${CANDIDATES[@]}"; do
+    [ -z "$c" ] && continue
+    if [ -f "$c/scripts/jos.py" ]; then
+        JOS_ROOT="$c"
+        break
+    fi
+done
+
+if [ -z "$JOS_ROOT" ]; then
+    echo "scripts/jos: no JOS clone found. Set JOS_LOCAL=<path-to-clone>, " >&2
+    echo "or clone github.com/Foundry-Studio/jordan-operating-system next to this repo." >&2
+    exit 2
+fi
+
+exec "${JOS_PYTHON:-python3}" "$JOS_ROOT/scripts/jos.py" "$@"

@@ -62,11 +62,11 @@ DOC_MAPPING: dict[str, tuple[str, str, str, str, int, str]] = {
         "CIP-SOP-009", "sop", "ops", "adopt", 90,
         "Step-by-step runbook for onboarding a new venture/tenant into CIP, discovery-first with default-take-everything posture."),
     "docs/TENANT-ONBOARDING-CHECKLIST.md": (
-        "CIP-SOP-010", "sop", "ops", "assess", 90,
-        "Operator checklist consumed during tenant onboarding (mechanizes the ONBOARDING-A-NEW-TENANT runbook). Currently skeleton; populated in M8 Block 1c."),
+        "CIP-SOP-010", "sop", "ops", "adopt", 90,
+        "Terse copy-pasteable checklist for standing up a new CIP tenant end-to-end. Pairs with ONBOARDING-A-NEW-TENANT (the why + what-to-investigate runbook)."),
     "docs/FIXTURE-TENANT-HANDBOOK.md": (
-        "CIP-SOP-011", "sop", "eng", "assess", 90,
-        "Handbook for the deterministic fixture tenant used by the conformance harness. Currently skeleton; populated in M8 Block 1c."),
+        "CIP-SOP-011", "sop", "eng", "adopt", 90,
+        "Authoritative reference for CIP's deterministic fixture tenant — what it is, how it's seeded, byte-identical determinism contract, when to regenerate."),
     "docs/DEPLOYING-FOUNDRY-CIP-FOR-A-NEW-VENTURE.md": (
         "CIP-SOP-012", "sop", "ops", "assess", 180,
         "Procedure for deploying foundry-cip as a library into a new venture's monorepo. Stub; fill_when: Phase 2 M3."),
@@ -119,8 +119,8 @@ DOC_MAPPING: dict[str, tuple[str, str, str, str, int, str]] = {
 
     # --- Contracts (binding agreements between subsystems) ---
     "docs/CSS-CLASSIFICATION-CONTRACT.md": (
-        "CIP-K01", "contract", "doc", "assess", 180,
-        "Contract for how CIP content classifies under the JOS triad CSS dimension. Currently skeleton; populated in M8 Block 1c."),
+        "CIP-K01", "contract", "doc", "adopt", 180,
+        "Contract for how CIP files classify under the CSS dimension — kind/domain/touches declarations, resolution priority, and discoverability-registry coupling."),
     "CLAUDE.md": (
         "CIP-K02", "contract", "meta", "adopt", 90,
         "Agent behavioral standards contract per JOS-R18; carries the jos:begin/end managed block plus venture-specific cognitive profile and operational rules."),
@@ -247,9 +247,11 @@ def build_new_frontmatter(rel_path: str, existing_fm: dict, body: str) -> dict:
             "last_modified", "last_reviewed", "review_cadence",
         }
     }
+    # Preserve uuid if it already exists — JOS-SO-003 says uuids never change
+    existing_uuid = existing_fm.get("uuid")
     new_fm = {
         "id": cip_id,
-        "uuid": str(uuid.uuid4()),
+        "uuid": existing_uuid if existing_uuid else str(uuid.uuid4()),
         "title": title,
         "type": jos_type,
         "owner": owner,
@@ -285,9 +287,10 @@ def build_archived_frontmatter(rel_path: str, existing_fm: dict, body: str) -> d
             "last_modified", "last_reviewed", "review_cadence", "owner", "created",
         }
     }
+    existing_uuid = existing_fm.get("uuid")
     new_fm = {
         "id": cip_id,
-        "uuid": str(uuid.uuid4()),
+        "uuid": existing_uuid if existing_uuid else str(uuid.uuid4()),
         "title": title,
         "type": jos_type,
         "owner": existing_fm.get("owner") or "tim",

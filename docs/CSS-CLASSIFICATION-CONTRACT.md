@@ -4,9 +4,9 @@ uuid: ae7524b9-ef2e-402d-a9a2-782aacb4b8a1
 title: CIP CSS Classification Contract
 type: contract
 owner: tim
-solve_for: Contract for how CIP content classifies under the JOS triad CSS dimension.
-  Currently skeleton; populated in M8 Block 1c.
-stage_label: assess
+solve_for: Contract for how CIP files classify under the CSS dimension — kind/domain/touches
+  declarations, resolution priority, and discoverability-registry coupling.
+stage_label: adopt
 domain: doc
 version: '1.0'
 created: '2026-04-21'
@@ -44,7 +44,14 @@ Cross-ref: `CLAUDE.md` → CSS Classification rule, `docs/subsystems/meta/classi
 
 ### 1. Why classification matters for CIP
 
-TBD (M1) — D-122 domain-ownership-by-tag lets `cip_*` files live anywhere in the repo without losing ownership semantics.
+Per D-122 (domain ownership by CSS tag, not folder location), every file in foundry-cip declares its **kind** (what category of artifact it is) and **domain** (which subsystem owns it). The classifier reads those declarations and surfaces them to:
+
+- The **blast-radius tool** — answers "what does this file touch?" so a change to one connector doesn't accidentally trigger noisy reviews of unrelated subsystems.
+- The **discoverability registry** — agents searching for "all CIP migrations" or "all CIP connectors" filter by `kind=migration` / `kind=fixture`, not by directory path.
+- **PR review routing** — CSS-tagged files announce their owner; reviewers don't need to know the directory layout.
+- **JOS compliance** — JOS-S07 (all governed objects registered) consumes the kind/domain pair to verify ownership and registry membership.
+
+Without explicit classification, a Python file at `cip/integration_mesh/foo.py` could be a service, a fixture, a script, or a test — only the directory hints, and directory inference breaks the first time a file moves. The CSS contract is the binding declaration.
 
 ### 2. Allowed `kind` values in CIP
 
@@ -76,24 +83,156 @@ The monorepo's classification contract may permit additional kinds (`engine`, `t
 
 ### 4. `touches` rules
 
-TBD (M1) — comma-separated list of adjacent domains this file reads/writes; guides the CSS blast-radius tool.
+`touches` is an optional comma-separated list of adjacent monorepo subsystems that a CIP file reads or writes. It's the input to the blast-radius tool: when this file changes, what else might be affected?
+
+**Allowed `touches` values** (monorepo subsystem slugs):
+
+| Slug | When to use |
+|------|-------------|
+| `integration` | File interacts with integration-mesh code outside foundry-cip (rare — mostly historical from pre-extraction) |
+| `knowledge` | File writes to or reads from the Pinecone knowledge layer |
+| `graph` | File interacts with FalkorDB / Cypher queries |
+| `pm` | File reads/writes PM tables (project_scopes, project_decisions, etc.) |
+| `roster` | File invokes the LLM Roster (none in Phase 1; M5+ will) |
+| `metabase` | File creates / grants on `lens_*` views consumed by Metabase |
+
+**When to add `touches`:** add it when a code change to *this* file could plausibly require a reviewer from the touched subsystem. Don't add it for transitive dependencies; only direct contact.
+
+**Example.** A new lens that materializes a Pinecone-augmented query would declare:
+
+```python
+# foundry: kind=service domain=client-intelligence-platform touches=knowledge,metabase
+```
+
+A pure intra-CIP file (e.g., a connector that only touches `cip_*` tables) needs no `touches` at all.
 
 ### 5. Declaration-priority resolution
 
-TBD (M1) — inline comment (`# foundry: kind=X domain=Y`) beats YAML frontmatter beats seed file beats path inference; first-match wins.
+When multiple declaration mechanisms are present for the same file, **first match wins** in this order:
+
+1. **Inline `# foundry: ...` comment** in the file's first 10 lines (Python source only).
+2. **YAML frontmatter** `kind:` / `domain:` keys (Markdown docs).
+3. **Sidecar seed file** entry (`docs/_classification-seed.yaml` if present — not currently deployed in foundry-cip).
+4. **Path inference** — fallback based on directory location (`cip/migrations/versions/*.py` → `migration`, `tests/**/*.py` → `test`, etc.).
+
+**Why this order:** explicit beats implicit. An inline comment is the most local declaration — anyone reading the file sees the kind immediately. Frontmatter is a close second for markdown (no comment syntax). Seed files exist for config files that have no comment-or-frontmatter mechanism (rare).
+
+If `safe: false` warnings fire from the classifier, the resolution chain found no declaration. For Phase 1 foundry-cip, `safe: false` is acceptable for config files (no sidecar deployed); any Python or Markdown file fires `safe: false` indicates a missing declaration that must be added.
 
 ### 6. Python file template
 
-TBD (M1) — `# foundry: kind=... domain=... touches=...` example for connectors, lenses, services.
+For framework / service / connector code:
+
+```python
+# foundry: kind=service domain=client-intelligence-platform
+"""Module docstring — what this module does, in 1-3 lines."""
+from __future__ import annotations
+# ...
+```
+
+For a fixture connector / mapper:
+
+```python
+# foundry: kind=fixture domain=client-intelligence-platform
+"""Reference implementation — passes the conformance harness."""
+```
+
+For a file that touches an adjacent subsystem:
+
+```python
+# foundry: kind=service domain=client-intelligence-platform touches=knowledge
+"""Service that writes embeddings to Pinecone."""
+```
+
+For a test file:
+
+```python
+# foundry: kind=test domain=client-intelligence-platform
+"""Test module — what it covers."""
+```
+
+For a script:
+
+```python
+# foundry: kind=script domain=client-intelligence-platform
+"""One-shot operational script — what it does, who runs it, when."""
+```
+
+**The CSS comment goes on line 1.** Line 2 is the module docstring. No blank line between them (consistent with the cip codebase convention).
 
 ### 7. Markdown file template
 
-TBD (M1) — YAML frontmatter example (this doc is the reference example).
+Per JOS-K01 (Frontmatter Schema Contract v1.5), every governed CIP Markdown doc declares the full JOS schema in YAML frontmatter. The `kind:` (CSS) is implied by JOS `type:` — these are siblings, not duplicates:
+
+```markdown
+---
+id: CIP-SOP-NN
+uuid: <generated-uuid4>
+title: Doc Title
+type: sop                          # JOS doc type — also implies CSS kind
+owner: tim
+solve_for: One-sentence WHY this doc exists.
+stage_label: adopt                 # JOS lifecycle: assess|trial|adopt|hold|rejected|retire
+domain: ops                        # JOS domain — meta|eng|doc|dat|fin|str|ops|ppl|leg
+version: '1.0'
+created: '2026-04-21'
+last_modified: '2026-05-16'
+last_reviewed: '2026-05-16'
+review_cadence: 90                 # days
+---
+
+# Doc Title
+
+> Optional callout / status line.
+
+## Purpose
+...
+```
+
+**Mapping JOS `type:` ↔ CSS `kind:`:**
+
+| JOS `type:` | CSS `kind:` equivalent |
+|-------------|------------------------|
+| `sop`, `playbook`, `spec`, `diagnostic`, `framework`, `contract`, `best-practice`, `capability` | `doc` |
+| `standard`, `rule`, `principle`, `concept`, `decision`, `standing-order` | `doc` (CIP venture-local; mostly inherited from JOS) |
+
+For markdown, `kind: doc` is the only value; **type granularity lives in the JOS `type:` field.** Legacy ad-hoc `kind:` declarations from pre-JOS frontmatter (`kind: contract`, `kind: doc`) are preserved but JOS `type:` is authoritative.
+
+See [`_TEMPLATE.md`](_TEMPLATE.md) (CIP-BP-005) for the canonical authoring template.
 
 ### 8. Migration-file classification
 
-TBD (M1) — `kind=migration domain=client-intelligence-platform` plus a `touches` of affected subsystems.
+Alembic migration files always declare:
+
+```python
+# foundry: kind=migration domain=client-intelligence-platform
+"""Migration docstring — what tables/columns this changes."""
+```
+
+The `kind=migration` declaration is what the discoverability registry uses to enumerate all CIP schema changes in order. The `domain=client-intelligence-platform` is always literal (no per-migration domain split — CIP migrations are CIP-wide).
+
+`touches` on a migration MAY reference downstream subsystems impacted by the schema change:
+
+```python
+# foundry: kind=migration domain=client-intelligence-platform touches=metabase
+"""cip_09_metabase_role_views — grants lens_* views to cip_metabase_role."""
+```
+
+When a migration creates / drops / renames a table or column consumed downstream, declare `touches` to surface the blast radius.
 
 ### 9. Discoverability-registry coupling
 
-TBD (M7) — registry entries carry CSS tags so agents can filter by domain when searching for tools / data / lenses.
+Per JOS-S01 (Discoverable Registries) and JOS-S07 (All Governed Objects Registered), every CSS-tagged file is reachable via the registry:
+
+- **Code files** (`kind=service`, `kind=fixture`, `kind=test`, `kind=script`, `kind=migration`, `kind=config`): registered transitively via the conformance harness + features.yaml feature registry. No per-file registry entry needed; the registry queries the filesystem + classification.
+- **Doc files** (`kind=doc`): registered explicitly in `docs/_registry.yaml` with `id`, `uuid`, `title`, `type`, `stage_label`, `domain`, `owner`, `path`, `last_reviewed`. The migration script `scripts/migrate_frontmatter_to_jos.py` regenerates this registry on each run.
+- **Tenant artifacts** (per-tenant `GLOSSARY.md`, `MANIFEST.md`): registered as `type: diagnostic`, `domain: dat`. Auto-generation scripts (`generate_tenant_manifest.py`, `seed_glossary_into_registry.py`) are responsible for emitting JOS-conformant frontmatter.
+
+Agents querying CIP go:
+
+1. Read `docs/_registry.yaml` to find candidate governed objects.
+2. Filter by `type:` or `domain:` for relevance.
+3. Read the matched file (path is in the registry entry).
+4. If the file declares `touches`, follow up with the touched subsystem registries.
+
+This couples CSS classification + JOS registry + JOS-S16 governance-discovery standard into one path that agents and humans both walk.

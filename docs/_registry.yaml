@@ -92,7 +92,7 @@ objects:
   uuid: ae7524b9-ef2e-402d-a9a2-782aacb4b8a1
   title: CIP CSS Classification Contract
   type: contract
-  stage_label: assess
+  stage_label: adopt
   domain: doc
   owner: tim
   path: docs/CSS-CLASSIFICATION-CONTRACT.md
@@ -191,7 +191,7 @@ objects:
   uuid: 3e5c7ce1-0bd8-4009-b8b4-b1385d09b28e
   title: Tenant Onboarding Checklist
   type: sop
-  stage_label: assess
+  stage_label: adopt
   domain: ops
   owner: tim
   path: docs/TENANT-ONBOARDING-CHECKLIST.md
@@ -200,7 +200,7 @@ objects:
   uuid: 964ccc7c-b38d-411a-a90f-46b1da6b428d
   title: Fixture Tenant Handbook
   type: sop
-  stage_label: assess
+  stage_label: adopt
   domain: eng
   owner: tim
   path: docs/FIXTURE-TENANT-HANDBOOK.md

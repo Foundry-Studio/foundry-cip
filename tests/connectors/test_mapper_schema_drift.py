@@ -55,6 +55,22 @@ _DEPLOYED_DOMAIN_COLUMNS: dict[str, set[str]] = {
         "first_response_at", "resolved_at",
         "source_created_at", "source_updated_at",
     },
+    # cip_15 (PM scope 28739b6e) — Zendesk ticket comments.
+    "cip_ticket_comments": {
+        "ticket_source_id", "author_id", "author_email", "body",
+        "html_body", "is_public", "via_channel", "attachments_count",
+        "attachment_urls", "source_created_at",
+    },
+    # cip_16 (PM scope 9952dd26) — HubSpot engagements (unified table).
+    "cip_engagements": {
+        "engagement_type", "title", "body", "owner_source_id",
+        "engagement_at", "source_created_at", "source_updated_at",
+        "status", "priority", "task_type", "completion_date",
+        "start_time", "end_time", "location", "outcome", "external_url",
+        "duration_seconds", "recording_url", "has_transcript", "transcript",
+        "contact_source_ids", "deal_source_ids", "company_source_ids",
+        "ticket_source_ids",
+    },
 }
 
 # kind name -> target cip_* table (per connector mapping).
@@ -63,12 +79,20 @@ _HUBSPOT_KIND_TO_TABLE: dict[str, str] = {
     "contact": "cip_contacts",
     "deal": "cip_deals",
     "ticket": "cip_tickets",
+    # cip_16 / PM scope 9952dd26 — all engagement kinds route to cip_engagements
+    "engagement_note": "cip_engagements",
+    "engagement_meeting": "cip_engagements",
+    "engagement_task": "cip_engagements",
+    "engagement_call": "cip_engagements",
+    "engagement_email": "cip_engagements",
 }
 
 _ZENDESK_KIND_TO_TABLE: dict[str, str] = {
     "company": "cip_companies",
     "contact": "cip_contacts",
     "ticket": "cip_tickets",
+    # cip_15 / PM scope 28739b6e
+    "ticket_comment": "cip_ticket_comments",
 }
 
 

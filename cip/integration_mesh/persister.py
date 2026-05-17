@@ -44,6 +44,8 @@ EXTRAS_COLUMN_BY_TABLE: dict[str, str | None] = {
     "cip_tickets": "properties",
     "cip_ticket_comments": "properties",
     "cip_engagements": "properties",
+    "cip_owners": "properties",
+    "cip_pipeline_stages": "properties",
 }
 
 

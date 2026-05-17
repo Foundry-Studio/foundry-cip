@@ -53,3 +53,7 @@ Thumbs.db
 
 # Build artifacts
 *.log
+
+# JOS check evidence sweep logs — runtime audit artifacts, regenerated
+# on every `scripts/jos check` invocation. Not source-of-truth content.
+evidence/

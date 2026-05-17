@@ -90,8 +90,10 @@ class TestAllowedTables:
         # cip_15 added cip_ticket_comments.
         # cip_16 added cip_engagements.
         # cip_17 added cip_owners + cip_pipeline_stages.
+        # cip_20 added cip_marketing_emails + cip_contact_lists +
+        # cip_contact_list_memberships.
         # Update this assertion when ALLOWED_CIP_TABLES changes.
-        assert len(ALLOWED_CIP_TABLES) == 12, sorted(ALLOWED_CIP_TABLES)
+        assert len(ALLOWED_CIP_TABLES) == 15, sorted(ALLOWED_CIP_TABLES)
         for tbl in (
             "cip_contacts", "cip_ticket_comments", "cip_engagements",
             "cip_owners", "cip_pipeline_stages",

@@ -510,6 +510,143 @@ class HubSpotConnector(CIPConnectorBase):
                 result[from_id][target] = {"results": normalized}
         return result
 
+    # ── Tier 2: HubSpot Files ─────────────────────────────────────────
+    def stream_files(self, *, batch_size: int = 100) -> Iterator[dict[str, Any]]:
+        """Stream HubSpot Files API records.
+
+        Per PM scope ee5b7e72 (Tier 2). Returns metadata + URL; binary
+        staging to R2 is the separate Layer 3 capability (scope
+        134e6f28). Each record is a flat dict ready to map into cip_files
+        (with r2_path=NULL for v1).
+        """
+        if not self._authenticated:
+            self.authenticate()
+        after: str | None = None
+        page_size = min(batch_size, 100)
+        while True:
+            params: dict[str, str | int] = {"limit": page_size}
+            if after:
+                params["after"] = after
+            try:
+                page = self._http.get("/files/v3/files", params=params)
+            except HTTPError as exc:
+                # 401/403/404/405 → no access OR endpoint not exposed
+                # for this portal. Graceful no-op so Tier 2 capability
+                # is silent for tenants that can't reach the Files API.
+                if exc.status in {401, 403, 404, 405}:
+                    return
+                raise
+            for f in page.get("results", []):
+                yield self._file_to_record(f)
+            paging = page.get("paging", {})
+            after = (
+                paging.get("next", {}).get("after")
+                if isinstance(paging, dict) else None
+            )
+            if not after:
+                return
+
+    def _file_to_record(self, f: dict[str, Any]) -> dict[str, object]:
+        """Flatten a HubSpot file into cip_files-ready record dict."""
+        return {
+            "__cip_kind__": "file",
+            "id": str(f.get("id", "")),
+            "source_id": str(f.get("id", "")),
+            "filename": f.get("name"),
+            "mime_type": f.get("type"),
+            "size_bytes": f.get("size"),
+            "url": f.get("url"),
+            "path": f.get("path"),
+            "extension": f.get("extension"),
+            "archived": f.get("archived"),
+            "is_usable_in_content": f.get("isUsableInContent"),
+            "created_at": f.get("createdAt"),
+            "updated_at": f.get("updatedAt"),
+        }
+
+    # ── Tier 2: HubSpot Marketing Emails ──────────────────────────────
+    def stream_marketing_emails(
+        self, *, batch_size: int = 100
+    ) -> Iterator[dict[str, Any]]:
+        """Stream HubSpot Marketing Emails (campaign-level).
+
+        Per PM scope 510fff61. Endpoint /marketing/v3/emails (CMS-side).
+        Distinct from engagement_type='email' (1:1 transactional).
+        """
+        if not self._authenticated:
+            self.authenticate()
+        after: str | None = None
+        page_size = min(batch_size, 100)
+        while True:
+            params: dict[str, str | int] = {"limit": page_size}
+            if after:
+                params["after"] = after
+            try:
+                page = self._http.get("/marketing/v3/emails", params=params)
+            except HTTPError as exc:
+                if exc.status in {401, 403}:
+                    return
+                raise
+            for e in page.get("results", []):
+                yield {
+                    "__cip_kind__": "marketing_email",
+                    "id": str(e.get("id", "")),
+                    "source_id": str(e.get("id", "")),
+                    "name": e.get("name"),
+                    "subject": e.get("subject"),
+                    "email_type": e.get("type"),
+                    "state": e.get("state"),
+                    "published_at": e.get("publishedAt"),
+                    "from_name": e.get("from", {}).get("fromName") if isinstance(e.get("from"), dict) else None,
+                    "from_email": e.get("from", {}).get("email") if isinstance(e.get("from"), dict) else None,
+                    "stats": e.get("stats") or {},
+                    "raw": e,  # vendor extras for properties JSONB
+                }
+            paging = page.get("paging", {})
+            after = (
+                paging.get("next", {}).get("after")
+                if isinstance(paging, dict) else None
+            )
+            if not after:
+                return
+
+    # ── Tier 2: HubSpot Contact Lists ─────────────────────────────────
+    def stream_contact_lists(self) -> Iterator[dict[str, Any]]:
+        """Stream HubSpot Contact Lists (segmentation).
+
+        Per PM scope 510fff61. Uses legacy /contacts/v1/lists endpoint
+        (v3 lists API requires different scopes and shape).
+        """
+        if not self._authenticated:
+            self.authenticate()
+        offset = 0
+        page_size = 250
+        while True:
+            try:
+                page = self._http.get(
+                    "/contacts/v1/lists",
+                    params={"count": page_size, "offset": offset},
+                )
+            except HTTPError as exc:
+                if exc.status in {401, 403}:
+                    return
+                raise
+            for lst in page.get("lists", []):
+                yield {
+                    "__cip_kind__": "contact_list",
+                    "id": str(lst.get("listId", "")),
+                    "source_id": str(lst.get("listId", "")),
+                    "name": lst.get("name"),
+                    "list_type": "dynamic" if lst.get("dynamic") else "static",
+                    "processing_type": lst.get("processingType"),
+                    "member_count": lst.get("metaData", {}).get("size") if isinstance(lst.get("metaData"), dict) else None,
+                    "filters": lst.get("filters") or {},
+                    "raw": lst,
+                }
+            if not page.get("has-more"):
+                return
+            offset = page.get("offset", offset + page_size)
+
     def _engagement_to_record(
         self, hubspot_obj: dict[str, Any], record_type: str
     ) -> dict[str, object]:

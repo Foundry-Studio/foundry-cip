@@ -562,6 +562,67 @@ class ZendeskConnector(CIPConnectorBase):
                 change_reason=f"zendesk-audit-event[{ts_raw}]",
             )
 
+    # ── Tier 2: Zendesk Satisfaction Ratings ──────────────────────────
+    def stream_satisfaction_ratings(
+        self, *, page_size: int = 100
+    ) -> Iterator[dict[str, object]]:
+        """Stream satisfaction ratings (CSAT scores per ticket).
+
+        Per PM scope ee5b7e72 (Tier 2). Each rating links to a ticket
+        via ticket_id; consumer code can UPDATE cip_tickets.satisfaction_rating
+        with the score, or store ratings in a separate table.
+
+        Endpoint: /api/v2/satisfaction_ratings.json (paginated with
+        next_page URL).
+        """
+        if not self._authenticated:
+            self.authenticate()
+        if self._http is None:
+            return
+        path = "/api/v2/satisfaction_ratings.json"
+        params: dict[str, Any] = {"per_page": page_size}
+        max_pages = 200  # defensive cap
+        page_n = 0
+        while page_n < max_pages:
+            page_n += 1
+            try:
+                page = self._http.get(path, params=params)
+            except HTTPError as exc:
+                if exc.status in {401, 403, 404}:
+                    return
+                raise
+            for r in page.get("satisfaction_ratings", []):
+                yield {
+                    "__cip_kind__": "satisfaction_rating",
+                    "id": str(r.get("id", "")),
+                    "source_id": str(r.get("id", "")),
+                    "ticket_source_id": str(r.get("ticket_id", "")),
+                    "score": r.get("score"),
+                    "comment": r.get("comment"),
+                    "reason": r.get("reason"),
+                    "assignee_id": (
+                        str(r.get("assignee_id"))
+                        if r.get("assignee_id") is not None else None
+                    ),
+                    "requester_id": (
+                        str(r.get("requester_id"))
+                        if r.get("requester_id") is not None else None
+                    ),
+                    "group_id": (
+                        str(r.get("group_id"))
+                        if r.get("group_id") is not None else None
+                    ),
+                    "created_at": r.get("created_at"),
+                    "updated_at": r.get("updated_at"),
+                }
+            next_page = page.get("next_page")
+            if not isinstance(next_page, str) or not next_page:
+                return
+            from urllib.parse import urlparse
+            parsed = urlparse(next_page)
+            path = parsed.path + ("?" + parsed.query if parsed.query else "")
+            params = {}
+
     def describe_schema(self) -> list[PropertyDescriptor]:
         out: list[PropertyDescriptor] = []
         for endpoint, record_type in _OBJECT_TYPES:

@@ -1,0 +1,162 @@
+---
+kind: doc
+domain: client-intelligence-platform
+tenant_uuid: dec814db-722a-4730-8e60-51afc4a5dad9
+status: auto-generated
+last_updated: 2026-05-17 02:36 UTC
+generator: scripts/generate_tenant_manifest.py (PM scope bfc3d5d0 — Tenant Manifest)
+---
+
+# Tenant Manifest — `dec814db-722a-4730-8e60-51afc4a5dad9`
+
+Auto-generated 2026-05-17 02:36 UTC. **Do not edit by hand** — re-run `scripts/generate_tenant_manifest.py <tenant_uuid>` after data changes. The editable source-of-truth for property descriptions is `docs/tenants/dec814db-722a-4730-8e60-51afc4a5dad9/GLOSSARY.md`, which `scripts/seed_glossary_into_registry.py` materializes into the registry table that this MANIFEST queries.
+
+## Tenant identity
+
+- **Name:** Ecomlever
+- **Type:** venture
+- **Status:** active
+- **Parent tenant:** 4ebafb2d-01ba-434a-ac73-ea9603e7d0bb
+- **Created:** 2026-04-01 00:52:23.405556+00:00
+
+## Clients (1)
+
+| Client name | Slug | client_id | Industry |
+|---|---|---|---|
+| Wayward | `wayward` | `661ecab4-dddb-5924-a34d-af1c5133132d` | amazon-affiliate-marketing |
+
+## Tables populated
+
+| Table | Rows | Per-client breakdown |
+|---|---|---|
+| `cip_companies` | 119,729 | 661ecab4=119,729 |
+| `cip_contacts` | 68,084 | 661ecab4=68,084 |
+| `cip_deals` | 3,057 | 661ecab4=3,057 |
+| `cip_tickets` | 2,890 | 661ecab4=2,890 |
+| `cip_files` | 0 | — |
+| `cip_companies_history` | 58,390 | — |
+| `cip_contacts_history` | 732,356 | — |
+| `cip_deals_history` | 252,781 | — |
+| `cip_tickets_history` | 20,421 | — |
+
+## Connector sync health
+
+| Connector | Mode | Last success | Total runs | Freshness |
+|---|---|---|---|---|
+| `hubspot-v1` | backfill | 2026-05-16 05:01:57 | 2 | ✓ fresh |
+| `hubspot-v1` | incremental | 2026-05-15 18:55:08 | 2 | ⚠ stale (>24h) |
+| `zendesk-v1` | backfill | 2026-05-16 01:28:00 | 1 | ⚠ stale (>24h) |
+| `zendesk-v1` | incremental | 2026-05-15 16:51:10 | 1 | ⚠ stale (>24h) |
+
+## Property catalog
+
+Per-property meaning + confidence level. `verified` = human-confirmed; `inferred` = AI inferred from values + name; `tentative` = auto-baseline only; `unknown` = exists but no meaning yet. See [`PROPERTY-GLOSSARY-PATTERN.md`](../../PROPERTY-GLOSSARY-PATTERN.md).
+
+### Object type: `company`
+
+_Properties tracked: **19** (tentative=15, verified=4)_
+
+| Property | Confidence | Custom? | Storage | Meaning / Aliases / Watch out for |
+|---|---|---|---|---|
+| `country` (Country/Region) | `verified` |  | column | Country of the brand. Wayward records this inconsistently — same country can appear as ISO code (`CN`) OR full name (`China`). Chinese-region variants: `Hong Kong`, `Taiwan`, `HK`, `TW`. NULL on ~41% of companies.<br/>**Aliases:** company_country<br/>**Watch out:** Wayward's country tagging is unreliable. 553 producing deals are on companies country-tagged US/Germany/etc. whose contacts have clearly Chinese signals (qq.com, .cn TLD, +86 phones, CJK names). DO NOT use country alone as the canonical 'is Chinese?' signal — combine with contact-side signals. |
+| `hyphen_gmv_rank` (Hyphen GMV Rank) | `verified` | ✓ | overflow | Internal rank of this brand within Hyphen Social's portfolio by GMV. Hyphen Social is a company Wayward purchased; treated as an internal Wayward product/platform.<br/>**Aliases:** internal_gmv_rank, wayward_gmv_rank<br/>**Watch out:** Computed by the Hyphen platform internally; refresh cadence not externally documented. |
+| `hyphen_overlapping_gmv` (Hyphen Overlapping GMV) | `verified` | ✓ | overflow | GMV overlap between Hyphen Social affiliate program and other channels for this brand. Hyphen Social = Wayward-purchased internal product.<br/>**Watch out:** Computed internally by Hyphen platform. |
+| `hyphen_units_sold_rank` (Hyphen Units Sold Rank) | `verified` | ✓ | overflow | Internal rank of brand by units sold within Hyphen Social portfolio. |
+| `annualrevenue` | `tentative` |  | column | _(no description yet — confidence is `tentative`; populate via `docs/tenants/<uuid>/GLOSSARY.md` + re-run seeding)_ |
+| `city` | `tentative` |  | column | _(no description yet — confidence is `tentative`; populate via `docs/tenants/<uuid>/GLOSSARY.md` + re-run seeding)_ |
+| `created_at` | `tentative` |  | column | _(no description yet — confidence is `tentative`; populate via `docs/tenants/<uuid>/GLOSSARY.md` + re-run seeding)_ |
+| `createdate` | `tentative` |  | column | _(no description yet — confidence is `tentative`; populate via `docs/tenants/<uuid>/GLOSSARY.md` + re-run seeding)_ |
+| `details` | `tentative` |  | column | _(no description yet — confidence is `tentative`; populate via `docs/tenants/<uuid>/GLOSSARY.md` + re-run seeding)_ |
+| `domain` | `tentative` |  | column | _(no description yet — confidence is `tentative`; populate via `docs/tenants/<uuid>/GLOSSARY.md` + re-run seeding)_ |
+| `domain_names` | `tentative` |  | column | _(no description yet — confidence is `tentative`; populate via `docs/tenants/<uuid>/GLOSSARY.md` + re-run seeding)_ |
+| `hs_lastmodifieddate` | `tentative` |  | column | _(no description yet — confidence is `tentative`; populate via `docs/tenants/<uuid>/GLOSSARY.md` + re-run seeding)_ |
+| `industry` | `tentative` |  | column | _(no description yet — confidence is `tentative`; populate via `docs/tenants/<uuid>/GLOSSARY.md` + re-run seeding)_ |
+| `lifecyclestage` | `tentative` |  | column | _(no description yet — confidence is `tentative`; populate via `docs/tenants/<uuid>/GLOSSARY.md` + re-run seeding)_ |
+| `name` | `tentative` |  | column | _(no description yet — confidence is `tentative`; populate via `docs/tenants/<uuid>/GLOSSARY.md` + re-run seeding)_ |
+| `name` | `tentative` |  | column | _(no description yet — confidence is `tentative`; populate via `docs/tenants/<uuid>/GLOSSARY.md` + re-run seeding)_ |
+| `notes` | `tentative` |  | column | _(no description yet — confidence is `tentative`; populate via `docs/tenants/<uuid>/GLOSSARY.md` + re-run seeding)_ |
+| `numberofemployees` | `tentative` |  | column | _(no description yet — confidence is `tentative`; populate via `docs/tenants/<uuid>/GLOSSARY.md` + re-run seeding)_ |
+| `updated_at` | `tentative` |  | column | _(no description yet — confidence is `tentative`; populate via `docs/tenants/<uuid>/GLOSSARY.md` + re-run seeding)_ |
+
+### Object type: `contact`
+
+_Properties tracked: **16** (tentative=15, verified=1)_
+
+| Property | Confidence | Custom? | Storage | Meaning / Aliases / Watch out for |
+|---|---|---|---|---|
+| `email` (Email) | `verified` |  | column | Contact email. For Wayward this includes brand-side reps managing affiliate relationships, Wayward staff, and Zendesk end-users. CRITICAL for Chinese-contact detection: @qq.com (237 contacts), .cn TLD (19), @163.com/@126.com/@sina.com/@sohu.com/@foxmail.com (455 combined) are all strong Chinese signals.<br/>**Aliases:** contact_email, primary_email |
+| `company` | `tentative` |  | column | _(no description yet — confidence is `tentative`; populate via `docs/tenants/<uuid>/GLOSSARY.md` + re-run seeding)_ |
+| `created_at` | `tentative` |  | column | _(no description yet — confidence is `tentative`; populate via `docs/tenants/<uuid>/GLOSSARY.md` + re-run seeding)_ |
+| `createdate` | `tentative` |  | column | _(no description yet — confidence is `tentative`; populate via `docs/tenants/<uuid>/GLOSSARY.md` + re-run seeding)_ |
+| `email` | `tentative` |  | column | _(no description yet — confidence is `tentative`; populate via `docs/tenants/<uuid>/GLOSSARY.md` + re-run seeding)_ |
+| `firstname` | `tentative` |  | column | _(no description yet — confidence is `tentative`; populate via `docs/tenants/<uuid>/GLOSSARY.md` + re-run seeding)_ |
+| `jobtitle` | `tentative` |  | column | _(no description yet — confidence is `tentative`; populate via `docs/tenants/<uuid>/GLOSSARY.md` + re-run seeding)_ |
+| `lastmodifieddate` | `tentative` |  | column | _(no description yet — confidence is `tentative`; populate via `docs/tenants/<uuid>/GLOSSARY.md` + re-run seeding)_ |
+| `lastname` | `tentative` |  | column | _(no description yet — confidence is `tentative`; populate via `docs/tenants/<uuid>/GLOSSARY.md` + re-run seeding)_ |
+| `lifecyclestage` | `tentative` |  | column | _(no description yet — confidence is `tentative`; populate via `docs/tenants/<uuid>/GLOSSARY.md` + re-run seeding)_ |
+| `name` | `tentative` |  | column | _(no description yet — confidence is `tentative`; populate via `docs/tenants/<uuid>/GLOSSARY.md` + re-run seeding)_ |
+| `organization_id` | `tentative` |  | column | _(no description yet — confidence is `tentative`; populate via `docs/tenants/<uuid>/GLOSSARY.md` + re-run seeding)_ |
+| `phone` | `tentative` |  | column | _(no description yet — confidence is `tentative`; populate via `docs/tenants/<uuid>/GLOSSARY.md` + re-run seeding)_ |
+| `phone` | `tentative` |  | column | _(no description yet — confidence is `tentative`; populate via `docs/tenants/<uuid>/GLOSSARY.md` + re-run seeding)_ |
+| `role` | `tentative` |  | column | _(no description yet — confidence is `tentative`; populate via `docs/tenants/<uuid>/GLOSSARY.md` + re-run seeding)_ |
+| `updated_at` | `tentative` |  | column | _(no description yet — confidence is `tentative`; populate via `docs/tenants/<uuid>/GLOSSARY.md` + re-run seeding)_ |
+
+### Object type: `deal`
+
+_Properties tracked: **16** (tentative=8, verified=8)_
+
+| Property | Confidence | Custom? | Storage | Meaning / Aliases / Watch out for |
+|---|---|---|---|---|
+| `amazon_seller_type` (Amazon Seller Type) | `verified` | ✓ | overflow | How the brand sells on Amazon. Enum: '1P' (first-party — Amazon resells the brand's product), '3P' (third-party — brand sells directly via Amazon marketplace), 'Hybrid' (both).<br/>**Aliases:** amazon_1p_3p |
+| `deal_owner` (Deal Owner) | `verified` | ✓ | overflow | Wayward INTERNAL staff name assigned to the deal. Only values seen: 'Mackenzie Clemens' (340 deals), 'Jake Coburn' (95 deals). NOT for affiliate attribution — that's the `source` field.<br/>**Aliases:** internal_owner, wayward_staff_owner |
+| `lifetime_commissions_generated` (Lifetime Commissions Generated) | `verified` | ✓ | overflow | Gross commission paid by the brand to Wayward over the deal's lifetime. Typically ~10% of lifetime_gmv. This is NOT the referral partner's cut — it's Wayward's gross commission revenue from the brand.<br/>**Aliases:** wayward_commission_gross |
+| `lifetime_gmv` (Lifetime GMV) | `verified` | ✓ | overflow | Total Gross Merchandise Value (USD) driven by Wayward's program for this deal/brand over the deal's lifetime. The headline 'how much sales did this brand do' metric.<br/>**Aliases:** gmv, lifetime_sales |
+| `lifetime_usage_fees_generated` (Lifetime Usage Fees Generated) | `verified` | ✓ | overflow | Wayward's platform fee earned on the deal. Often ~1% of GMV but Tim confirmed 2026-05-16: 'Roborock is at 1% but most brands are charged 3-5%.' This is what Wayward keeps as their cut.<br/>**Aliases:** platform_fee, wayward_take |
+| `segment` (Segment) | `verified` | ✓ | overflow | Deal-level segmentation tag. The 'Chinese Brand' value tags deals associated with Chinese-region brands. Other enum values seen (`Other`, `LV`, `HyphenSocial - High Pri 1-5`, `Search Arb`) have unknown meanings as of 2026-05-16.<br/>**Aliases:** chinese_brand_tag<br/>**Watch out:** SEVERELY UNDER-APPLIED. Only 37 deals tagged Chinese Brand vs 564 producing Chinese-indicator deals. Do NOT use as canonical 'is Chinese?' signal — use country IN ('CN','China','HK','Hong Kong','TW','Taiwan') on the associated company + source 'China Referral - *' prefix instead. |
+| `source` (Source) | `verified` | ✓ | overflow | The canonical affiliate-owner attribution field for Wayward. Records who brought the brand to Wayward. Format typically 'China Referral - {person}' for Chinese-brand referrals. Mapping: 'China Referral - Tim' → Tim Jordan; 'China Referral - Eric' → LYTASAUR (Eric is LYTASAUR); 'China Referral - OpenLight' → OpenLight; 'China Referral - Adina' → Adina; 'China Referral - Jeremy Dai' → Jeremy Dai; 'China Referral - Shallow' → Shallow. Non-affiliate sources include 'Organic', 'Paid Marketing', 'Event / Trade Show', 'Hyphen Social Migration', 'Agency Referral', 'Cold Email Outbound', 'Cold LinkedIn Outbound', 'MDS', 'Other'.<br/>**Aliases:** affiliate_owner, referral_partner, attribution_source<br/>**Watch out:** Wayward's segment='Chinese Brand' tag is a DIFFERENT field and is severely under-applied (only 37 of 564 producing Chinese-indicator deals tagged). Use `source` for attribution, NOT `segment`. |
+| `total_fees_paid` (Total Fees Paid) | `verified` | ✓ | overflow | Cumulative fees paid OUT (probably to referral partners and creators). Tim 2026-05-16: 'I get 10% of total_fees_paid per month for Chinese brands attributed to me via the source field that are NOT covered by other China referral affiliates.' THIS is the canonical field for Tim's commission accounting.<br/>**Aliases:** payout, fees_disbursed, tim_commission_base |
+| `amount` | `tentative` |  | column | _(no description yet — confidence is `tentative`; populate via `docs/tenants/<uuid>/GLOSSARY.md` + re-run seeding)_ |
+| `closedate` | `tentative` |  | column | _(no description yet — confidence is `tentative`; populate via `docs/tenants/<uuid>/GLOSSARY.md` + re-run seeding)_ |
+| `createdate` | `tentative` |  | column | _(no description yet — confidence is `tentative`; populate via `docs/tenants/<uuid>/GLOSSARY.md` + re-run seeding)_ |
+| `dealname` | `tentative` |  | column | _(no description yet — confidence is `tentative`; populate via `docs/tenants/<uuid>/GLOSSARY.md` + re-run seeding)_ |
+| `dealstage` | `tentative` |  | column | _(no description yet — confidence is `tentative`; populate via `docs/tenants/<uuid>/GLOSSARY.md` + re-run seeding)_ |
+| `hs_lastmodifieddate` | `tentative` |  | column | _(no description yet — confidence is `tentative`; populate via `docs/tenants/<uuid>/GLOSSARY.md` + re-run seeding)_ |
+| `hubspot_owner_id` | `tentative` |  | column | _(no description yet — confidence is `tentative`; populate via `docs/tenants/<uuid>/GLOSSARY.md` + re-run seeding)_ |
+| `pipeline` | `tentative` |  | column | _(no description yet — confidence is `tentative`; populate via `docs/tenants/<uuid>/GLOSSARY.md` + re-run seeding)_ |
+
+### Object type: `ticket`
+
+_Properties tracked: **18** (tentative=17, verified=1)_
+
+| Property | Confidence | Custom? | Storage | Meaning / Aliases / Watch out for |
+|---|---|---|---|---|
+| `via_channel` (Via Channel) | `verified` |  | overflow | Channel through which the ticket entered Zendesk. Wayward's data shows two values: 'email' (2,012 tickets, 70%) and 'web' (878 tickets, 30%). 100% coverage. No other channels seen (no chat, phone, mobile, etc.).<br/>**Aliases:** ticket_channel, ingress_channel |
+| `assignee_id` | `tentative` |  | column | _(no description yet — confidence is `tentative`; populate via `docs/tenants/<uuid>/GLOSSARY.md` + re-run seeding)_ |
+| `content` | `tentative` |  | column | _(no description yet — confidence is `tentative`; populate via `docs/tenants/<uuid>/GLOSSARY.md` + re-run seeding)_ |
+| `created_at` | `tentative` |  | column | _(no description yet — confidence is `tentative`; populate via `docs/tenants/<uuid>/GLOSSARY.md` + re-run seeding)_ |
+| `createdate` | `tentative` |  | column | _(no description yet — confidence is `tentative`; populate via `docs/tenants/<uuid>/GLOSSARY.md` + re-run seeding)_ |
+| `description` | `tentative` |  | column | _(no description yet — confidence is `tentative`; populate via `docs/tenants/<uuid>/GLOSSARY.md` + re-run seeding)_ |
+| `hs_lastmodifieddate` | `tentative` |  | column | _(no description yet — confidence is `tentative`; populate via `docs/tenants/<uuid>/GLOSSARY.md` + re-run seeding)_ |
+| `hs_pipeline` | `tentative` |  | column | _(no description yet — confidence is `tentative`; populate via `docs/tenants/<uuid>/GLOSSARY.md` + re-run seeding)_ |
+| `hs_pipeline_stage` | `tentative` |  | column | _(no description yet — confidence is `tentative`; populate via `docs/tenants/<uuid>/GLOSSARY.md` + re-run seeding)_ |
+| `hs_ticket_priority` | `tentative` |  | column | _(no description yet — confidence is `tentative`; populate via `docs/tenants/<uuid>/GLOSSARY.md` + re-run seeding)_ |
+| `organization_id` | `tentative` |  | column | _(no description yet — confidence is `tentative`; populate via `docs/tenants/<uuid>/GLOSSARY.md` + re-run seeding)_ |
+| `priority` | `tentative` |  | column | _(no description yet — confidence is `tentative`; populate via `docs/tenants/<uuid>/GLOSSARY.md` + re-run seeding)_ |
+| `requester_id` | `tentative` |  | column | _(no description yet — confidence is `tentative`; populate via `docs/tenants/<uuid>/GLOSSARY.md` + re-run seeding)_ |
+| `status` | `tentative` |  | column | _(no description yet — confidence is `tentative`; populate via `docs/tenants/<uuid>/GLOSSARY.md` + re-run seeding)_ |
+| `subject` | `tentative` |  | column | _(no description yet — confidence is `tentative`; populate via `docs/tenants/<uuid>/GLOSSARY.md` + re-run seeding)_ |
+| `subject` | `tentative` |  | column | _(no description yet — confidence is `tentative`; populate via `docs/tenants/<uuid>/GLOSSARY.md` + re-run seeding)_ |
+| `type` | `tentative` |  | column | _(no description yet — confidence is `tentative`; populate via `docs/tenants/<uuid>/GLOSSARY.md` + re-run seeding)_ |
+| `updated_at` | `tentative` |  | column | _(no description yet — confidence is `tentative`; populate via `docs/tenants/<uuid>/GLOSSARY.md` + re-run seeding)_ |
+
+## Lenses defined
+
+*(error querying lenses: ProgrammingError)*
+
+## Cross-references
+
+- [`docs/tenants/dec814db-722a-4730-8e60-51afc4a5dad9/GLOSSARY.md`](GLOSSARY.md) — editable source-of-truth for property meanings (per PM scope `0246851d`)
+- [`docs/PROPERTY-GLOSSARY-PATTERN.md`](../../PROPERTY-GLOSSARY-PATTERN.md) — the glossary pattern explained
+- [`docs/ONBOARDING-A-NEW-TENANT.md`](../../ONBOARDING-A-NEW-TENANT.md) — runbook for adding new tenants
+- [`docs/HUBSPOT-CONNECTOR-GUIDE.md`](../../HUBSPOT-CONNECTOR-GUIDE.md) + [`docs/ZENDESK-CONNECTOR-GUIDE.md`](../../ZENDESK-CONNECTOR-GUIDE.md) — per-connector operator guides
+- PM scope `bfc3d5d0` — Tenant Manifest

@@ -92,11 +92,9 @@ This gets ~95% of the value at ~5% of the effort.
 
 Three layers that stay in sync:
 
-1. **Source of truth: YAML or Markdown** at `docs/tenants/<tenant_uuid>/GLOSSARY.md`. Editable by humans. Reviewable in PRs. Survives DB wipes.
-2. **(Future) Materialized into DB**: `cip_connector_property_registry` extended with new fields (description, plain_english_meaning, aliases, watch_out_for, confidence). A scheduled sync from the markdown → DB. Queryable by SQL / lens views. Enables agents to filter by confidence at query time.
-3. **(Future) Surfaced via manifest**: `lens_tenant_manifest` (scope `bfc3d5d0`) gains a "Property catalog" section that joins the registry to current row counts. Agents and humans get one view that says "here's what's queryable, what each column means, how confident the meaning is."
-
-For v1 (this scope `0246851d`), only layer 1 is built. Agents read the markdown like any other doc. Layer 2 + 3 follow if precision-at-query-time becomes a binding constraint.
+1. **Source of truth: Markdown** at `docs/tenants/<tenant_uuid>/GLOSSARY.md`. Editable by humans. Reviewable in PRs. Survives DB wipes. **LIVE.**
+2. **Materialized into DB**: `cip_connector_property_registry` extended with semantic-layer fields (`plain_english_meaning`, `confidence`, `aliases`, `watch_out_for`, `label`, `group_name`, `top_values`, `coverage_pct`, `last_reviewed_at`, `last_reviewed_by`, `client_id`). Migrations `cip_13_extend_property_registry` + check-constraint on confidence enum. Markdown → DB seed via `scripts/seed_glossary_into_registry.py`. **LIVE 2026-05-17.**
+3. **Surfaced via manifest**: `lens_tenant_manifest_properties` view (joins the registry with all glossary fields) + `lens_tenant_manifest_sync_health` view (per-connector freshness, with `fresh` / `stale_gt_24h` / `stale_gt_7d` / `never_succeeded` buckets). Auto-generated `MANIFEST.md` per tenant via `scripts/generate_tenant_manifest.py`. Migration `cip_14_lens_tenant_manifest`. **LIVE 2026-05-17.**
 
 ## How a new connector starts off
 

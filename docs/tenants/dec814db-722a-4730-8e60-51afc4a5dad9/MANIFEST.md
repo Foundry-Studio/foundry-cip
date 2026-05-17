@@ -3,13 +3,13 @@ kind: doc
 domain: client-intelligence-platform
 tenant_uuid: dec814db-722a-4730-8e60-51afc4a5dad9
 status: auto-generated
-last_updated: 2026-05-17 05:47 UTC
+last_updated: 2026-05-17 06:38 UTC
 generator: scripts/generate_tenant_manifest.py (PM scope bfc3d5d0 — Tenant Manifest)
 ---
 
 # Tenant Manifest — `dec814db-722a-4730-8e60-51afc4a5dad9`
 
-Auto-generated 2026-05-17 05:47 UTC. **Do not edit by hand** — re-run `scripts/generate_tenant_manifest.py <tenant_uuid>` after data changes. The editable source-of-truth for property descriptions is `docs/tenants/dec814db-722a-4730-8e60-51afc4a5dad9/GLOSSARY.md`, which `scripts/seed_glossary_into_registry.py` materializes into the registry table that this MANIFEST queries.
+Auto-generated 2026-05-17 06:38 UTC. **Do not edit by hand** — re-run `scripts/generate_tenant_manifest.py <tenant_uuid>` after data changes. The editable source-of-truth for property descriptions is `docs/tenants/dec814db-722a-4730-8e60-51afc4a5dad9/GLOSSARY.md`, which `scripts/seed_glossary_into_registry.py` materializes into the registry table that this MANIFEST queries.
 
 ## Tenant identity
 
@@ -34,14 +34,14 @@ Auto-generated 2026-05-17 05:47 UTC. **Do not edit by hand** — re-run `scripts
 | `cip_deals` | 3,057 | 661ecab4=3,057 |
 | `cip_tickets` | 2,890 | 661ecab4=2,890 |
 | `cip_ticket_comments` | 10,971 | 661ecab4=10,971 |
-| `cip_engagements` | ERR | ProgrammingError |
+| `cip_engagements` | 12,552 | 661ecab4=12,552 |
 | `cip_files` | 0 | — |
 | `cip_companies_history` | 58,390 | — |
 | `cip_contacts_history` | 732,356 | — |
 | `cip_deals_history` | 252,781 | — |
 | `cip_tickets_history` | 20,421 | — |
 | `cip_ticket_comments_history` | 0 | — |
-| `cip_engagements_history` | ERR | ProgrammingError |
+| `cip_engagements_history` | 0 | — |
 
 ## Connector sync health
 

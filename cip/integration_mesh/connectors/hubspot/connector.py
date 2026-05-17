@@ -72,6 +72,36 @@ _OBJECT_TYPES: tuple[tuple[str, str], ...] = (
     ("tickets", "ticket"),
 )
 
+# Engagement entity types (PM scope 9952dd26). Streamed via a separate
+# method (_stream_engagements) on opt-in — keeps the existing CRM-object
+# stream_records path unchanged. All engagement types land in a single
+# cip_engagements table with engagement_type discriminator.
+_ENGAGEMENT_TYPES: tuple[tuple[str, str], ...] = (
+    ("notes", "engagement_note"),
+    ("meetings", "engagement_meeting"),
+    ("tasks", "engagement_task"),
+    # calls + emails currently 0 records / 403 for Wayward; available
+    # for future tenants without code changes — just add to this tuple
+    # and the mapper will route to cip_engagements with the right type.
+)
+
+# Associations to fetch alongside each engagement so cross-entity queries
+# work (e.g., "all notes on this deal"). HubSpot's batch read supports
+# the `associations` parameter on the public CRM API.
+_ENGAGEMENT_ASSOCIATIONS: tuple[str, ...] = (
+    "contacts", "companies", "deals", "tickets",
+)
+
+# Explicit plural→singular for the association column-name suffix. Needed
+# because "companies".rstrip("s") yields "companie" (rstrip removes
+# trailing characters one at a time, not by English pluralization rules).
+_ASSOC_SINGULAR: dict[str, str] = {
+    "contacts": "contact",
+    "companies": "company",
+    "deals": "deal",
+    "tickets": "ticket",
+}
+
 # Fallback property list used ONLY when discovery fails (network error,
 # permission denied on /properties endpoint, etc.). In normal operation,
 # the connector calls _discover_properties() on first use and fetches
@@ -341,6 +371,185 @@ class HubSpotConnector(CIPConnectorBase):
                 or hubspot_obj.get("updatedAt")
             ),
         }
+
+    def stream_engagements(
+        self,
+        kinds: tuple[tuple[str, str], ...] | None = None,
+        batch_size: int = 100,
+    ) -> Iterator[dict[str, object]]:
+        """Stream HubSpot Engagement objects (PM scope 9952dd26).
+
+        Iterates per (hubspot_path, mapper_record_type) — typically notes,
+        meetings, tasks. Calls and emails currently disabled by default
+        (0 records on Wayward / token scope restrictions) but routable
+        if added to ``kinds`` here.
+
+        Two-pass like _stream_entity (list IDs → batch read with full
+        properties + associations). Yields one record dict per engagement
+        with associations flattened into ``__cip_assoc_<type>__`` arrays
+        that the mapper extracts into the cip_engagements association
+        columns.
+        """
+        if not self._authenticated:
+            self.authenticate()
+
+        for hubspot_path, record_type in (kinds or _ENGAGEMENT_TYPES):
+            if hubspot_path in self._unavailable_entities:
+                continue
+            try:
+                yield from self._stream_engagement_entity(
+                    hubspot_path=hubspot_path,
+                    record_type=record_type,
+                    batch_size=batch_size,
+                )
+            except HTTPError as exc:
+                if exc.status in {401, 403}:
+                    self._unavailable_entities.add(hubspot_path)
+                    continue
+                raise
+
+    def _stream_engagement_entity(
+        self,
+        *,
+        hubspot_path: str,
+        record_type: str,
+        batch_size: int,
+    ) -> Iterator[dict[str, object]]:
+        """Two-pass stream for a single engagement entity type."""
+        properties = self._discover_properties(hubspot_path)
+        page_size = min(batch_size, 100)
+        after: str | None = None
+        assoc_param = ",".join(_ENGAGEMENT_ASSOCIATIONS)
+
+        while True:
+            list_params: dict[str, str | int] = {"limit": page_size}
+            if after:
+                list_params["after"] = after
+            page = self._http.get(
+                f"/crm/v3/objects/{hubspot_path}", params=list_params
+            )
+            id_results = page.get("results", [])
+            ids: list[str] = [
+                str(r.get("id"))
+                for r in id_results
+                if isinstance(r, dict) and r.get("id") is not None
+            ]
+            if ids:
+                # Batch-read for properties. HubSpot's batch/read silently
+                # IGNORES the `associations` parameter (verified 2026-05-17
+                # against Wayward portal — returns 200 with empty associations
+                # for every record). So we do a separate v4 batch-associations
+                # call per (from_type, to_type) pair, then merge.
+                batch_resp = self._http.post(
+                    f"/crm/v3/objects/{hubspot_path}/batch/read",
+                    json_body={
+                        "inputs": [{"id": i} for i in ids],
+                        "properties": list(properties),
+                    },
+                )
+                # Fetch associations for this page (4 calls — one per target type)
+                assoc_by_id = self._fetch_associations_batch(
+                    hubspot_path, ids
+                )
+                for record in batch_resp.get("results", []):
+                    rec_id = str(record.get("id", ""))
+                    record["associations"] = assoc_by_id.get(rec_id, {})
+                    yield self._engagement_to_record(record, record_type)
+
+            paging = page.get("paging", {})
+            after = (
+                paging.get("next", {}).get("after")
+                if isinstance(paging, dict) else None
+            )
+            if not after:
+                return
+
+    def _fetch_associations_batch(
+        self, from_path: str, from_ids: list[str]
+    ) -> dict[str, dict[str, dict]]:
+        """Fetch associations for a batch of engagement IDs.
+
+        Returns ``{from_id: {target_plural: {results: [{id: ...}, ...]}}}``,
+        mirroring HubSpot's single-object response shape so
+        ``_engagement_to_record`` can consume it uniformly.
+
+        Uses v4 batch-associations endpoint (one HTTP call per target
+        type, so 4 calls per page to fetch contacts + companies + deals
+        + tickets). Calls and errors per target type are non-fatal —
+        if one target type fails, the others still merge.
+        """
+        assert self._http is not None
+        result: dict[str, dict[str, dict]] = {fid: {} for fid in from_ids}
+        if not from_ids:
+            return result
+        body = {"inputs": [{"id": i} for i in from_ids]}
+        for target in _ENGAGEMENT_ASSOCIATIONS:
+            try:
+                resp = self._http.post(
+                    f"/crm/v4/associations/{from_path}/{target}/batch/read",
+                    json_body=body,
+                )
+            except HTTPError:
+                # Per-target isolation: missing scope on one target type
+                # shouldn't kill the page. Silently skip — the column
+                # remains an empty array on the resulting record.
+                continue
+            for row in resp.get("results", []):
+                from_obj = row.get("from") or {}
+                from_id = str(from_obj.get("id", ""))
+                if not from_id or from_id not in result:
+                    continue
+                to_list = row.get("to") or []
+                # v4 shape: to_list items have "toObjectId" + "associationTypes"
+                # Normalize to v3-style {id: ...} for _engagement_to_record
+                normalized = [
+                    {"id": str(t.get("toObjectId"))}
+                    for t in to_list
+                    if isinstance(t, dict) and t.get("toObjectId") is not None
+                ]
+                result[from_id][target] = {"results": normalized}
+        return result
+
+    def _engagement_to_record(
+        self, hubspot_obj: dict[str, Any], record_type: str
+    ) -> dict[str, object]:
+        """Flatten engagement obj + associations into a mapper-consumable dict.
+
+        Associations come back from HubSpot in a `associations.<type>.results`
+        shape; flatten each to ``__cip_assoc_<singular_type>__`` arrays of
+        source_ids that the mapper routes to the right cip_engagements
+        association column.
+        """
+        props = hubspot_obj.get("properties", {}) or {}
+        associations = hubspot_obj.get("associations", {}) or {}
+        rec: dict[str, object] = {
+            "__cip_kind__": record_type,
+            "id": str(hubspot_obj.get("id", "")),
+            "source_id": str(hubspot_obj.get("id", "")),
+            **{k: v for k, v in props.items() if v is not None},
+            "updated_at": (
+                props.get("hs_lastmodifieddate")
+                or props.get("hs_createdate")
+                or hubspot_obj.get("updatedAt")
+            ),
+        }
+        # Singularize and attach association source_ids. Use an explicit
+        # mapping rather than rstrip("s") — "companies".rstrip("s") yields
+        # "companie", not "company" (rstrip strips the trailing chars one
+        # at a time but doesn't apply English singularization rules).
+        for plural in _ENGAGEMENT_ASSOCIATIONS:
+            block = associations.get(plural)
+            if not isinstance(block, dict):
+                continue
+            results = block.get("results") or []
+            ids = [
+                str(r.get("id"))
+                for r in results
+                if isinstance(r, dict) and r.get("id") is not None
+            ]
+            singular = _ASSOC_SINGULAR.get(plural, plural.rstrip("s"))
+            rec[f"__cip_assoc_{singular}__"] = ids
+        return rec
 
     def backfill_history(
         self, tenant_id: UUID

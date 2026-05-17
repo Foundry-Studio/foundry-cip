@@ -146,7 +146,9 @@ def main() -> int:
         lines.append("|---|---|---|")
         for tbl in (
             "cip_companies", "cip_contacts", "cip_deals", "cip_tickets",
-            "cip_ticket_comments", "cip_engagements", "cip_files",
+            "cip_ticket_comments", "cip_engagements",
+            "cip_owners", "cip_pipeline_stages",
+            "cip_knowledge_chunks", "cip_files",
             "cip_companies_history", "cip_contacts_history",
             "cip_deals_history", "cip_tickets_history",
             "cip_ticket_comments_history", "cip_engagements_history",

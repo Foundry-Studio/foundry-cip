@@ -13,13 +13,13 @@ last_modified: '2026-05-17'
 last_reviewed: '2026-05-17'
 review_cadence: 90
 tenant_uuid: dec814db-722a-4730-8e60-51afc4a5dad9
-last_generated_at: 2026-05-17 20:12 UTC
+last_generated_at: 2026-05-17 20:43 UTC
 generator: scripts/generate_tenant_manifest.py (PM scope bfc3d5d0 — Tenant Manifest)
 ---
 
 # Tenant Manifest — `dec814db-722a-4730-8e60-51afc4a5dad9`
 
-Auto-generated 2026-05-17 20:12 UTC. **Do not edit by hand** — re-run `scripts/generate_tenant_manifest.py <tenant_uuid>` after data changes. The editable source-of-truth for property descriptions is `docs/tenants/dec814db-722a-4730-8e60-51afc4a5dad9/GLOSSARY.md`, which `scripts/seed_glossary_into_registry.py` materializes into the registry table that this MANIFEST queries.
+Auto-generated 2026-05-17 20:43 UTC. **Do not edit by hand** — re-run `scripts/generate_tenant_manifest.py <tenant_uuid>` after data changes. The editable source-of-truth for property descriptions is `docs/tenants/dec814db-722a-4730-8e60-51afc4a5dad9/GLOSSARY.md`, which `scripts/seed_glossary_into_registry.py` materializes into the registry table that this MANIFEST queries.
 
 ## Tenant identity
 
@@ -45,6 +45,9 @@ Auto-generated 2026-05-17 20:12 UTC. **Do not edit by hand** — re-run `scripts
 | `cip_tickets` | 2,890 | 661ecab4=2,890 |
 | `cip_ticket_comments` | 10,971 | 661ecab4=10,971 |
 | `cip_engagements` | 12,552 | 661ecab4=12,552 |
+| `cip_owners` | 5 | 661ecab4=5 |
+| `cip_pipeline_stages` | 49 | 661ecab4=49 |
+| `cip_knowledge_chunks` | 1,093 | 661ecab4=1,093 |
 | `cip_files` | 0 | — |
 | `cip_companies_history` | 58,390 | — |
 | `cip_contacts_history` | 732,356 | — |

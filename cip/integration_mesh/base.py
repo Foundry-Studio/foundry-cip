@@ -323,6 +323,8 @@ ALLOWED_CIP_TABLES: frozenset[str] = frozenset(
         "cip_tickets",
         "cip_ticket_comments",
         "cip_engagements",
+        "cip_owners",
+        "cip_pipeline_stages",
         "cip_views",
         "cip_connector_property_registry",
     }

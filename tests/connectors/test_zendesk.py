@@ -113,8 +113,19 @@ def test_stream_records_yields_one_per_entity_type_via_incremental_apis() -> Non
             "end_of_stream": True,
         },
     )
+    # Block 2 (PM scope 28739b6e): after each ticket, the connector
+    # streams /api/v2/tickets/{id}/comments.json inline. Stub one
+    # comments-page-with-no-comments response so the inline call
+    # gets a clean 200 + empty list (no records yielded).
+    stub.queue(
+        "GET",
+        "/api/v2/tickets/30/comments.json",
+        response={"comments": []},
+    )
 
     records = list(conn.stream_records(cursor=None, batch_size=100))
+    # Same 3 entity-level records (company, contact, ticket); ticket_comment
+    # records appear only when the ticket has comments (zero here).
     assert len(records) == 3
     kinds = sorted(str(r["__cip_kind__"]) for r in records)
     assert kinds == ["company", "contact", "ticket"]

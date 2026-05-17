@@ -86,15 +86,29 @@ class TestDefaults:
 
 
 class TestAllowedTables:
-    def test_eight_tables(self) -> None:
-        assert len(ALLOWED_CIP_TABLES) == 8
-        assert "cip_contacts" in ALLOWED_CIP_TABLES
-        assert "cip_connector_property_registry" in ALLOWED_CIP_TABLES
+    def test_expected_tables_present(self) -> None:
+        # cip_15 added cip_ticket_comments.
+        # cip_16 added cip_engagements.
+        # cip_17 added cip_owners + cip_pipeline_stages.
+        # Update this assertion when ALLOWED_CIP_TABLES changes.
+        assert len(ALLOWED_CIP_TABLES) == 12, sorted(ALLOWED_CIP_TABLES)
+        for tbl in (
+            "cip_contacts", "cip_ticket_comments", "cip_engagements",
+            "cip_owners", "cip_pipeline_stages",
+            "cip_connector_property_registry",
+        ):
+            assert tbl in ALLOWED_CIP_TABLES, tbl
 
-    def test_history_map_covers_seven_domain_tables(self) -> None:
-        # registry intentionally absent — no history.
-        assert len(HISTORY_TABLE_BY_CURRENT) == 7
-        assert "cip_connector_property_registry" not in HISTORY_TABLE_BY_CURRENT
+    def test_history_map_covers_domain_tables(self) -> None:
+        # registry, owners, pipeline_stages intentionally absent
+        # (reference / operational tables, no temporal audit).
+        assert len(HISTORY_TABLE_BY_CURRENT) == 9, sorted(HISTORY_TABLE_BY_CURRENT)
+        for non_history in (
+            "cip_connector_property_registry",
+            "cip_owners",
+            "cip_pipeline_stages",
+        ):
+            assert non_history not in HISTORY_TABLE_BY_CURRENT, non_history
         for current in HISTORY_TABLE_BY_CURRENT:
             assert current in ALLOWED_CIP_TABLES
             assert HISTORY_TABLE_BY_CURRENT[current] == f"{current}_history"

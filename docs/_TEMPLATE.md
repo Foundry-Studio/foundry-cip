@@ -1,8 +1,18 @@
 ---
-kind: doc
-domain: client-intelligence-platform
-status: skeleton
-last_updated: 2026-04-20
+id: CIP-BP-005
+uuid: afdae802-e7f3-4205-a22b-e4447b20a799
+title: '{DOC TITLE}'
+type: best-practice
+owner: tim
+solve_for: Template for authoring new CIP governance docs — frontmatter shape, section
+  ordering, conventions.
+stage_label: adopt
+domain: doc
+version: '1.0'
+created: '2026-04-21'
+last_modified: '2026-04-20'
+last_reviewed: '2026-05-16'
+review_cadence: 365
 milestone: Phase-1-M0
 ---
 

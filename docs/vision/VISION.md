@@ -1,20 +1,55 @@
 ---
-kind: doc
-domain: client-intelligence-platform
+id: CIP-FW-001
+uuid: c9076719-808e-45df-8260-c2ed499a9e80
+title: Foundry Client Intelligence Platform — Product Vision
+type: framework
+owner: tim
+solve_for: Top-level CIP product vision — what it is, why it exists, who consumes
+  it, two-layer architecture, ten roadmap phases.
+stage_label: adopt
+domain: meta
+version: '1.0'
+created: '2026-04-06'
+last_modified: '2026-05-15'
+last_reviewed: '2026-05-16'
+review_cadence: 180
 project_id: client-intelligence-platform
 pm_project_id: 596825db-61bc-4899-bc6c-e207489ca35d
-status: draft-under-revision
-owner: tim
-created: 2026-04-06
-last_updated: 2026-05-15
-supersedes: >
-  Original §2 Two Data Layers simplified the storage model — superseded 2026-04-20 by D-120 Three Data Layers (Structured / Derived Knowledge / Originals). Original §4 Tenant Model showed a nested super-tenant → venture → client shape — superseded 2026-04-20 by flat peer-tenant model with first-class `cip_cross_tenant_grants`. Original §10 Roadmap was a 3-phase Wayward-scoped list — superseded 2026-04-20 to point at `ROADMAP.md` as authoritative source; this section is now a hand-synced summary. 2026-05-15 accuracy sweep: §6 "Current stage" updated from "between 0 and 1" to "end of Phase 1 / Wayward Phase 2 onboarding underway"; §4 "what's missing" list trimmed because M1-M5 are now done (connector framework + structured store + lens engine + Metabase platform service all built); §7d connector-contract sketch corrected to match the shipped Protocol (`stream_records` + `backfill_history`, not `pull_full` + `pull_incremental`); §1 Wayward baseline numbers explicitly labeled as the original April 2026 SQLite proof-of-concept (not current Railway prod state); §10 Phase 2.5 migration numbering shifted to `cip_12`/`cip_13`/`cip_14` because `cip_09`/`cip_10`/`cip_11` are already occupied by deployed migrations (metabase role views, history lens views, sync_mode_backfill respectively).
+supersedes: 'Original §2 Two Data Layers simplified the storage model — superseded
+  2026-04-20 by D-120 Three Data Layers (Structured / Derived Knowledge / Originals).
+  Original §4 Tenant Model showed a nested super-tenant → venture → client shape —
+  superseded 2026-04-20 by flat peer-tenant model with first-class `cip_cross_tenant_grants`.
+  Original §10 Roadmap was a 3-phase Wayward-scoped list — superseded 2026-04-20 to
+  point at `ROADMAP.md` as authoritative source; this section is now a hand-synced
+  summary. 2026-05-15 accuracy sweep: §6 "Current stage" updated from "between 0 and
+  1" to "end of Phase 1 / Wayward Phase 2 onboarding underway"; §4 "what''s missing"
+  list trimmed because M1-M5 are now done (connector framework + structured store
+  + lens engine + Metabase platform service all built); §7d connector-contract sketch
+  corrected to match the shipped Protocol (`stream_records` + `backfill_history`,
+  not `pull_full` + `pull_incremental`); §1 Wayward baseline numbers explicitly labeled
+  as the original April 2026 SQLite proof-of-concept (not current Railway prod state);
+  §10 Phase 2.5 migration numbering shifted to `cip_12`/`cip_13`/`cip_14` because
+  `cip_09`/`cip_10`/`cip_11` are already occupied by deployed migrations (metabase
+  role views, history lens views, sync_mode_backfill respectively).
+
+  '
 open_revision_items:
-  - "M0 Vision Revisit 2026-04-20 evening — six Tim directives applied (never-defer ethos, Plaid/financial planned connector [updated 2026-05-09 from QBO; Bob rebuild will use Plaid], peer-tenant model, early write-back pulled to Phase 2.5, per-client siloing inside venture tenant, Foundry Chatbot spinoff)."
-  - "2026-05-09 connector posture refresh — QBO removed from connector inventory; Plaid replaces it as the planned financial connector. Reflected in §3, §4 connector inventory, §7g registry mention. Bob (current app) defunct; new Bob will be Plaid-based and treated as a separate product. CIP framework still connector-agnostic."
-  - "Cross-tenant grant placement — Phase 1 schema or Phase 2+ addition? Leaning Phase 1 schema-only (table + RLS-aware view) with runtime behavior arriving Phase 3+. Confirm before Phase 1 M1 kickoff."
-  - "Personal tenant not yet provisioned in `tenants` table — provisioning deferred until Tim has a concrete first use case."
-  - "Foundry Chatbot spun out as separate product at `products/foundry-chatbot/` (stubbed, blocked by CIP Phase 5). Retrieval stack will be shared; consumer + branding + per-recipient scoping are the separation reasons. See `products/foundry-chatbot/README.md`."
+- M0 Vision Revisit 2026-04-20 evening — six Tim directives applied (never-defer ethos,
+  Plaid/financial planned connector [updated 2026-05-09 from QBO; Bob rebuild will
+  use Plaid], peer-tenant model, early write-back pulled to Phase 2.5, per-client
+  siloing inside venture tenant, Foundry Chatbot spinoff).
+- 2026-05-09 connector posture refresh — QBO removed from connector inventory; Plaid
+  replaces it as the planned financial connector. Reflected in §3, §4 connector inventory,
+  §7g registry mention. Bob (current app) defunct; new Bob will be Plaid-based and
+  treated as a separate product. CIP framework still connector-agnostic.
+- Cross-tenant grant placement — Phase 1 schema or Phase 2+ addition? Leaning Phase
+  1 schema-only (table + RLS-aware view) with runtime behavior arriving Phase 3+.
+  Confirm before Phase 1 M1 kickoff.
+- Personal tenant not yet provisioned in `tenants` table — provisioning deferred until
+  Tim has a concrete first use case.
+- Foundry Chatbot spun out as separate product at `products/foundry-chatbot/` (stubbed,
+  blocked by CIP Phase 5). Retrieval stack will be shared; consumer + branding + per-recipient
+  scoping are the separation reasons. See `products/foundry-chatbot/README.md`.
 ---
 
 # Foundry Client Intelligence Platform — Product Vision

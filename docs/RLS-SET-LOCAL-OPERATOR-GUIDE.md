@@ -1,8 +1,18 @@
 ---
-kind: doc
-domain: client-intelligence-platform
-status: draft
-last_updated: 2026-05-11
+id: CIP-SOP-005
+uuid: ec552496-70d2-450e-8789-69c16c942c4e
+title: RLS + `SET LOCAL` Operator Guide
+type: sop
+owner: tim
+solve_for: How to use SET LOCAL app.current_tenant for safe per-request tenant scoping
+  under RLS.
+stage_label: adopt
+domain: eng
+version: '1.0'
+created: '2026-04-21'
+last_modified: '2026-05-11'
+last_reviewed: '2026-05-16'
+review_cadence: 90
 milestone: Phase-1-M7
 ---
 

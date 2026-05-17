@@ -1,17 +1,30 @@
 ---
-kind: doc
-domain: client-intelligence-platform
+id: CIP-SPEC-006
+uuid: 178e40a8-c399-4876-bd8f-7a05c000b1d8
+title: Phase 2 — Wayward Onboarding · What Does Good Look Like (WDGLL)
+type: spec
+owner: tim
+solve_for: Phase 2 Wayward 'what does good look like' — the desired end-state for
+  the first non-fixture tenant.
+stage_label: trial
+domain: meta
+version: '1.0'
+created: '2026-05-15'
+last_modified: '2026-05-15'
+last_reviewed: '2026-05-16'
+review_cadence: 180
 project_id: client-intelligence-platform
 pm_project_id: 596825db-61bc-4899-bc6c-e207489ca35d
 phase: 2
 shape: wayward-onboarding-wdgll
-status: stub
-owner: tim
-authors: [tim, cc-session-2026-05-15]
-created: 2026-05-15
-last_updated: 2026-05-15
-depends_on: [phase-1-plain-jane]
-blocks: [phase-2.5-write-back, phase-3-rocky-ridge-and-grants-runtime]
+authors:
+- tim
+- cc-session-2026-05-15
+depends_on:
+- phase-1-plain-jane
+blocks:
+- phase-2.5-write-back
+- phase-3-rocky-ridge-and-grants-runtime
 ---
 
 # Phase 2 — Wayward Onboarding · What Does Good Look Like (WDGLL)

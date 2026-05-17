@@ -1,3 +1,19 @@
+---
+id: CIP-SOP-009
+uuid: 7c3846bb-d0eb-4b89-833f-cb174a5ec51f
+title: 'foundry: kind=doc domain=client-intelligence-platform'
+type: sop
+owner: tim
+solve_for: Step-by-step runbook for onboarding a new venture/tenant into CIP, discovery-first
+  with default-take-everything posture.
+stage_label: adopt
+domain: ops
+version: '1.0'
+created: '2026-05-15'
+last_modified: '2026-05-16'
+last_reviewed: '2026-05-16'
+review_cadence: 90
+---
 # foundry: kind=doc domain=client-intelligence-platform
 ---
 kind: doc

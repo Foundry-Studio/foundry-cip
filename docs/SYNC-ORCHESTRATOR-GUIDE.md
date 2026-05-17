@@ -1,8 +1,18 @@
 ---
-kind: doc
-domain: client-intelligence-platform
-status: draft
-last_updated: 2026-05-16
+id: CIP-SOP-006
+uuid: 98e8f2d3-0f9e-4ab9-aa87-ed4932df9537
+title: Sync Orchestrator Guide
+type: sop
+owner: tim
+solve_for: 'Operator guide to running the sync orchestrator end-to-end: connector
+  lifecycle, advisory locks, rate-limit handling.'
+stage_label: adopt
+domain: eng
+version: '1.0'
+created: '2026-04-21'
+last_modified: '2026-05-16'
+last_reviewed: '2026-05-16'
+review_cadence: 90
 milestone: Phase-1-M7
 ---
 

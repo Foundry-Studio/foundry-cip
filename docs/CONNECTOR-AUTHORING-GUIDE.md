@@ -1,8 +1,18 @@
 ---
-kind: doc
-domain: client-intelligence-platform
-status: draft
-last_updated: 2026-05-11
+id: CIP-SOP-001
+uuid: 7e334cdd-132d-4867-b310-690e3d689437
+title: Connector Authoring Guide
+type: sop
+owner: tim
+solve_for: Provide the canonical authoring procedure so every new connector ships
+  against the same Protocol + conformance harness.
+stage_label: adopt
+domain: eng
+version: '1.0'
+created: '2026-04-21'
+last_modified: '2026-05-11'
+last_reviewed: '2026-05-16'
+review_cadence: 90
 milestone: Phase-1-M7
 ---
 

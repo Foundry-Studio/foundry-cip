@@ -1,8 +1,18 @@
 ---
-kind: doc
-domain: client-intelligence-platform
-status: draft
-last_updated: 2026-05-11
+id: CIP-SOP-003
+uuid: b68b1316-aee6-4de4-bfb6-78a4a88da7cd
+title: Lens Authoring Guide
+type: sop
+owner: tim
+solve_for: Procedure for adding new lens views so analysts and agents can author filtered
+  perspectives consistently.
+stage_label: adopt
+domain: dat
+version: '1.0'
+created: '2026-04-21'
+last_modified: '2026-05-11'
+last_reviewed: '2026-05-16'
+review_cadence: 90
 milestone: Phase-1-M7
 ---
 

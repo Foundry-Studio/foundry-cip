@@ -1,8 +1,18 @@
 ---
-kind: doc
-domain: client-intelligence-platform
-status: draft
-last_updated: 2026-05-11
+id: CIP-SOP-004
+uuid: 06659bec-9863-4c7c-971a-b4759bb81bdd
+title: Metabase Operator Guide
+type: sop
+owner: tim
+solve_for: Operator guide for running Metabase against CIP under the cip_metabase_role
+  grant pattern.
+stage_label: adopt
+domain: ops
+version: '1.0'
+created: '2026-05-09'
+last_modified: '2026-05-11'
+last_reviewed: '2026-05-16'
+review_cadence: 90
 milestone: Phase-1-M7
 ---
 

@@ -1,8 +1,18 @@
 ---
-kind: doc
-domain: client-intelligence-platform
-status: draft
-last_updated: 2026-05-10
+id: CIP-SPEC-001
+uuid: 234e3bf4-eb26-4d33-a846-d4f3b7118710
+title: Four Access Paths Reference
+type: spec
+owner: tim
+solve_for: 'Spec for the four ways data leaves CIP: structured SQL, knowledge layer,
+  knowledge graph, originals.'
+stage_label: adopt
+domain: doc
+version: '1.0'
+created: '2026-04-21'
+last_modified: '2026-05-10'
+last_reviewed: '2026-05-16'
+review_cadence: 180
 milestone: Phase-1-M6
 ---
 

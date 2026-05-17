@@ -1,25 +1,33 @@
 ---
-kind: doc
-domain: client-intelligence-platform
+id: CIP-SPEC-003
+uuid: 9ffcdbf2-1ff5-4e2a-9fa6-f7ad604fcd7c
+title: 'CIP Architecture — Phase 0: Data Model & Tenant Architecture'
+type: spec
+owner: tim
+solve_for: Authoritative architecture spec — components, data flow, RLS pattern, lens
+  engine, SCD-2 persister, four-paths consumption.
+stage_label: trial
+domain: eng
+version: '1.0'
+created: '2026-04-13'
+last_modified: '2026-04-17'
+last_reviewed: '2026-05-16'
+review_cadence: 180
 project_id: client-intelligence-platform
 pm_project_id: 596825db-61bc-4899-bc6c-e207489ca35d
-status: draft
-owner: tim
-created: 2026-04-13
-last_updated: 2026-04-17
 phase: 0
 connects_to:
-  - docs/architecture/principles/DESIGN-PRINCIPLES.md#p-21
-  - docs/DECISION-LOG.md#d-117
-  - docs/DECISION-LOG.md#d-118
-  - docs/DECISION-LOG.md#d-119
-  - docs/DECISION-LOG.md#d-120
-  - docs/DECISION-LOG.md#d-121
-  - docs/subsystems/integration/CONTRACT.md
-  - docs/subsystems/knowledge/CONTRACT.md
-  - docs/subsystems/graph/CONTRACT.md
-  - docs/subsystems/memory/CONTRACT.md
-  - docs/subsystems/storage/CONTRACT.md
+- docs/architecture/principles/DESIGN-PRINCIPLES.md#p-21
+- docs/DECISION-LOG.md#d-117
+- docs/DECISION-LOG.md#d-118
+- docs/DECISION-LOG.md#d-119
+- docs/DECISION-LOG.md#d-120
+- docs/DECISION-LOG.md#d-121
+- docs/subsystems/integration/CONTRACT.md
+- docs/subsystems/knowledge/CONTRACT.md
+- docs/subsystems/graph/CONTRACT.md
+- docs/subsystems/memory/CONTRACT.md
+- docs/subsystems/storage/CONTRACT.md
 ---
 
 # CIP Architecture — Phase 0: Data Model & Tenant Architecture

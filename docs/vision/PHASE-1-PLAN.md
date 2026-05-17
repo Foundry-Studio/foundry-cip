@@ -1,24 +1,54 @@
 ---
-kind: doc
-domain: client-intelligence-platform
+id: CIP-SPEC-005
+uuid: e4f3107c-b6b7-4575-9433-4942673bf748
+title: 'CIP Phase 1 — Plain Jane: Tenant-Neutral Blank-Slate Product'
+type: spec
+owner: tim
+solve_for: Phase 1 binding plan — milestone-by-milestone execution plan that produced
+  the foundation we have today.
+stage_label: adopt
+domain: meta
+version: '1.0'
+created: '2026-04-17'
+last_modified: '2026-04-20'
+last_reviewed: '2026-05-16'
+review_cadence: 365
 project_id: client-intelligence-platform
 pm_project_id: 596825db-61bc-4899-bc6c-e207489ca35d
 phase: 1
 shape: plain-jane
-status: locked
-owner: tim
-authors: [tim, atlas]
-created: 2026-04-17
-last_updated: 2026-04-20
-supersedes: >
-  (1) 2026-04-17 Shape D (Wayward-as-primary-tenant + Zendesk/HubSpot connectors bundled into Phase 1) — rescoped 2026-04-20 per Tim's "plain jane CIP" directive. Wayward specifics moved to Phase 2 Wayward Onboarding. Rocky Ridge remains Phase 3.
-  (2) 2026-04-20 evening cip_09 insertion (cross-tenant grants schema-only in Phase 1) — moved to Phase 3 so Phase 1 ships pure plain-jane plumbing. Grants schema + runtime both live in Phase 3 where the multi-tenant proof actually exercises them.
+authors:
+- tim
+- atlas
+supersedes: '(1) 2026-04-17 Shape D (Wayward-as-primary-tenant + Zendesk/HubSpot connectors
+  bundled into Phase 1) — rescoped 2026-04-20 per Tim''s "plain jane CIP" directive.
+  Wayward specifics moved to Phase 2 Wayward Onboarding. Rocky Ridge remains Phase
+  3. (2) 2026-04-20 evening cip_09 insertion (cross-tenant grants schema-only in Phase
+  1) — moved to Phase 3 so Phase 1 ships pure plain-jane plumbing. Grants schema +
+  runtime both live in Phase 3 where the multi-tenant proof actually exercises them.
+
+  '
 appetite: session-bound (milestone-ordered, not week-ordered)
 primary_tenant: none — fixture tenant only (synthetic deterministic data)
-locks: [D-117, D-118, D-119, D-120, D-121, P-21]
-pillars_lit: [ingestion-framework, structured-store, unstructured-store, lens-engine, consumption-surfaces-partial, access-ops-minimum]
-pillars_dark: [push-sync, intelligence-alerts]
-consumer_acceptance: fixture-tenant-demo-shows-two-lenses-switching + ten-doc-suite-published + four-access-paths-validated
+locks:
+- D-117
+- D-118
+- D-119
+- D-120
+- D-121
+- P-21
+pillars_lit:
+- ingestion-framework
+- structured-store
+- unstructured-store
+- lens-engine
+- consumption-surfaces-partial
+- access-ops-minimum
+pillars_dark:
+- push-sync
+- intelligence-alerts
+consumer_acceptance: fixture-tenant-demo-shows-two-lenses-switching + ten-doc-suite-published
+  + four-access-paths-validated
 ---
 
 # CIP Phase 1 — Plain Jane: Tenant-Neutral Blank-Slate Product

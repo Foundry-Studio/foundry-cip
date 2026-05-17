@@ -1,7 +1,18 @@
 ---
-kind: doc
-domain: client-intelligence-platform
-status: reference
+id: CIP-SPEC-009
+uuid: 12e165ca-6213-470e-a015-0d9ffc9c8668
+title: CIP Extraction Reference
+type: spec
+owner: tim
+solve_for: Reference history of how foundry-cip was extracted from the Foundry-Agent-System
+  monorepo, preserved for audit.
+stage_label: adopt
+domain: meta
+version: '1.0'
+created: '2026-04-30'
+last_modified: '2026-05-16'
+last_reviewed: '2026-05-16'
+review_cadence: 365
 ---
 
 # CIP Extraction Reference

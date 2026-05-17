@@ -1,3 +1,19 @@
+---
+id: CIP-SOP-007
+uuid: 33ce2596-13c4-4d55-8daa-70dda9894cdd
+title: 'foundry: kind=doc domain=client-intelligence-platform'
+type: sop
+owner: tim
+solve_for: Per-connector operator guide for the HubSpot connector — auth, rate limits,
+  property handling, gotchas.
+stage_label: adopt
+domain: eng
+version: '1.0'
+created: '2026-05-15'
+last_modified: '2026-05-16'
+last_reviewed: '2026-05-16'
+review_cadence: 90
+---
 # foundry: kind=doc domain=client-intelligence-platform
 ---
 kind: doc

@@ -1,8 +1,17 @@
 ---
-kind: doc
-domain: client-intelligence-platform
-status: note
-created: 2026-04-06
+id: CIP-BP-913
+uuid: c08f6fa6-b275-4444-8601-d0b7394457bd
+title: Vision Conversation Log — 2026-04-06
+type: best-practice
+owner: tim
+solve_for: Retired/archived artifact retained for audit and historical context — 03-vision-conversation-log.md.
+stage_label: retire
+domain: meta
+version: '1.0'
+created: '2026-04-06'
+last_modified: '2026-05-16'
+last_reviewed: '2026-05-16'
+review_cadence: 9999
 ---
 
 # Vision Conversation Log — 2026-04-06

@@ -1,13 +1,23 @@
 ---
-kind: doc
-domain: client-intelligence-platform
-status: archived
+id: CIP-SPEC-905
+uuid: 88e832c0-cad4-4bfb-8cf2-dfa61fa09e38
+title: 'Archived: `stages/` Folder (Superseded 2026-04-20)'
+type: spec
+owner: tim
+solve_for: Retired/archived artifact retained for audit and historical context — README.md.
+stage_label: retire
+domain: meta
+version: '1.0'
+created: '2026-04-21'
+last_modified: '2026-05-16'
+last_reviewed: '2026-05-16'
+review_cadence: 9999
 archived_on: 2026-04-20
 archived_by: atlas (Tim-authorized hardening sweep)
 supersedes: ../../stages/
 replaced_by:
-  - ../../vision/ROADMAP.md
-  - ../../vision/PHASE-1-PLAN.md
+- ../../vision/ROADMAP.md
+- ../../vision/PHASE-1-PLAN.md
 ---
 
 # Archived: `stages/` Folder (Superseded 2026-04-20)

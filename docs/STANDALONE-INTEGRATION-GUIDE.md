@@ -1,11 +1,22 @@
 ---
-kind: doc
-domain: client-intelligence-platform
-status: stub
-purpose: "Bare-minimum integration guide for an external developer using foundry-cip without Foundry's runtime."
+id: CIP-SOP-014
+uuid: 390d7cc9-a473-494d-9c83-6757955d8bff
+title: Standalone Integration Guide
+type: sop
 owner: tim
-created: 2026-04-27
-fill_when: "First external (non-Foundry) consumer expresses interest, OR foundry-cip's first PyPI release (whichever first)."
+solve_for: 'Guide for consuming foundry-cip from a non-Foundry codebase. Stub; fill_when:
+  external consumer / PyPI.'
+stage_label: assess
+domain: eng
+version: '1.0'
+created: '2026-04-27'
+last_modified: '2026-05-16'
+last_reviewed: '2026-05-16'
+review_cadence: 180
+purpose: Bare-minimum integration guide for an external developer using foundry-cip
+  without Foundry's runtime.
+fill_when: First external (non-Foundry) consumer expresses interest, OR foundry-cip's
+  first PyPI release (whichever first).
 ---
 
 # Standalone Integration Guide

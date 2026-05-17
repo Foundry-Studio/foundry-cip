@@ -1,11 +1,21 @@
 ---
-kind: doc
-domain: client-intelligence-platform
-status: stub
-purpose: "Incident-response playbook: what fails, how it surfaces, how to recover."
+id: CIP-SOP-015
+uuid: 4f5516dc-921d-49a6-93f9-703995c4d16e
+title: Troubleshooting and Incident Response
+type: sop
 owner: tim
-created: 2026-04-27
-fill_when: "First Phase 2 production incident OR Phase 6 (Intelligence & Alerts), whichever first. Stub is updated incrementally as incidents accumulate."
+solve_for: Operator playbook for diagnosing and resolving CIP incidents. Filled incrementally
+  as incidents occur.
+stage_label: assess
+domain: ops
+version: '1.0'
+created: '2026-04-27'
+last_modified: '2026-05-16'
+last_reviewed: '2026-05-16'
+review_cadence: 90
+purpose: 'Incident-response playbook: what fails, how it surfaces, how to recover.'
+fill_when: First Phase 2 production incident OR Phase 6 (Intelligence & Alerts), whichever
+  first. Stub is updated incrementally as incidents accumulate.
 ---
 
 # Troubleshooting and Incident Response

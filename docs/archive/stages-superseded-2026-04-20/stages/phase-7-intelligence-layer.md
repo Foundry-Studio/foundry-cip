@@ -1,7 +1,17 @@
 ---
-kind: doc
-domain: client-intelligence-platform
-status: archived
+id: CIP-SPEC-913
+uuid: 34150a52-f31b-441b-beca-2b9da6ef0508
+title: phase-7-intelligence-layer — Stage Plan
+type: spec
+owner: tim
+solve_for: Retired/archived artifact retained for audit and historical context — phase-7-intelligence-layer.md.
+stage_label: retire
+domain: meta
+version: '1.0'
+created: '2026-04-20'
+last_modified: '2026-05-16'
+last_reviewed: '2026-05-16'
+review_cadence: 9999
 archived_on: 2026-04-20
 supersedes: superseded by docs/vision/ROADMAP.md + docs/vision/PHASE-1-PLAN.md
 ---

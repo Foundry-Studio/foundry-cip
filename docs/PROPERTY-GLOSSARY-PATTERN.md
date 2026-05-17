@@ -1,10 +1,26 @@
 ---
-kind: doc
-domain: client-intelligence-platform
-status: active
-last_updated: 2026-05-16
-authors: [tim, cc-session-2026-05-16]
-audience: [connector maintainers, new-tenant operators, agents querying CIP data, anyone who reads CIP data]
+id: CIP-SOP-016
+uuid: 1e6f3b1c-d25b-41d3-a9d8-a68d9a02ae02
+title: The Tenant Property Glossary — CIP's plain-English semantic layer
+type: sop
+owner: tim
+solve_for: Pattern for authoring tenant-property glossaries — the plain-English semantic
+  layer with confidence levels over connector data.
+stage_label: adopt
+domain: dat
+version: '1.0'
+created: '2026-05-16'
+last_modified: '2026-05-16'
+last_reviewed: '2026-05-16'
+review_cadence: 90
+authors:
+- tim
+- cc-session-2026-05-16
+audience:
+- connector maintainers
+- new-tenant operators
+- agents querying CIP data
+- anyone who reads CIP data
 ---
 
 # The Tenant Property Glossary — CIP's plain-English semantic layer

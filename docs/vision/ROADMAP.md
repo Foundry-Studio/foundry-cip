@@ -1,20 +1,55 @@
 ---
-kind: doc
-domain: client-intelligence-platform
+id: CIP-SPEC-008
+uuid: 0ddb2af5-06ed-4d5b-85eb-f634bb6c1787
+title: CIP Roadmap — Pillar-Aligned Phases
+type: spec
+owner: tim
+solve_for: CIP roadmap — phase-by-phase sequencing and current state. Updated as phases
+  land.
+stage_label: adopt
+domain: meta
+version: '1.0'
+created: '2026-04-13'
+last_modified: '2026-05-15'
+last_reviewed: '2026-05-16'
+review_cadence: 90
 project_id: client-intelligence-platform
 pm_project_id: 596825db-61bc-4899-bc6c-e207489ca35d
-status: active
-owner: tim
-created: 2026-04-13
-last_updated: 2026-05-15
-supersedes: >
-  (1) Previous 8-phase release-shaped roadmap (pre-pillar-restructure) — superseded 2026-04-17 per D-117 + Shape D lock.
-  (2) 2026-04-20 M0 Vision Revisit — inserted Phase 2.5 (Foundry Self-Tenant + Early Write-Back) between Phase 2 and Phase 3 per Tim's directive "sooner rather than later" on write-back readiness. Pillar 1 description extended with explicit connector-agnostic posture. Added Related-products pointer at `products/foundry-chatbot/`.
-  (3) 2026-04-20 Plain-Jane Reshape — Phase 1 rewired to a blank-slate tenant-neutral product validated against a synthetic FixtureConnector, not Wayward. Wayward onboarding pulled into Phase 2 (now "Wayward Onboarding — Full Round-Trip") so Wayward is its own end-to-end proof instead of a Phase 1 ingredient. cip_09 (cross_tenant_grants) migration moved from Phase 1 to Phase 3 so schema + runtime ship together. Phase 2.5 trimmed to write-back only (push stays in Phase 2). All week-based appetites dropped — phases are session-bound and milestone-ordered, not calendar-bound. Phase 1 now explicitly ships 10 documentation artifacts alongside the plain-jane product.
-  (4) 2026-05-09 connector posture refresh — QBO removed from planned connector inventory; Plaid replaces it as the planned financial connector. Bob (current QBO-using app) is being rebuilt against Plaid by Tim; rebuilt Bob is its own product line, not a CIP tenant. CIP framework still connector-agnostic per D-118.
-  (5) 2026-05-09 — added Procedures section capturing "Add a Use Case" onboarding ritual (PM scope 0e9b06e6, vision-pending). Cross-phase deliverable surfaced during M4 closeout discussion.
-  (6) 2026-05-15 migration-slot reconciliation — actual deployed `alembic` chain on Railway prod has consumed `cip_09` (metabase role views, M5), `cip_10` (history lens views, M5), and `cip_11` (sync_mode_backfill hotfix for D-159 — added during the Wayward Phase 2 incident response on 2026-05-14/15). The original Phase 2.5 plan reserved `cip_10`/`cip_11`/`cip_12` for write-back tables, and the original Phase 1 plan reserved `cip_09` for `cross_tenant_grants` schema (Phase 3). Both reservations are obsolete. New numbering: Phase 2.5 write-back uses **`cip_12`** (`cip_pending_writes`), **`cip_13`** (`cip_write_authorities`), **`cip_14`** (`cip_write_decisions`). Phase 3 cross-tenant grants uses **`cip_15`** (or next-free at Phase 3 kickoff). Updated in Phase 2.5 block, supersession table, MIGRATION-RUNBOOK.md, PHASE-2.5-PLAN.md.
-  (7) 2026-05-15 — added `vision/PHASE-2-WAYWARD-WDGLL.md` as the Phase 2 What-Does-Good-Look-Like artifact. Per the docs-per-phase pattern ("Each phase gets its own VISION/WDGLL/SPEC/PLAN doc"), this slot was missing for Phase 2 even though Wayward onboarding is the active phase. Tim asked for it during the 2026-05-15 vision review while Wayward HubSpot historical backfill + Zendesk current-state sync were live-running.
+supersedes: '(1) Previous 8-phase release-shaped roadmap (pre-pillar-restructure)
+  — superseded 2026-04-17 per D-117 + Shape D lock. (2) 2026-04-20 M0 Vision Revisit
+  — inserted Phase 2.5 (Foundry Self-Tenant + Early Write-Back) between Phase 2 and
+  Phase 3 per Tim''s directive "sooner rather than later" on write-back readiness.
+  Pillar 1 description extended with explicit connector-agnostic posture. Added Related-products
+  pointer at `products/foundry-chatbot/`. (3) 2026-04-20 Plain-Jane Reshape — Phase
+  1 rewired to a blank-slate tenant-neutral product validated against a synthetic
+  FixtureConnector, not Wayward. Wayward onboarding pulled into Phase 2 (now "Wayward
+  Onboarding — Full Round-Trip") so Wayward is its own end-to-end proof instead of
+  a Phase 1 ingredient. cip_09 (cross_tenant_grants) migration moved from Phase 1
+  to Phase 3 so schema + runtime ship together. Phase 2.5 trimmed to write-back only
+  (push stays in Phase 2). All week-based appetites dropped — phases are session-bound
+  and milestone-ordered, not calendar-bound. Phase 1 now explicitly ships 10 documentation
+  artifacts alongside the plain-jane product. (4) 2026-05-09 connector posture refresh
+  — QBO removed from planned connector inventory; Plaid replaces it as the planned
+  financial connector. Bob (current QBO-using app) is being rebuilt against Plaid
+  by Tim; rebuilt Bob is its own product line, not a CIP tenant. CIP framework still
+  connector-agnostic per D-118. (5) 2026-05-09 — added Procedures section capturing
+  "Add a Use Case" onboarding ritual (PM scope 0e9b06e6, vision-pending). Cross-phase
+  deliverable surfaced during M4 closeout discussion. (6) 2026-05-15 migration-slot
+  reconciliation — actual deployed `alembic` chain on Railway prod has consumed `cip_09`
+  (metabase role views, M5), `cip_10` (history lens views, M5), and `cip_11` (sync_mode_backfill
+  hotfix for D-159 — added during the Wayward Phase 2 incident response on 2026-05-14/15).
+  The original Phase 2.5 plan reserved `cip_10`/`cip_11`/`cip_12` for write-back tables,
+  and the original Phase 1 plan reserved `cip_09` for `cross_tenant_grants` schema
+  (Phase 3). Both reservations are obsolete. New numbering: Phase 2.5 write-back uses
+  **`cip_12`** (`cip_pending_writes`), **`cip_13`** (`cip_write_authorities`), **`cip_14`**
+  (`cip_write_decisions`). Phase 3 cross-tenant grants uses **`cip_15`** (or next-free
+  at Phase 3 kickoff). Updated in Phase 2.5 block, supersession table, MIGRATION-RUNBOOK.md,
+  PHASE-2.5-PLAN.md. (7) 2026-05-15 — added `vision/PHASE-2-WAYWARD-WDGLL.md` as the
+  Phase 2 What-Does-Good-Look-Like artifact. Per the docs-per-phase pattern ("Each
+  phase gets its own VISION/WDGLL/SPEC/PLAN doc"), this slot was missing for Phase
+  2 even though Wayward onboarding is the active phase. Tim asked for it during the
+  2026-05-15 vision review while Wayward HubSpot historical backfill + Zendesk current-state
+  sync were live-running.'
 ---
 
 # CIP Roadmap — Pillar-Aligned Phases

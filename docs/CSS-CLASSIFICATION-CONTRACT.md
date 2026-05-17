@@ -1,8 +1,18 @@
 ---
-kind: doc
-domain: client-intelligence-platform
-status: draft
-last_updated: 2026-05-09
+id: CIP-K01
+uuid: ae7524b9-ef2e-402d-a9a2-782aacb4b8a1
+title: CIP CSS Classification Contract
+type: contract
+owner: tim
+solve_for: Contract for how CIP content classifies under the JOS triad CSS dimension.
+  Currently skeleton; populated in M8 Block 1c.
+stage_label: assess
+domain: doc
+version: '1.0'
+created: '2026-04-21'
+last_modified: '2026-05-09'
+last_reviewed: '2026-05-16'
+review_cadence: 180
 milestone: Phase-1-M3
 ---
 

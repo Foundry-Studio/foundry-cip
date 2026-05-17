@@ -1,8 +1,17 @@
 ---
-kind: doc
-domain: client-intelligence-platform
-status: note
-created: 2026-04-06
+id: CIP-BP-921
+uuid: f619ae2e-7b32-430c-8451-5c0f71c0952d
+title: Industry Research — Knowledge Base / Client Intelligence Products
+type: best-practice
+owner: tim
+solve_for: Retired/archived artifact retained for audit and historical context — industry-landscape.md.
+stage_label: retire
+domain: str
+version: '1.0'
+created: '2026-04-06'
+last_modified: '2026-05-16'
+last_reviewed: '2026-05-16'
+review_cadence: 9999
 ---
 
 # Industry Research — Knowledge Base / Client Intelligence Products

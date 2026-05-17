@@ -1,107 +1,197 @@
 ---
-kind: doc
-domain: client-intelligence-platform
+id: CIP-SPEC-901
+uuid: 4bfe7767-a969-4906-a591-6e565a1abb16
+title: Foundry-CIP Repo Extraction Plan
+type: spec
+owner: tim
+solve_for: Retired/archived artifact retained for audit and historical context — cip-extraction-plan-v4.2.1.md.
+stage_label: retire
+domain: meta
+version: v4.2
+created: '2026-04-27'
+last_modified: '2026-04-29'
+last_reviewed: '2026-05-16'
+review_cadence: 9999
 project_id: client-intelligence-platform
 pm_project_id: 596825db-61bc-4899-bc6c-e207489ca35d
-status: archived
-owner: tim
 author: Atlas (Cowork)
 executor: Claude Code (terminal CLI)
-created: 2026-04-27
-last_updated: 2026-04-29
-version: v4.2
 extraction_target: foundry-cip
 extraction_org: Foundry-Studio
 modeled_after: WORKBENCH/tim/jos-phase8-repo-split-plan.md
-supersedes: >
-  (1) Cowork tasks #58 + #59 placeholder descriptions ("Create foundry-cip repo scaffolding" / "Move 8 CIP migrations") — this plan provides the executable detail those placeholders point at.
-  (2) v1 (2026-04-27 morning) — superseded by v2 (2026-04-27 afternoon) after 3-subagent QC round (Stress Tester / Gap Analyst / Senior Reviewer) surfaced ~40 mechanical fixes + 7 architectural calls Tim resolved in-turn.
-  (3) v2 (2026-04-27 afternoon) — superseded by v3 (2026-04-28) after 2-round LLM expert panel via foundry_mcp_consult_panel_expert. Round 1 surfaced 4 critical findings (Q6 packaging bug, Q3 chain-skip approach split, env-table cross-pollution, schema-compat check). Round 2 forced decisive answers — 7/7 unanimous on Option A pmmg01 sed-rewrite, 7/7 on move-into-package, 6/7 on Sketch 2 cross-pollution guard, 6/7 on runtime schema-compat check. Tim made final calls on the 3 lingering items via principles: YES entry-point console script (T9 discoverability), YES runtime schema-compat (T1 + T7 + D-026 defense-in-depth), runtime ScriptDirectory implementation (T8 no-post-hoc-memory).
-  (4) v3 (2026-04-28) — superseded by v4 (2026-04-29) after Round-4 LLM panel on the M2 plan surfaced 6 patches landing in M2 plan v5 + a D-133 amendment (KnowledgeText.metadata becomes TypedDict). v4 of THIS extraction plan re-pins the M2 cross-references (v4 → v5), notes the D-133 amendment in related_decisions, and re-runs a 3-subagent QC round (Stress Tester / Gap Analyst / Senior Plan Reviewer) against the post-amendment plan as a forward-guard.
-v4_revision_summary: >
-  Comprehensive QC + research-driven hardening. ~250 lines net change across plan + 12 artifacts.
-  CROSS-REF SWEEP (planned):
-  - Frontmatter: version v3 → v4, last_updated 2026-04-28 → 2026-04-29.
-  - §1.3 M2 plan version check: grep expects "v5" not "v4". D-133 amendment landed-check added.
-  - §0.2, §3.2, §6, §7, §8, §10.5, §12 cross-refs to "M2 plan v4" → "M2 plan v5".
-  - related_decisions: D-133 line annotated as amended 2026-04-29 (TypedDict).
-  QC ROUND 4 INCORPORATED (3 subagents 2026-04-29 — 73 findings, ~25 incorporated, ~25 falsified, ~23 polish-deferred):
-  BLOCKERS resolved:
-  - D-142 → D-152 collision sweep (Senior CONC-1, BLOCKER): D-142 was already taken in DECISION-LOG.md by "Async-First Contract for Long-Running LLM Tools." Renumbered to D-152 across plan + 9 artifact files.
-  - script.py.mako (Gap GAP-02 / Stress S5-2): Alembic revision template was missing from artifacts; without it, `alembic revision -m "..."` raises FileNotFoundError. Added to templates/ + extract-cip.sh copy step.
-  - cip/migrations/__init__.py + versions/__init__.py (Gap GAP-03): script_location="cip:migrations" cannot resolve via importlib without these. Added to extract-cip.sh.
-  - fileConfig(None) crash (Gap GAP-04): env.py raises TypeError when invoked via in-memory Config. Wrapped in None guard.
-  - requirements.txt hand-edit (Stress S5-1, FND-S13 violation): update-foundry.sh + plan §6.8c rewritten — edit requirements.in, recompile via uv pip compile. Both gated.
-  ARCHITECTURAL DECISIONS (3 items Tim delegated for research-backed call):
-  - ITEM 1 (Senior CONC-2): foundry-cip-migrate wrapper REDUCED to `check` only. Industry data: don't wrap stable upstream CLIs without orchestration; D-018/031/077 wrap-external-libs is for LLM Roster which adds real orchestration. Plain alembic passthrough doesn't earn that pattern. Tim Decision-1 (T9 discoverability) preserved for the value-add command.
-  - ITEM 2 (Stress S4-1): Cross-pollution guard advisory-lock DEFERRED to Phase 8. Industry data: pg_advisory_xact_lock is standard but + PgBouncer-style pooling hangs (IBM mcp-context-forge issue #4051); at our pre-Phase-8 single-deployment scale the TOCTOU window is non-exploitable. Documented as known-limitation in §10.11.
-  - ITEM 3 (Senior CONC-10): Python `<3.13` upper bound DROPPED + matrix expanded to 3.11-3.14. PyPA explicitly warns against caps for libraries.
-  HARDENING (incorporated mechanically):
-  - lru_cache footgun in check_schema_compatibility (Senior CONC-3): replaced with (db_url, package_head)-keyed dict + threading.Lock. Auto-invalidates on package advance.
-  - _get_package_head() fragile resource path (Senior CONC-12): switched to alembic.config.Config + ScriptDirectory.from_config — handles wheel/zip-installed packages.
-  - Symmetric cross-pollution guard (Senior CONC-4): env.py also asserts alembic_version_cip has only cip_*-prefixed revisions.
-  - Wheel-install CI job (Senior CONC-17 + Gap GAP-23): new job builds + installs wheel, asserts migrations + script.py.mako + env.py ship inside the wheel, runs `alembic upgrade head` from wheel-installed package.
-  - Cross-pollution guard CI test (Gap GAP-16): new job seeds foreign alembic_version row, asserts upgrade fails with cross-pollution error, asserts FOUNDRY_CIP_ALLOW_CROSS_CHAIN=1 override works.
-  - sed pattern tightening (Senior CONC-14): both cip_01 and pmmg01 down_revision rewrites now use anchored ^...$ patterns + pre-edit single-match assertion + post-edit single-match assertion (catches structural corruption).
-  - update-foundry.sh manual-edit verification (Senior CONC-15): no longer trusts "yes" on the Atlas-orchestrated edits gate — actually greps for the required content.
-  - Pre-flight 1.5d/e/f/g (Gap GAP-05/06/07): disk space ≥2GB, docker daemon running, repo name available pre-checks.
+supersedes: '(1) Cowork tasks #58 + #59 placeholder descriptions ("Create foundry-cip
+  repo scaffolding" / "Move 8 CIP migrations") — this plan provides the executable
+  detail those placeholders point at. (2) v1 (2026-04-27 morning) — superseded by
+  v2 (2026-04-27 afternoon) after 3-subagent QC round (Stress Tester / Gap Analyst
+  / Senior Reviewer) surfaced ~40 mechanical fixes + 7 architectural calls Tim resolved
+  in-turn. (3) v2 (2026-04-27 afternoon) — superseded by v3 (2026-04-28) after 2-round
+  LLM expert panel via foundry_mcp_consult_panel_expert. Round 1 surfaced 4 critical
+  findings (Q6 packaging bug, Q3 chain-skip approach split, env-table cross-pollution,
+  schema-compat check). Round 2 forced decisive answers — 7/7 unanimous on Option
+  A pmmg01 sed-rewrite, 7/7 on move-into-package, 6/7 on Sketch 2 cross-pollution
+  guard, 6/7 on runtime schema-compat check. Tim made final calls on the 3 lingering
+  items via principles: YES entry-point console script (T9 discoverability), YES runtime
+  schema-compat (T1 + T7 + D-026 defense-in-depth), runtime ScriptDirectory implementation
+  (T8 no-post-hoc-memory). (4) v3 (2026-04-28) — superseded by v4 (2026-04-29) after
+  Round-4 LLM panel on the M2 plan surfaced 6 patches landing in M2 plan v5 + a D-133
+  amendment (KnowledgeText.metadata becomes TypedDict). v4 of THIS extraction plan
+  re-pins the M2 cross-references (v4 → v5), notes the D-133 amendment in related_decisions,
+  and re-runs a 3-subagent QC round (Stress Tester / Gap Analyst / Senior Plan Reviewer)
+  against the post-amendment plan as a forward-guard.
+
+  '
+v4_revision_summary: 'Comprehensive QC + research-driven hardening. ~250 lines net
+  change across plan + 12 artifacts. CROSS-REF SWEEP (planned): - Frontmatter: version
+  v3 → v4, last_updated 2026-04-28 → 2026-04-29. - §1.3 M2 plan version check: grep
+  expects "v5" not "v4". D-133 amendment landed-check added. - §0.2, §3.2, §6, §7,
+  §8, §10.5, §12 cross-refs to "M2 plan v4" → "M2 plan v5". - related_decisions: D-133
+  line annotated as amended 2026-04-29 (TypedDict). QC ROUND 4 INCORPORATED (3 subagents
+  2026-04-29 — 73 findings, ~25 incorporated, ~25 falsified, ~23 polish-deferred):
+  BLOCKERS resolved: - D-142 → D-152 collision sweep (Senior CONC-1, BLOCKER): D-142
+  was already taken in DECISION-LOG.md by "Async-First Contract for Long-Running LLM
+  Tools." Renumbered to D-152 across plan + 9 artifact files. - script.py.mako (Gap
+  GAP-02 / Stress S5-2): Alembic revision template was missing from artifacts; without
+  it, `alembic revision -m "..."` raises FileNotFoundError. Added to templates/ +
+  extract-cip.sh copy step. - cip/migrations/__init__.py + versions/__init__.py (Gap
+  GAP-03): script_location="cip:migrations" cannot resolve via importlib without these.
+  Added to extract-cip.sh. - fileConfig(None) crash (Gap GAP-04): env.py raises TypeError
+  when invoked via in-memory Config. Wrapped in None guard. - requirements.txt hand-edit
+  (Stress S5-1, FND-S13 violation): update-foundry.sh + plan §6.8c rewritten — edit
+  requirements.in, recompile via uv pip compile. Both gated. ARCHITECTURAL DECISIONS
+  (3 items Tim delegated for research-backed call): - ITEM 1 (Senior CONC-2): foundry-cip-migrate
+  wrapper REDUCED to `check` only. Industry data: don''t wrap stable upstream CLIs
+  without orchestration; D-018/031/077 wrap-external-libs is for LLM Roster which
+  adds real orchestration. Plain alembic passthrough doesn''t earn that pattern. Tim
+  Decision-1 (T9 discoverability) preserved for the value-add command. - ITEM 2 (Stress
+  S4-1): Cross-pollution guard advisory-lock DEFERRED to Phase 8. Industry data: pg_advisory_xact_lock
+  is standard but + PgBouncer-style pooling hangs (IBM mcp-context-forge issue #4051);
+  at our pre-Phase-8 single-deployment scale the TOCTOU window is non-exploitable.
+  Documented as known-limitation in §10.11. - ITEM 3 (Senior CONC-10): Python `<3.13`
+  upper bound DROPPED + matrix expanded to 3.11-3.14. PyPA explicitly warns against
+  caps for libraries. HARDENING (incorporated mechanically): - lru_cache footgun in
+  check_schema_compatibility (Senior CONC-3): replaced with (db_url, package_head)-keyed
+  dict + threading.Lock. Auto-invalidates on package advance. - _get_package_head()
+  fragile resource path (Senior CONC-12): switched to alembic.config.Config + ScriptDirectory.from_config
+  — handles wheel/zip-installed packages. - Symmetric cross-pollution guard (Senior
+  CONC-4): env.py also asserts alembic_version_cip has only cip_*-prefixed revisions.
+  - Wheel-install CI job (Senior CONC-17 + Gap GAP-23): new job builds + installs
+  wheel, asserts migrations + script.py.mako + env.py ship inside the wheel, runs
+  `alembic upgrade head` from wheel-installed package. - Cross-pollution guard CI
+  test (Gap GAP-16): new job seeds foreign alembic_version row, asserts upgrade fails
+  with cross-pollution error, asserts FOUNDRY_CIP_ALLOW_CROSS_CHAIN=1 override works.
+  - sed pattern tightening (Senior CONC-14): both cip_01 and pmmg01 down_revision
+  rewrites now use anchored ^...$ patterns + pre-edit single-match assertion + post-edit
+  single-match assertion (catches structural corruption). - update-foundry.sh manual-edit
+  verification (Senior CONC-15): no longer trusts "yes" on the Atlas-orchestrated
+  edits gate — actually greps for the required content. - Pre-flight 1.5d/e/f/g (Gap
+  GAP-05/06/07): disk space ≥2GB, docker daemon running, repo name available pre-checks.
   - NOTICE file (Gap GAP-19): Apache 2.0 attribution best-practice file at repo root.
   - 11 new acceptance criteria (#47-#57) + 1 D-142-collision-resolved criterion (#58).
-  GREENFIELD ALTERNATIVE (Senior CONC-11): documented in §0.4 the explicit rejection rationale (filter-repo retains modest historical value; greenfield isn't earned at our scale).
-  PHASE-8-DEFERRED concerns (Senior CONC-7 GitHub service account, advisory lock per ITEM 2): documented in §10.12 as known operational debt with explicit Phase 8 trigger.
-  Subagent reports + raw findings archived at WORKBENCH/tim/cip-extraction-plan-qc-2026-04-29.md.
-v4_1_revision_summary: >
-  Round-5 verification pass (2 subagents — The Verifier + The Behavioral Delta — 2026-04-29).
-  4 patches applied:
-  - VERIFY-1 (Behavioral Delta): tests/db/test_sk08_migration::test_alembic_can_load_migration would FAIL in the transient window between §6.3 (pmmg01 rewrite) and §6.2 (cip_* deletions) when committed separately. Fix: combined §6.3 + §6.2 into ONE atomic commit in update-foundry.sh; pmmg01 stage but no commit until §6.2 finishes; single commit message names both operations. Eliminates the multi-head transient.
-  - VERIFY-2 (Verifier mismatch #20): monorepo pyproject.toml has NO [project] section (it's pytest/ruff config only; packaging is via requirements.in/.txt). Fix: §6.8c rewritten to clarify the pin lives EXCLUSIVELY in requirements.in/.txt; update-foundry.sh now does `git add requirements.in requirements.txt` only (not pyproject.toml).
-  - VERIFY-3 (Verifier mismatch #25): all 8 cip_*.py source migrations have CRLF line endings on disk; without normalization, acceptance #45 (LF endings) fails post-extraction. Fix: extract-cip.sh now runs `dos2unix` on all 8 cip_*.py files post-mv into cip/migrations/versions/.
-  - VERIFY-4 (Verifier mismatch #24, doc fix): artifacts directory has 30 files, not 26 as README claimed. Pre-flight check is allowlist-based (not count-based), so no script change needed; only README.md updated for accuracy.
-  Confirmed-as-non-issue: Verifier mismatch #17 (Externalized Products section absent — that's the plan's intended ADD), #23 (Python 3.10 in subagent sandbox — not Tim's environment).
-  Subagent reports archived at WORKBENCH/tim/cip-extraction-plan-qc-2026-04-29.md (Round-5 section appended).
-v4_2_revision_summary: >
-  Round-6 LLM expert panel (7-model consult_panel_expert, 6 succeeded, 1 adapter bug; $0.22, ~4 min).
-  Tim's calls: A=accept, B=accept, C=reject (uv workspaces lose on venture-repos-are-separate fact).
-  4 BLOCKERs incorporated:
-  - BLOCKER 1 (TruffleHog/Gitleaks full-history scan on SOURCE monorepo): plan §1.5h NEW. WORKBENCH→products rename does NOT truncate history (4 panel models flagged). Gitleaks `git clone --mirror` + scan with `--log-opts "--all"` BEFORE filter-repo runs. If findings: rotate secrets in source systems FIRST; the leak is already public to monorepo readers.
-  - BLOCKER 2 (wheel content audit + run from outside repo): test.yml `wheel-install` job rewritten. `unzip -l dist/*.whl` audit asserts ≥8 cip_*.py + env.py + script.py.mako + __init__.py files. Then `cd /tmp` before `alembic upgrade head` so source-tree fallback can't mask packaging bugs.
-  - BLOCKER 3 (transitional-mode allowlist): migrations-env.py `assert_no_cross_pollution` rewritten. Old `FOUNDRY_CIP_ALLOW_CROSS_CHAIN=1` was binary-bypass — too coarse for Phase 8 transition. New: `FOUNDRY_CIP_EXPECTED_FOREIGN_REVISIONS="rev1,rev2"` allowlist; guard tolerates listed revisions but still aborts on unexpected. Old env var preserved as deprecated alias for one minor-version window.
-  - BLOCKER 4 (idempotent rollback script): NEW file `rollback-extraction.sh`. Auto-detects 5 situations (extraction not started / repo created+monorepo untouched / committed-not-pushed / pushed-private / pushed-PUBLIC) and prints the inverse sequence. DRY-RUN by default; execute via CIP_ROLLBACK_EXECUTE=1. Plan §11.0 NEW points at script; §11.1-§11.3 retained as authoritative reference matrix.
-  Calls A/B/C applied:
-  - Call A (KnowledgeText.metadata = total=False + boundary validator): M2 plan v5 §4.1 + DECISION-LOG D-133 amendment refined. Mock mappers can emit `metadata={"source_id": ...}` only — orchestrator finalizes the rest before validate_knowledge_text_metadata() at boundary. New KnowledgeMetadataValidationError exception. Kills the lying-mock anti-pattern (Kimi 3-of-6 panel) while preserving fail-loud at boundary (GPT-5.4).
-  - Call B (delete cip-cli.py wrapper, ship `python -m cip.db check`): cip-cli.py file deleted. cip-db.py adds `_cli_main()` + `if __name__ == "__main__"`. pyproject.toml `[project.scripts]` block removed. CLAUDE.md template + extract-cip.sh + plan all updated. Industry pattern (`python -m pip`, `python -m uv`).
-  - Call C (REJECT uv workspaces): plan §0.4 v4 greenfield-rejection note already covers separate-repo rationale; Round-6 loses on the venture-repos-are-separate-Git-repos fact (3-of-6 panel pushers all assumed shared workspace tooling, which CIP doesn't have).
-  Polish incorporated:
-  - `git gc --prune=now --aggressive` post-atomic-commit (Round-6 STRONGLY-RECOMMENDED #4): update-foundry.sh §6.2.5 NEW.
-  - Conventional Commits format on atomic commit: explicit BREAKING CHANGE footer + rollback command line in commit body.
-  - Drop no-op `alembic check` step in CI (Round-6 polish CONC-9): test.yml comment notes removal rationale.
-  - MIN_COMPATIBLE_DB_REVISION constant placeholder in cip-db.py (defaults to head until M3+).
-  Polish NOT YET incorporated (deferred to Phase 1 polish or M2 work):
-  - src/ layout (Kimi single-source). Decision: defer to a v5 polish round; significantly reshapes the package layout and is not blocking for extraction execution.
-  - Replace MockMapper with FakeMapper. Decision: M2 plan v5 polish; not extraction scope.
-  - Provider-SDK extras pattern (`pip install foundry-cip[zendesk,hubspot]`). Decision: M2/M3+ shape decision; not extraction scope.
-  - 2nd admin + 2FA + transfer plan for foundry-cip GitHub repo Day 1 (Round-6 STRONGLY-RECOMMENDED #10). Decision: documented in §10.12 as DAY-1 escalation (was Phase 8 in v4); operator action item, not script-side.
-  Net change: ~600 lines across plan + 8 artifacts + 1 new script. M2 plan v5 → v5.2 inline (no file rename; revision marker in §4.1).
-  Round-6 panel synthesis archived at WORKBENCH/tim/cip-extraction-plan-qc-2026-04-29.md (Round-6 section).
+  GREENFIELD ALTERNATIVE (Senior CONC-11): documented in §0.4 the explicit rejection
+  rationale (filter-repo retains modest historical value; greenfield isn''t earned
+  at our scale). PHASE-8-DEFERRED concerns (Senior CONC-7 GitHub service account,
+  advisory lock per ITEM 2): documented in §10.12 as known operational debt with explicit
+  Phase 8 trigger. Subagent reports + raw findings archived at WORKBENCH/tim/cip-extraction-plan-qc-2026-04-29.md.
+
+  '
+v4_1_revision_summary: 'Round-5 verification pass (2 subagents — The Verifier + The
+  Behavioral Delta — 2026-04-29). 4 patches applied: - VERIFY-1 (Behavioral Delta):
+  tests/db/test_sk08_migration::test_alembic_can_load_migration would FAIL in the
+  transient window between §6.3 (pmmg01 rewrite) and §6.2 (cip_* deletions) when committed
+  separately. Fix: combined §6.3 + §6.2 into ONE atomic commit in update-foundry.sh;
+  pmmg01 stage but no commit until §6.2 finishes; single commit message names both
+  operations. Eliminates the multi-head transient. - VERIFY-2 (Verifier mismatch #20):
+  monorepo pyproject.toml has NO [project] section (it''s pytest/ruff config only;
+  packaging is via requirements.in/.txt). Fix: §6.8c rewritten to clarify the pin
+  lives EXCLUSIVELY in requirements.in/.txt; update-foundry.sh now does `git add requirements.in
+  requirements.txt` only (not pyproject.toml). - VERIFY-3 (Verifier mismatch #25):
+  all 8 cip_*.py source migrations have CRLF line endings on disk; without normalization,
+  acceptance #45 (LF endings) fails post-extraction. Fix: extract-cip.sh now runs
+  `dos2unix` on all 8 cip_*.py files post-mv into cip/migrations/versions/. - VERIFY-4
+  (Verifier mismatch #24, doc fix): artifacts directory has 30 files, not 26 as README
+  claimed. Pre-flight check is allowlist-based (not count-based), so no script change
+  needed; only README.md updated for accuracy. Confirmed-as-non-issue: Verifier mismatch
+  #17 (Externalized Products section absent — that''s the plan''s intended ADD), #23
+  (Python 3.10 in subagent sandbox — not Tim''s environment). Subagent reports archived
+  at WORKBENCH/tim/cip-extraction-plan-qc-2026-04-29.md (Round-5 section appended).
+
+  '
+v4_2_revision_summary: 'Round-6 LLM expert panel (7-model consult_panel_expert, 6
+  succeeded, 1 adapter bug; $0.22, ~4 min). Tim''s calls: A=accept, B=accept, C=reject
+  (uv workspaces lose on venture-repos-are-separate fact). 4 BLOCKERs incorporated:
+  - BLOCKER 1 (TruffleHog/Gitleaks full-history scan on SOURCE monorepo): plan §1.5h
+  NEW. WORKBENCH→products rename does NOT truncate history (4 panel models flagged).
+  Gitleaks `git clone --mirror` + scan with `--log-opts "--all"` BEFORE filter-repo
+  runs. If findings: rotate secrets in source systems FIRST; the leak is already public
+  to monorepo readers. - BLOCKER 2 (wheel content audit + run from outside repo):
+  test.yml `wheel-install` job rewritten. `unzip -l dist/*.whl` audit asserts ≥8 cip_*.py
+  + env.py + script.py.mako + __init__.py files. Then `cd /tmp` before `alembic upgrade
+  head` so source-tree fallback can''t mask packaging bugs. - BLOCKER 3 (transitional-mode
+  allowlist): migrations-env.py `assert_no_cross_pollution` rewritten. Old `FOUNDRY_CIP_ALLOW_CROSS_CHAIN=1`
+  was binary-bypass — too coarse for Phase 8 transition. New: `FOUNDRY_CIP_EXPECTED_FOREIGN_REVISIONS="rev1,rev2"`
+  allowlist; guard tolerates listed revisions but still aborts on unexpected. Old
+  env var preserved as deprecated alias for one minor-version window. - BLOCKER 4
+  (idempotent rollback script): NEW file `rollback-extraction.sh`. Auto-detects 5
+  situations (extraction not started / repo created+monorepo untouched / committed-not-pushed
+  / pushed-private / pushed-PUBLIC) and prints the inverse sequence. DRY-RUN by default;
+  execute via CIP_ROLLBACK_EXECUTE=1. Plan §11.0 NEW points at script; §11.1-§11.3
+  retained as authoritative reference matrix. Calls A/B/C applied: - Call A (KnowledgeText.metadata
+  = total=False + boundary validator): M2 plan v5 §4.1 + DECISION-LOG D-133 amendment
+  refined. Mock mappers can emit `metadata={"source_id": ...}` only — orchestrator
+  finalizes the rest before validate_knowledge_text_metadata() at boundary. New KnowledgeMetadataValidationError
+  exception. Kills the lying-mock anti-pattern (Kimi 3-of-6 panel) while preserving
+  fail-loud at boundary (GPT-5.4). - Call B (delete cip-cli.py wrapper, ship `python
+  -m cip.db check`): cip-cli.py file deleted. cip-db.py adds `_cli_main()` + `if __name__
+  == "__main__"`. pyproject.toml `[project.scripts]` block removed. CLAUDE.md template
+  + extract-cip.sh + plan all updated. Industry pattern (`python -m pip`, `python
+  -m uv`). - Call C (REJECT uv workspaces): plan §0.4 v4 greenfield-rejection note
+  already covers separate-repo rationale; Round-6 loses on the venture-repos-are-separate-Git-repos
+  fact (3-of-6 panel pushers all assumed shared workspace tooling, which CIP doesn''t
+  have). Polish incorporated: - `git gc --prune=now --aggressive` post-atomic-commit
+  (Round-6 STRONGLY-RECOMMENDED #4): update-foundry.sh §6.2.5 NEW. - Conventional
+  Commits format on atomic commit: explicit BREAKING CHANGE footer + rollback command
+  line in commit body. - Drop no-op `alembic check` step in CI (Round-6 polish CONC-9):
+  test.yml comment notes removal rationale. - MIN_COMPATIBLE_DB_REVISION constant
+  placeholder in cip-db.py (defaults to head until M3+). Polish NOT YET incorporated
+  (deferred to Phase 1 polish or M2 work): - src/ layout (Kimi single-source). Decision:
+  defer to a v5 polish round; significantly reshapes the package layout and is not
+  blocking for extraction execution. - Replace MockMapper with FakeMapper. Decision:
+  M2 plan v5 polish; not extraction scope. - Provider-SDK extras pattern (`pip install
+  foundry-cip[zendesk,hubspot]`). Decision: M2/M3+ shape decision; not extraction
+  scope. - 2nd admin + 2FA + transfer plan for foundry-cip GitHub repo Day 1 (Round-6
+  STRONGLY-RECOMMENDED #10). Decision: documented in §10.12 as DAY-1 escalation (was
+  Phase 8 in v4); operator action item, not script-side. Net change: ~600 lines across
+  plan + 8 artifacts + 1 new script. M2 plan v5 → v5.2 inline (no file rename; revision
+  marker in §4.1). Round-6 panel synthesis archived at WORKBENCH/tim/cip-extraction-plan-qc-2026-04-29.md
+  (Round-6 section).
+
+  '
 related_decisions:
-  - D-118 — CIP framework lives in Integration Mesh
-  - D-122 — Domain ownership via CSS tag, not folder location
-  - D-123 — Schema authority via Alembic
-  - D-126 — Non-SQL schema governance (FalkorDB / Pinecone / R2)
-  - D-133 — KnowledgeText return type (amended 2026-04-29 — KnowledgeText.metadata becomes TypedDict; M2 v5 lock + extraction lock)
-  - D-134 — Protocol-based connector framework (M2 v5 lock)
-  - D-135 — App-layer SCD Type 2 (M2 v5 lock)
-  - D-152 — (locks at extraction time) CIP code lives in foundry-cip; monorepo consumes via pip; separate alembic_version tables.
-v2_revision_summary: >
-  Resolved 7 architectural items via Tim 2026-04-27 turn:
-  Q1 — pmmg01_backfill_comments_actor's down_revision rewritten to async_03_agents_cols (cip_01's old parent) — now §6.3.
-  Q2 — 9 RLS test files (tests/migrations/test_rls_cip_*.py + their conftest.py) move to foundry-cip — added to §0.2 inventory.
-  Q3 — Separate alembic_version tables: foundry-cip's env.py uses version_table = "alembic_version_cip"; monorepo keeps default — encoded in §3.10 + §6.3.
-  Q4 — Accept WORKBENCH→products rename history truncation; foundry-cip history starts 2026-04-20; documented in CIP-EXTRACTION-NOTE.md.
-  Q5 — Drop docs/ rename; keep top-level docs/ to align with M2 v4 path-pin. §3.2 + §0.4 updated.
-  Q6 — Lock D-152 documenting the extraction; added to §6 commit batch.
-  Q7 — Private-at-extraction, flip to public after §7 validation passes. §1.8 + §5 updated.
-  Plus ~40 mechanical fixes (CRLF normalization, sed_i portable definition, pre-flight Python check, drop --license flag from gh repo create, expanded doc-drift sweep across 6 new files, pre-generated artifacts directory, repo metadata files, pyproject.toml hardening, tests scaffolding, Atlas receipt template, etc.) — see triage report below.
+- D-118 — CIP framework lives in Integration Mesh
+- D-122 — Domain ownership via CSS tag, not folder location
+- D-123 — Schema authority via Alembic
+- D-126 — Non-SQL schema governance (FalkorDB / Pinecone / R2)
+- D-133 — KnowledgeText return type (amended 2026-04-29 — KnowledgeText.metadata becomes
+  TypedDict; M2 v5 lock + extraction lock)
+- D-134 — Protocol-based connector framework (M2 v5 lock)
+- D-135 — App-layer SCD Type 2 (M2 v5 lock)
+- D-152 — (locks at extraction time) CIP code lives in foundry-cip; monorepo consumes
+  via pip; separate alembic_version tables.
+v2_revision_summary: 'Resolved 7 architectural items via Tim 2026-04-27 turn: Q1 —
+  pmmg01_backfill_comments_actor''s down_revision rewritten to async_03_agents_cols
+  (cip_01''s old parent) — now §6.3. Q2 — 9 RLS test files (tests/migrations/test_rls_cip_*.py
+  + their conftest.py) move to foundry-cip — added to §0.2 inventory. Q3 — Separate
+  alembic_version tables: foundry-cip''s env.py uses version_table = "alembic_version_cip";
+  monorepo keeps default — encoded in §3.10 + §6.3. Q4 — Accept WORKBENCH→products
+  rename history truncation; foundry-cip history starts 2026-04-20; documented in
+  CIP-EXTRACTION-NOTE.md. Q5 — Drop docs/ rename; keep top-level docs/ to align with
+  M2 v4 path-pin. §3.2 + §0.4 updated. Q6 — Lock D-152 documenting the extraction;
+  added to §6 commit batch. Q7 — Private-at-extraction, flip to public after §7 validation
+  passes. §1.8 + §5 updated. Plus ~40 mechanical fixes (CRLF normalization, sed_i
+  portable definition, pre-flight Python check, drop --license flag from gh repo create,
+  expanded doc-drift sweep across 6 new files, pre-generated artifacts directory,
+  repo metadata files, pyproject.toml hardening, tests scaffolding, Atlas receipt
+  template, etc.) — see triage report below.'
 ---
 
 # Foundry-CIP Repo Extraction Plan

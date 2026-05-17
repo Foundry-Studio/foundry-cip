@@ -1,15 +1,25 @@
 ---
-kind: doc
-domain: client-intelligence-platform
+id: CIP-SPEC-004
+uuid: 0ba7f3ec-7fa2-4d09-a672-09c4464f59e5
+title: CIP Phase 1 — Claude Code Handoff SPEC
+type: spec
+owner: tim
+solve_for: Plain-language acceptance criteria for Phase 1 — what must be true for
+  Phase 1 to be considered complete.
+stage_label: adopt
+domain: meta
+version: '1.0'
+created: '2026-04-20'
+last_modified: '2026-05-11'
+last_reviewed: '2026-05-16'
+review_cadence: 365
 project_id: client-intelligence-platform
 phase: 1
 intended_audience: claude-code-architect
-status: authoritative
-owner: tim
-authors: [atlas]
-amendments: [tim-2026-05-11-historical-lens]
-created: 2026-04-20
-last_updated: 2026-05-11
+authors:
+- atlas
+amendments:
+- tim-2026-05-11-historical-lens
 pairs_with: PHASE-1-PLAN.md
 ---
 

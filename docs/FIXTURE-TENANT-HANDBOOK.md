@@ -1,8 +1,18 @@
 ---
-kind: doc
-domain: client-intelligence-platform
-status: skeleton
-last_updated: 2026-04-20
+id: CIP-SOP-011
+uuid: 964ccc7c-b38d-411a-a90f-46b1da6b428d
+title: Fixture Tenant Handbook
+type: sop
+owner: tim
+solve_for: Handbook for the deterministic fixture tenant used by the conformance harness.
+  Currently skeleton; populated in M8 Block 1c.
+stage_label: assess
+domain: eng
+version: '1.0'
+created: '2026-04-21'
+last_modified: '2026-04-20'
+last_reviewed: '2026-05-16'
+review_cadence: 90
 milestone: Phase-1-M0
 ---
 

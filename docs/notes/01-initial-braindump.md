@@ -1,8 +1,17 @@
 ---
-kind: doc
-domain: client-intelligence-platform
-status: note
-created: 2026-04-06
+id: CIP-BP-911
+uuid: 4b7877c7-d0e5-4320-b0ab-827b5611a2b0
+title: Foundry Knowledge Base — Product Braindump
+type: best-practice
+owner: tim
+solve_for: Retired/archived artifact retained for audit and historical context — 01-initial-braindump.md.
+stage_label: retire
+domain: meta
+version: '1.0'
+created: '2026-04-06'
+last_modified: '2026-05-16'
+last_reviewed: '2026-05-16'
+review_cadence: 9999
 ---
 
 # Foundry Knowledge Base — Product Braindump

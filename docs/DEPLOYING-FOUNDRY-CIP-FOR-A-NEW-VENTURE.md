@@ -1,11 +1,22 @@
 ---
-kind: doc
-domain: client-intelligence-platform
-status: stub
-purpose: "Start-to-finish playbook for deploying foundry-cip on behalf of a new venture tenant."
+id: CIP-SOP-012
+uuid: e8fbd279-c6b2-472b-9718-604a0ece37ae
+title: Deploying foundry-cip for a New Venture
+type: sop
 owner: tim
-created: 2026-04-27
-fill_when: "Phase 2 M3 (Wayward Tenant Provisioning) — the first non-fixture venture provisioning IS the trial run; document as it happens."
+solve_for: 'Procedure for deploying foundry-cip as a library into a new venture''s
+  monorepo. Stub; fill_when: Phase 2 M3.'
+stage_label: assess
+domain: ops
+version: '1.0'
+created: '2026-04-27'
+last_modified: '2026-05-16'
+last_reviewed: '2026-05-16'
+review_cadence: 180
+purpose: Start-to-finish playbook for deploying foundry-cip on behalf of a new venture
+  tenant.
+fill_when: Phase 2 M3 (Wayward Tenant Provisioning) — the first non-fixture venture
+  provisioning IS the trial run; document as it happens.
 ---
 
 # Deploying foundry-cip for a New Venture

@@ -1,20 +1,32 @@
 ---
-kind: doc
-domain: client-intelligence-platform
+id: CIP-SPEC-007
+uuid: 58d90272-d82e-449a-bad1-765644d0f945
+title: CIP Phase 2.5 — Foundry Self-Tenant + Early Write-Back
+type: spec
+owner: tim
+solve_for: Phase 2.5 plan — Foundry self-tenant + outbound write-back to Chatwoot/Twenty/Drive.
+stage_label: trial
+domain: meta
+version: '1.0'
+created: '2026-04-20'
+last_modified: '2026-05-15'
+last_reviewed: '2026-05-16'
+review_cadence: 180
 project_id: client-intelligence-platform
 pm_project_id: 596825db-61bc-4899-bc6c-e207489ca35d
 phase: 2.5
 shape: foundry-self-tenant-write-back
-status: provisional
-owner: tim
-authors: [tim, atlas]
-created: 2026-04-20
-last_updated: 2026-05-15
+authors:
+- tim
+- atlas
 appetite: session-bound (milestone-ordered, not week-ordered)
 primary_tenant: foundry (self-tenant)
 locks: []
-depends_on: [phase-1-plain-jane, phase-2-wayward-onboarding]
-blocks: [phase-3-rocky-ridge-and-grants-runtime]
+depends_on:
+- phase-1-plain-jane
+- phase-2-wayward-onboarding
+blocks:
+- phase-3-rocky-ridge-and-grants-runtime
 ---
 
 # CIP Phase 2.5 — Foundry Self-Tenant + Early Write-Back

@@ -1,3 +1,19 @@
+---
+id: CIP-BP-001
+uuid: b6470f6a-8094-48d5-b3fc-4e8c9409d90f
+title: foundry — Local Governance
+type: best-practice
+owner: tim
+solve_for: Top-level docs/ orientation — points contributors at the governance objects
+  and where to put new content.
+stage_label: adopt
+domain: doc
+version: '1.0'
+created: '2026-05-16'
+last_modified: '2026-05-16'
+last_reviewed: '2026-05-16'
+review_cadence: 365
+---
 # foundry — Local Governance
 
 This directory holds the venture's own governance objects: rules,

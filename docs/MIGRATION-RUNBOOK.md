@@ -1,8 +1,18 @@
 ---
-kind: doc
-domain: client-intelligence-platform
-status: draft
-last_updated: 2026-05-15
+id: CIP-SOP-002
+uuid: 25c18b2b-3299-4dfa-a8e5-3cd5d845c473
+title: Migration Runbook
+type: sop
+owner: tim
+solve_for: Operator procedure for applying CIP Alembic migrations safely against dev
+  and prod.
+stage_label: adopt
+domain: eng
+version: '1.0'
+created: '2026-04-21'
+last_modified: '2026-05-15'
+last_reviewed: '2026-05-16'
+review_cadence: 90
 milestone: Phase-1-M7
 ---
 

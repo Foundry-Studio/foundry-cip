@@ -1,18 +1,25 @@
 ---
-kind: doc
-domain: client-intelligence-platform
-project_id: client-intelligence-platform
-status: archived
+id: CIP-DIAG-901
+uuid: d4bd76e2-0e54-42c5-b323-7d4a22f267b4
+title: CIP Extraction Plan — Round-4 QC Archive (2026-04-29)
+type: diagnostic
 owner: tim
+solve_for: Retired/archived artifact retained for audit and historical context — cip-extraction-qc-rounds-1-through-8.md.
+stage_label: retire
+domain: meta
+version: '1.0'
+created: '2026-04-29'
+last_modified: '2026-04-29'
+last_reviewed: '2026-05-16'
+review_cadence: 9999
+project_id: client-intelligence-platform
 author: Atlas (Cowork)
-created: 2026-04-29
-last_updated: 2026-04-29
 parent_plan: WORKBENCH/tim/cip-extraction-plan.md (v4)
 qc_round: 4 (post-v3, pre-execute)
 panel_composition:
-  - Stress Tester (failure modes / scalability / assumptions)
-  - Gap Analyst (missing steps / edge cases / unhandled errors)
-  - Senior Plan Reviewer (architecture / best-practices / senior-bar)
+- Stress Tester (failure modes / scalability / assumptions)
+- Gap Analyst (missing steps / edge cases / unhandled errors)
+- Senior Plan Reviewer (architecture / best-practices / senior-bar)
 panel_findings_total: 73
 incorporated: 25
 falsified_or_phase_8: 25

@@ -1,8 +1,18 @@
 ---
-kind: doc
-domain: client-intelligence-platform
-status: draft
-last_updated: 2026-05-11
+id: CIP-SPEC-002
+uuid: d48dcb30-266e-492d-8c90-c163583f446c
+title: Phase 1 → Phase 2 Handoff
+type: spec
+owner: tim
+solve_for: Phase boundary handoff doc — enumerates Phase 1 final state and Phase 2
+  entry criteria. Atlas finalizes on M8 close.
+stage_label: trial
+domain: meta
+version: '1.0'
+created: '2026-04-21'
+last_modified: '2026-05-11'
+last_reviewed: '2026-05-16'
+review_cadence: 180
 milestone: Phase-1-M7
 ---
 

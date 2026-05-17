@@ -1,12 +1,24 @@
 ---
-kind: doc
-domain: client-intelligence-platform
-status: phase-1-close
-last_updated: 2026-05-12
-milestone: Phase-1-M8
+id: CIP-DIAG-001
+uuid: b19b9478-caf8-4fe6-b3b0-a113d7efa243
+title: CIP Phase 1 Retrospective
+type: diagnostic
 owner: tim
-authors: [cc-vacation-mode]
-purpose: "Phase 1 close-out retrospective. Per PHASE-1-PLAN.md §M8: 'what did the framework teach us? Did the Lens Engine abstraction survive first contact? What should Phase 2 Wayward Onboarding sharpen when it meets real connectors?'"
+solve_for: Phase 1 retrospective — what went right, what went wrong, calibration insights
+  carried into Phase 2.
+stage_label: trial
+domain: meta
+version: '1.0'
+created: '2026-05-12'
+last_modified: '2026-05-12'
+last_reviewed: '2026-05-16'
+review_cadence: 365
+milestone: Phase-1-M8
+authors:
+- cc-vacation-mode
+purpose: 'Phase 1 close-out retrospective. Per PHASE-1-PLAN.md §M8: ''what did the
+  framework teach us? Did the Lens Engine abstraction survive first contact? What
+  should Phase 2 Wayward Onboarding sharpen when it meets real connectors?'''
 ---
 
 # CIP Phase 1 Retrospective

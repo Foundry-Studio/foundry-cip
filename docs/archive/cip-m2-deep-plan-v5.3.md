@@ -1,11 +1,18 @@
 ---
-kind: doc
-domain: client-intelligence-platform
-status: ready-for-implementation
-last_updated: 2026-04-29
-milestone: Phase-1-M2
-version: v5.3
+id: CIP-SPEC-903
+uuid: 76013d36-8c6d-4705-ac12-3c286bcbee0e
+title: CIP Phase 1 — Milestone 2 Deep Implementation Plan
+type: spec
 owner: Atlas (author) / Claude Code (executor)
+solve_for: Retired/archived artifact retained for audit and historical context — cip-m2-deep-plan-v5.3.md.
+stage_label: retire
+domain: meta
+version: v5.3
+created: '2026-05-05'
+last_modified: '2026-04-29'
+last_reviewed: '2026-05-16'
+review_cadence: 9999
+milestone: Phase-1-M2
 ---
 
 # CIP Phase 1 — Milestone 2 Deep Implementation Plan

@@ -1,8 +1,18 @@
 ---
-kind: doc
-domain: client-intelligence-platform
-status: skeleton
-last_updated: 2026-05-15
+id: CIP-SOP-010
+uuid: 3e5c7ce1-0bd8-4009-b8b4-b1385d09b28e
+title: Tenant Onboarding Checklist
+type: sop
+owner: tim
+solve_for: Operator checklist consumed during tenant onboarding (mechanizes the ONBOARDING-A-NEW-TENANT
+  runbook). Currently skeleton; populated in M8 Block 1c.
+stage_label: assess
+domain: ops
+version: '1.0'
+created: '2026-04-21'
+last_modified: '2026-05-15'
+last_reviewed: '2026-05-16'
+review_cadence: 90
 milestone: Phase-1-M0
 ---
 

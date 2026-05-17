@@ -1,0 +1,105 @@
+{
+  "schema_version": "1.0",
+  "generated_at": "2026-05-17T18:54:36.518349Z",
+  "source_count": 53,
+  "edge_count": 14,
+  "broken_refs": [],
+  "back_refs": {
+    "JOS-D0040": [
+      {
+        "source_id": "JOS-MON-004",
+        "source_type": "monitor",
+        "via_field": "observes.decisions"
+      }
+    ],
+    "JOS-FW-001": [
+      {
+        "source_id": "JOS-MON-001",
+        "source_type": "monitor",
+        "via_field": "observes.frameworks"
+      }
+    ],
+    "JOS-K03": [
+      {
+        "source_id": "JOS-GATE-004",
+        "source_type": "gate",
+        "via_field": "enforces.contracts"
+      }
+    ],
+    "JOS-K05": [
+      {
+        "source_id": "JOS-GATE-005",
+        "source_type": "gate",
+        "via_field": "enforces.contracts"
+      },
+      {
+        "source_id": "JOS-MON-002",
+        "source_type": "monitor",
+        "via_field": "observes.contracts"
+      }
+    ],
+    "JOS-K06": [
+      {
+        "source_id": "JOS-GATE-006",
+        "source_type": "gate",
+        "via_field": "enforces.contracts"
+      }
+    ],
+    "JOS-K07": [
+      {
+        "source_id": "JOS-GATE-007",
+        "source_type": "gate",
+        "via_field": "enforces.contracts"
+      }
+    ],
+    "JOS-R01": [
+      {
+        "source_id": "JOS-GATE-001",
+        "source_type": "gate",
+        "via_field": "enforces.rules"
+      }
+    ],
+    "JOS-R02": [
+      {
+        "source_id": "JOS-GATE-001",
+        "source_type": "gate",
+        "via_field": "enforces.rules"
+      }
+    ],
+    "JOS-R04": [
+      {
+        "source_id": "JOS-MON-003",
+        "source_type": "monitor",
+        "via_field": "observes.rules"
+      }
+    ],
+    "JOS-R06": [
+      {
+        "source_id": "JOS-GATE-003",
+        "source_type": "gate",
+        "via_field": "enforces.rules"
+      }
+    ],
+    "JOS-R17": [
+      {
+        "source_id": "JOS-GATE-008",
+        "source_type": "gate",
+        "via_field": "enforces.rules"
+      }
+    ],
+    "JOS-R18": [
+      {
+        "source_id": "JOS-GATE-009",
+        "source_type": "gate",
+        "via_field": "enforces.rules"
+      }
+    ],
+    "JOS-SO-005": [
+      {
+        "source_id": "JOS-GATE-002",
+        "source_type": "gate",
+        "via_field": "enforces.standing_orders"
+      }
+    ]
+  }
+}

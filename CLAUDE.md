@@ -36,15 +36,19 @@ rules, contracts, and gates apply to this venture.
 
 When you arrive in this repo as an agent:
 
-1. **This file** (`CLAUDE.md`) — orientation
+1. **This file** (`CLAUDE.md`) — you're reading the orientation now
 2. **`.jos/charter.yaml`** — the binding, scope, and tier
 3. **`README.md`** — what this venture is and does
-4. **`docs/_registry.yaml`** — venture-owned governance objects
+4. **`docs/governance/_registry.yaml`** — venture-owned governance objects (if any)
 5. **`context-bundle/`** — venture vision, strategy, WDGLL (the why)
 
 For full text of any JOS-prefixed rule/standing-order/contract referenced
 in the charter, follow `source_path` into the
-`jordan-operating-system` repo.
+`jordan-operating-system` repo. Without a local clone, use:
+
+```bash
+gh api repos/Foundry-Studio/jordan-operating-system/contents/<source_path>
+```
 
 ## Behavioral Standards — Three Modes (JOS-PB-006)
 
@@ -52,14 +56,20 @@ Every agent action falls into one of three governance modes:
 
 | Mode | What it means | Where it lives |
 |---|---|---|
-| **Constrain** | Testable rules, hard boundaries, prohibitions | `.jos/charter.yaml` `rules[]` + `docs/` (CIP- prefixed) |
+| **Constrain** | Testable rules, hard boundaries, prohibitions | `.jos/charter.yaml` `rules[]` + `docs/governance/` |
 | **Guide** | Judgement-requiring principles + standing orders | `.jos/charter.yaml` `standing_orders[]` |
-| **Enable** | Meta-reasoning, prompt + context patterns | This file's content (below `jos:end`, venture-managed) |
+| **Enable** | Meta-reasoning, prompt + context patterns | This file's "Cognitive Profile" section (venture-managed) |
+
+See [JOS-PB-006](https://github.com/Foundry-Studio/jordan-operating-system/blob/main/instruments/playbooks/agent-behavioral-standards-framework.md)
+for the full doctrine.
 
 ## Compliance Commands
 
+From the repo root:
+
 ```bash
-scripts/jos check         # validate against this venture's charter
+scripts/jos check         # validate against this venture's charter (POSIX)
+scripts\jos.cmd check     # same on Windows
 scripts/jos status        # charter freshness, source_commit, content_digest
 scripts/jos drift         # compare local charter against JOS master
 scripts/jos list rules    # list governance objects of a type
@@ -67,6 +77,8 @@ scripts/jos list rules    # list governance objects of a type
 
 Exit codes: `0` PASS, `1` validation failure, `2` configuration error,
 `3` infrastructure error.
+
+## Enforcement
 
 - **JOS-R18** requires this file to exist with the managed block intact.
 - **JOS-GATE-009** runs on every charter sync and every `jos check`.

@@ -5,28 +5,19 @@ Per PM scope 2d6390fa (Layer 2 wiring v1, tenant-agnostic capability)
 + option A decision (2026-05-17): CIP keeps its own thin wrapper
 rather than importing from the monorepo's src/services/embedding_client.
 
-Primary backend (post 2026-05-18 swap): llama-server in embedding mode
-on server-b, port 8081, serving the same Qwen3-Embedding-4B Q8_0 GGUF
-that ollama was serving before. The switch unlocks --parallel 2
-concurrent slots (vs ollama's effective serial path) for ~2-3x
-backfill throughput. Smoke test 2026-05-18 confirmed cosine >= 0.9996
-on 5 reference strings vs the prior ollama baseline (same GGUF, same
---pooling last) — the vector space is preserved, so previously-embedded
-chunks remain compatible.
-
-Endpoint: /v1/embeddings (OpenAI-compatible, auto-normalized via
-Euclidean norm per llama-server convention).
+Primary backend: Ollama on the Foundry fleet (server-b at
+http://100.100.10.110:11434 by default; tunneled hostname
+https://ollama-gpu.foundrytunnel.dev for remote callers).
 
 Fallback: OpenRouter's qwen/qwen3-embedding-4b model when primary
 fails (timeout, 5xx, model-not-loaded). OpenRouter requires
 OPENROUTER_API_KEY env.
 
 Config via env vars:
-  CIP_EMBEDDING_PRIMARY_URL    llama-server base URL (default
-                               http://100.100.10.110:8081)
-  CIP_EMBEDDING_PRIMARY_MODEL  Model alias on llama-server
-                               (default qwen3-embedding-4b — must match
-                               the --alias flag on the systemd unit)
+  CIP_EMBEDDING_PRIMARY_URL    Ollama base URL (default
+                               http://100.100.10.110:11434)
+  CIP_EMBEDDING_PRIMARY_MODEL  Model name on Ollama
+                               (default qwen3-embedding:4b-q8_0)
   CIP_EMBEDDING_FALLBACK_MODEL OpenRouter model id
                                (default qwen/qwen3-embedding-4b)
   OPENROUTER_API_KEY           Required only when fallback activates
@@ -34,6 +25,7 @@ Config via env vars:
 """
 from __future__ import annotations
 
+import concurrent.futures
 import os
 import time
 from typing import Any
@@ -66,12 +58,12 @@ class EmbeddingClient:
         self.primary_url = (
             primary_url
             or os.environ.get("CIP_EMBEDDING_PRIMARY_URL")
-            or "http://100.100.10.110:8081"
+            or "http://100.100.10.110:11434"
         )
         self.primary_model = (
             primary_model
             or os.environ.get("CIP_EMBEDDING_PRIMARY_MODEL")
-            or "qwen3-embedding-4b"
+            or "qwen3-embedding:4b-q8_0"
         )
         self.fallback_model = (
             fallback_model
@@ -133,35 +125,15 @@ class EmbeddingClient:
             ) from fallback_exc
 
     def _embed_primary(self, text: str) -> list[float]:
-        """llama-server /v1/embeddings endpoint (OpenAI-compatible).
-
-        Per the 2026-05-18 swap from ollama, the primary backend speaks
-        the OpenAI embeddings shape: request body is
-        ``{"input": <str>, "model": ..., "encoding_format": "float"}``,
-        response is ``{"data": [{"embedding": [...]}]}``.
-
-        llama-server normalises the returned vector using Euclidean norm
-        when pooling != none (which we use, --pooling last), so callers
-        get a unit-length vector without extra work.
-        """
+        """Ollama /api/embeddings endpoint."""
         r = httpx.post(
-            f"{self.primary_url}/v1/embeddings",
-            json={
-                "input": text,
-                "model": self.primary_model,
-                "encoding_format": "float",
-            },
+            f"{self.primary_url}/api/embeddings",
+            json={"model": self.primary_model, "prompt": text},
             timeout=self.timeout_s,
         )
         r.raise_for_status()
         data = r.json()
-        try:
-            emb = data["data"][0]["embedding"]
-        except (KeyError, IndexError, TypeError) as e:
-            raise EmbeddingError(
-                f"Primary returned malformed embedding response "
-                f"(model={self.primary_model}): {type(e).__name__}: {e}"
-            ) from e
+        emb = data.get("embedding")
         if not isinstance(emb, list) or not emb:
             raise EmbeddingError(
                 f"Primary returned no embedding (model={self.primary_model})"
@@ -205,6 +177,29 @@ class EmbeddingClient:
             if throttle_ms and i < len(texts) - 1:
                 time.sleep(throttle_ms / 1000.0)
         return out
+
+    def embed_batch_concurrent(
+        self, texts: list[str], *, max_workers: int = 4
+    ) -> list[list[float]]:
+        """Embed multiple texts in parallel.
+
+        Bench 2026-05-18 vs the serial ``embed_batch``: at max_workers=4
+        against ollama with OLLAMA_NUM_PARALLEL=4 on server-b, throughput
+        rises from ~0.7 emb/sec to ~2.5-3 emb/sec on Wayward-shape
+        content. The win is bounded by the GPU (RTX 3060 12GB at Q8 is
+        memory-bandwidth-bound) — additional workers above 4 don't help.
+
+        Returns vectors in the same order as ``texts``. Per-item failures
+        propagate as ``EmbeddingError`` from the worker thread.
+
+        Note: each worker creates its own httpx connection per call.
+        That's wasteful, but the per-call cost is dwarfed by inference,
+        so a connection pool isn't worth the complexity for this scale.
+        """
+        if not texts:
+            return []
+        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as ex:
+            return list(ex.map(self.embed, texts))
 
     def stats(self) -> dict[str, int]:
         return {

@@ -8,18 +8,18 @@ solve_for: Auto-generated tenant data directory — tables, sync health, propert
 stage_label: adopt
 domain: dat
 version: '1.0'
-created: '2026-05-17'
-last_modified: '2026-05-17'
-last_reviewed: '2026-05-17'
+created: '2026-05-18'
+last_modified: '2026-05-18'
+last_reviewed: '2026-05-18'
 review_cadence: 90
 tenant_uuid: dec814db-722a-4730-8e60-51afc4a5dad9
-last_generated_at: 2026-05-17 21:33 UTC
+last_generated_at: 2026-05-18 12:41 UTC
 generator: scripts/generate_tenant_manifest.py (PM scope bfc3d5d0 — Tenant Manifest)
 ---
 
 # Tenant Manifest — `dec814db-722a-4730-8e60-51afc4a5dad9`
 
-Auto-generated 2026-05-17 21:33 UTC. **Do not edit by hand** — re-run `scripts/generate_tenant_manifest.py <tenant_uuid>` after data changes. The editable source-of-truth for property descriptions is `docs/tenants/dec814db-722a-4730-8e60-51afc4a5dad9/GLOSSARY.md`, which `scripts/seed_glossary_into_registry.py` materializes into the registry table that this MANIFEST queries.
+Auto-generated 2026-05-18 12:41 UTC. **Do not edit by hand** — re-run `scripts/generate_tenant_manifest.py <tenant_uuid>` after data changes. The editable source-of-truth for property descriptions is `docs/tenants/dec814db-722a-4730-8e60-51afc4a5dad9/GLOSSARY.md`, which `scripts/seed_glossary_into_registry.py` materializes into the registry table that this MANIFEST queries.
 
 ## Tenant identity
 
@@ -47,7 +47,7 @@ Auto-generated 2026-05-17 21:33 UTC. **Do not edit by hand** — re-run `scripts
 | `cip_engagements` | 12,552 | 661ecab4=12,552 |
 | `cip_owners` | 5 | 661ecab4=5 |
 | `cip_pipeline_stages` | 49 | 661ecab4=49 |
-| `cip_knowledge_chunks` | 2,593 | 661ecab4=2,593 |
+| `cip_knowledge_chunks` | 31,840 | 661ecab4=31,840 |
 | `cip_files` | 0 | — |
 | `cip_companies_history` | 58,390 | — |
 | `cip_contacts_history` | 732,356 | — |

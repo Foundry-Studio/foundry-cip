@@ -10,7 +10,7 @@ domain: meta
 version: '1.0'
 created: '2026-04-20'
 last_modified: '2026-05-16'
-last_reviewed: '2026-05-16'
+last_reviewed: '2026-05-19'
 review_cadence: 9999
 archived_on: 2026-04-20
 supersedes: superseded by docs/vision/ROADMAP.md + docs/vision/PHASE-1-PLAN.md

@@ -11,7 +11,7 @@ domain: meta
 version: '1.0'
 created: '2026-04-13'
 last_modified: '2026-05-15'
-last_reviewed: '2026-05-16'
+last_reviewed: '2026-05-19'
 review_cadence: 90
 project_id: client-intelligence-platform
 pm_project_id: 596825db-61bc-4899-bc6c-e207489ca35d
@@ -62,13 +62,21 @@ supersedes: '(1) Previous 8-phase release-shaped roadmap (pre-pillar-restructure
 
 ---
 
+## Architectural Boundary: The CIP Hard Split (locked 2026-05-19)
+
+> **Authoritative source: [`docs/ARCHITECTURE-SPLIT.md`](../ARCHITECTURE-SPLIT.md) (CIP-SPEC-010) + PM decision `d83c7e1d`.**
+>
+> CIP product owns its own Pinecone index (`foundry-cip`, 2,560d), its own R2 prefix (`cip-originals/`), and its own embedding pipeline. Foundry's existing Knowledge + Memory subsystems remain separate and serve only NON-CIP data (agent memory, internal Foundry knowledge). Split is by data type, not deployment topology. When CIP graduates to Stage 3 (external customers), each customer gets their own CIP-Pinecone namespace + CIP-R2 prefix; no coupling to FAS infrastructure required.
+
+---
+
 ## The 8 Pillars
 
 | # | Pillar | Status After Phase 1 (Plain Jane) |
 |---|--------|-----------------------------------|
 | 1 | Ingestion & Connectors | LIT (FixtureConnector only in Phase 1; framework inside Integration Mesh per D-118). **Connector-agnostic posture** — planned connectors queued (not elevated as pillars): Zendesk, HubSpot, Plaid, Stripe, Shopify, SEC EDGAR, news/RSS, WeChat/WhatsApp, Chatwoot (outbound), Gmail/Drive, manual upload. New connector = new `CIPConnector`/`CIPMapper` subclass + migration, not a new pillar. Zendesk + HubSpot ship in Phase 2 as part of Wayward onboarding. Plaid lands Phase 2+ for venture/personal financial tenants (replaces earlier QBO-based plan, 2026-05-09). |
 | 2 | Structured Store | LIT (cip_01–08 migrations, SCD history, 9 provenance cols, `cip_files`, `cip_connector_property_registry`) |
-| 3 | Unstructured Store | LIT (Knowledge RAG + Graph GraphRAG consuming CIP content under `cip_fixture_*` source types) |
+| 3 | Unstructured Store | LIT — **CIP-OWNED PINECONE INDEX + R2 PREFIX per CIP-SPEC-010** (hard split, 2026-05-19 per decision d83c7e1d). Foundry-Knowledge subsystem NOT used. `cip_knowledge_chunks` Postgres staging table + `foundry-cip` Pinecone index (2,560d) + `cip-originals/` R2 prefix. Wayward: 31,840 vectors live. Earlier draft of this pillar described "Knowledge RAG + Graph GraphRAG consuming CIP content" via Foundry's index — superseded. |
 | 4 | Lens Engine | LIT (two lenses on same fixture dataset — P-21 canonical example) |
 | 5 | Consumption Surfaces | PARTIAL (Metabase only in Phase 1; REST + MCP tools in Phase 4; Chatbot in Phase 5) |
 | 6 | Push & Sync | DARK (lights up in Phase 2 alongside Wayward onboarding) |

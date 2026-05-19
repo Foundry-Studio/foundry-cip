@@ -11,7 +11,7 @@ domain: meta
 version: '1.0'
 created: '2026-04-20'
 last_modified: '2026-05-11'
-last_reviewed: '2026-05-16'
+last_reviewed: '2026-05-19'
 review_cadence: 365
 project_id: client-intelligence-platform
 phase: 1

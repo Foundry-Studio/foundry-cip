@@ -11,7 +11,7 @@ domain: dat
 version: '1.0'
 created: '2026-04-21'
 last_modified: '2026-05-11'
-last_reviewed: '2026-05-16'
+last_reviewed: '2026-05-19'
 review_cadence: 90
 milestone: Phase-1-M7
 ---

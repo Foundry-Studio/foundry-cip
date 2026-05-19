@@ -12,7 +12,7 @@ domain: dat
 version: '1.0'
 created: '2026-05-16'
 last_modified: '2026-05-16'
-last_reviewed: '2026-05-16'
+last_reviewed: '2026-05-19'
 review_cadence: 90
 tenant_uuid: dec814db-722a-4730-8e60-51afc4a5dad9
 tenant_name: EcomLever

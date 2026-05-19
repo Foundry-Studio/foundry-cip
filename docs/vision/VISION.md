@@ -11,7 +11,7 @@ domain: meta
 version: '1.0'
 created: '2026-04-06'
 last_modified: '2026-05-15'
-last_reviewed: '2026-05-16'
+last_reviewed: '2026-05-19'
 review_cadence: 180
 project_id: client-intelligence-platform
 pm_project_id: 596825db-61bc-4899-bc6c-e207489ca35d
@@ -85,6 +85,8 @@ A **Client Intelligence Platform** organized into three canonical data layers (D
 | **Originals** (Cloudflare R2) | Raw source files (PDFs, Firefly transcripts, HubSpot note HTML, Plaid exports, client uploads), indexed by `cip_files` | Storage Service; citations resolve through `cip_files` → signed R2 URL | "Open the PDF that sentence came from," "replay the original ticket payload," auditability, legal/compliance retrieval. |
 
 All three layers are wired from Phase 1. Consumers pick which they need — a dashboard-only deployment queries Structured; a chatbot needs all three (Structured for facts, Derived Knowledge for retrieval, Originals for citations).
+
+> **The CIP Hard Split (D-d83c7e1d, locked 2026-05-19).** All three data layers are **CIP-owned, not shared**. CIP runs its own dedicated Pinecone index (`foundry-cip`, 2,560-dim), its own R2 prefix (`cip-originals/` under the shared Foundry bucket; graduates to a dedicated bucket at Stage 3), and its own embedding pipeline. Foundry-Knowledge / per-venture knowledge stacks serve only non-CIP data (Foundry agent memory, venture-internal R&D notes, etc.) and must never write CIP-shaped content (tenant client/ticket/contact/deal/note material) — those route through CIP. See [ARCHITECTURE-SPLIT.md (CIP-SPEC-010)](../ARCHITECTURE-SPLIT.md) for the data classification rule, namespace pattern, bridge MCP tool, and Stage 1/2/3 graduation plan.
 
 ### Consumption Interfaces
 

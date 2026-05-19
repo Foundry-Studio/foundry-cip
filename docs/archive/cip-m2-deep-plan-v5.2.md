@@ -10,7 +10,7 @@ domain: meta
 version: v5
 created: '2026-05-05'
 last_modified: '2026-04-29'
-last_reviewed: '2026-05-16'
+last_reviewed: '2026-05-19'
 review_cadence: 9999
 milestone: Phase-1-M2
 ---

@@ -5,7 +5,7 @@
 schema_version: '1.0'
 venture: foundry
 id_prefix: CIP
-last_updated: '2026-05-16'
+last_updated: '2026-05-19'
 objects:
 - id: CIP-BP-001
   uuid: b6470f6a-8094-48d5-b3fc-4e8c9409d90f
@@ -15,7 +15,7 @@ objects:
   domain: doc
   owner: tim
   path: docs/README.md
-  last_reviewed: '2026-05-16'
+  last_reviewed: '2026-05-19'
 - id: CIP-BP-002
   uuid: 332d20d0-0049-43d7-8aa9-77ec30e0f62c
   title: capabilities/
@@ -24,7 +24,7 @@ objects:
   domain: doc
   owner: tim
   path: docs/capabilities/README.md
-  last_reviewed: '2026-05-16'
+  last_reviewed: '2026-05-19'
 - id: CIP-BP-003
   uuid: 15396abd-3445-4a9d-9085-ce48d30f93ba
   title: catalogue/
@@ -33,7 +33,7 @@ objects:
   domain: doc
   owner: tim
   path: docs/catalogue/README.md
-  last_reviewed: '2026-05-16'
+  last_reviewed: '2026-05-19'
 - id: CIP-BP-004
   uuid: 6f7afe63-ada8-4e7e-9ba5-f8ee86e183a6
   title: features/
@@ -42,7 +42,7 @@ objects:
   domain: doc
   owner: tim
   path: docs/features/README.md
-  last_reviewed: '2026-05-16'
+  last_reviewed: '2026-05-19'
 - id: CIP-BP-005
   uuid: afdae802-e7f3-4205-a22b-e4447b20a799
   title: '{DOC TITLE}'
@@ -51,16 +51,16 @@ objects:
   domain: doc
   owner: tim
   path: docs/_TEMPLATE.md
-  last_reviewed: '2026-05-16'
+  last_reviewed: '2026-05-19'
 - id: CIP-DIAG-001
   uuid: b19b9478-caf8-4fe6-b3b0-a113d7efa243
   title: CIP Phase 1 Retrospective
   type: diagnostic
-  stage_label: trial
+  stage_label: adopt
   domain: meta
   owner: tim
   path: docs/vision/PHASE-1-RETROSPECTIVE.md
-  last_reviewed: '2026-05-16'
+  last_reviewed: '2026-05-19'
 - id: CIP-DIAG-101
   uuid: 6110af38-a26d-4498-9c47-56c218b9c9ca
   title: EcomLever Tenant / Wayward Client — Property Glossary
@@ -69,16 +69,16 @@ objects:
   domain: dat
   owner: tim
   path: docs/tenants/dec814db-722a-4730-8e60-51afc4a5dad9/GLOSSARY.md
-  last_reviewed: '2026-05-16'
+  last_reviewed: '2026-05-19'
 - id: CIP-DIAG-102
-  uuid: 93782f8c-704e-452d-b002-57b4b38db035
-  title: Tenant Manifest — `dec814db-722a-4730-8e60-51afc4a5dad9`
+  uuid: a21b6317-754b-5b28-a22d-0c12e8286005
+  title: Tenant Manifest — dec814db-722a-4730-8e60-51afc4a5dad9
   type: diagnostic
   stage_label: adopt
   domain: dat
   owner: tim
   path: docs/tenants/dec814db-722a-4730-8e60-51afc4a5dad9/MANIFEST.md
-  last_reviewed: '2026-05-16'
+  last_reviewed: '2026-05-19'
 - id: CIP-FW-001
   uuid: c9076719-808e-45df-8260-c2ed499a9e80
   title: Foundry Client Intelligence Platform — Product Vision
@@ -87,7 +87,7 @@ objects:
   domain: meta
   owner: tim
   path: docs/vision/VISION.md
-  last_reviewed: '2026-05-16'
+  last_reviewed: '2026-05-19'
 - id: CIP-K01
   uuid: ae7524b9-ef2e-402d-a9a2-782aacb4b8a1
   title: CIP CSS Classification Contract
@@ -96,7 +96,7 @@ objects:
   domain: doc
   owner: tim
   path: docs/CSS-CLASSIFICATION-CONTRACT.md
-  last_reviewed: '2026-05-16'
+  last_reviewed: '2026-05-19'
 - id: CIP-K02
   uuid: 76f08673-a418-4140-8904-0ab3547ed039
   title: Foundry Client Intelligence Platform — foundry-cip
@@ -105,7 +105,7 @@ objects:
   domain: meta
   owner: tim
   path: CLAUDE.md
-  last_reviewed: '2026-05-16'
+  last_reviewed: '2026-05-19'
 - id: CIP-SOP-001
   uuid: 7e334cdd-132d-4867-b310-690e3d689437
   title: Connector Authoring Guide
@@ -114,7 +114,7 @@ objects:
   domain: eng
   owner: tim
   path: docs/CONNECTOR-AUTHORING-GUIDE.md
-  last_reviewed: '2026-05-16'
+  last_reviewed: '2026-05-19'
 - id: CIP-SOP-002
   uuid: 25c18b2b-3299-4dfa-a8e5-3cd5d845c473
   title: Migration Runbook
@@ -123,7 +123,7 @@ objects:
   domain: eng
   owner: tim
   path: docs/MIGRATION-RUNBOOK.md
-  last_reviewed: '2026-05-16'
+  last_reviewed: '2026-05-19'
 - id: CIP-SOP-003
   uuid: b68b1316-aee6-4de4-bfb6-78a4a88da7cd
   title: Lens Authoring Guide
@@ -132,7 +132,7 @@ objects:
   domain: dat
   owner: tim
   path: docs/LENS-AUTHORING-GUIDE.md
-  last_reviewed: '2026-05-16'
+  last_reviewed: '2026-05-19'
 - id: CIP-SOP-004
   uuid: 06659bec-9863-4c7c-971a-b4759bb81bdd
   title: Metabase Operator Guide
@@ -141,7 +141,7 @@ objects:
   domain: ops
   owner: tim
   path: docs/METABASE-OPERATOR-GUIDE.md
-  last_reviewed: '2026-05-16'
+  last_reviewed: '2026-05-19'
 - id: CIP-SOP-005
   uuid: ec552496-70d2-450e-8789-69c16c942c4e
   title: RLS + `SET LOCAL` Operator Guide
@@ -150,7 +150,7 @@ objects:
   domain: eng
   owner: tim
   path: docs/RLS-SET-LOCAL-OPERATOR-GUIDE.md
-  last_reviewed: '2026-05-16'
+  last_reviewed: '2026-05-19'
 - id: CIP-SOP-006
   uuid: 98e8f2d3-0f9e-4ab9-aa87-ed4932df9537
   title: Sync Orchestrator Guide
@@ -159,7 +159,7 @@ objects:
   domain: eng
   owner: tim
   path: docs/SYNC-ORCHESTRATOR-GUIDE.md
-  last_reviewed: '2026-05-16'
+  last_reviewed: '2026-05-19'
 - id: CIP-SOP-007
   uuid: 33ce2596-13c4-4d55-8daa-70dda9894cdd
   title: 'foundry: kind=doc domain=client-intelligence-platform'
@@ -168,7 +168,7 @@ objects:
   domain: eng
   owner: tim
   path: docs/HUBSPOT-CONNECTOR-GUIDE.md
-  last_reviewed: '2026-05-16'
+  last_reviewed: '2026-05-19'
 - id: CIP-SOP-008
   uuid: fe5f32b4-e89a-4c03-907a-9ca13d0bc70d
   title: 'foundry: kind=doc domain=client-intelligence-platform'
@@ -177,7 +177,7 @@ objects:
   domain: eng
   owner: tim
   path: docs/ZENDESK-CONNECTOR-GUIDE.md
-  last_reviewed: '2026-05-16'
+  last_reviewed: '2026-05-19'
 - id: CIP-SOP-009
   uuid: 7c3846bb-d0eb-4b89-833f-cb174a5ec51f
   title: 'foundry: kind=doc domain=client-intelligence-platform'
@@ -186,7 +186,7 @@ objects:
   domain: ops
   owner: tim
   path: docs/ONBOARDING-A-NEW-TENANT.md
-  last_reviewed: '2026-05-16'
+  last_reviewed: '2026-05-19'
 - id: CIP-SOP-010
   uuid: 3e5c7ce1-0bd8-4009-b8b4-b1385d09b28e
   title: Tenant Onboarding Checklist
@@ -195,7 +195,7 @@ objects:
   domain: ops
   owner: tim
   path: docs/TENANT-ONBOARDING-CHECKLIST.md
-  last_reviewed: '2026-05-16'
+  last_reviewed: '2026-05-19'
 - id: CIP-SOP-011
   uuid: 964ccc7c-b38d-411a-a90f-46b1da6b428d
   title: Fixture Tenant Handbook
@@ -204,7 +204,7 @@ objects:
   domain: eng
   owner: tim
   path: docs/FIXTURE-TENANT-HANDBOOK.md
-  last_reviewed: '2026-05-16'
+  last_reviewed: '2026-05-19'
 - id: CIP-SOP-012
   uuid: e8fbd279-c6b2-472b-9718-604a0ece37ae
   title: Deploying foundry-cip for a New Venture
@@ -213,7 +213,7 @@ objects:
   domain: ops
   owner: tim
   path: docs/DEPLOYING-FOUNDRY-CIP-FOR-A-NEW-VENTURE.md
-  last_reviewed: '2026-05-16'
+  last_reviewed: '2026-05-19'
 - id: CIP-SOP-013
   uuid: 103663d2-f313-4757-aef8-1f510a613244
   title: Exporting Venture Connectors
@@ -222,7 +222,7 @@ objects:
   domain: eng
   owner: tim
   path: docs/EXPORTING-VENTURE-CONNECTORS.md
-  last_reviewed: '2026-05-16'
+  last_reviewed: '2026-05-19'
 - id: CIP-SOP-014
   uuid: 390d7cc9-a473-494d-9c83-6757955d8bff
   title: Standalone Integration Guide
@@ -231,7 +231,7 @@ objects:
   domain: eng
   owner: tim
   path: docs/STANDALONE-INTEGRATION-GUIDE.md
-  last_reviewed: '2026-05-16'
+  last_reviewed: '2026-05-19'
 - id: CIP-SOP-015
   uuid: 4f5516dc-921d-49a6-93f9-703995c4d16e
   title: Troubleshooting and Incident Response
@@ -240,7 +240,7 @@ objects:
   domain: ops
   owner: tim
   path: docs/TROUBLESHOOTING-AND-INCIDENT-RESPONSE.md
-  last_reviewed: '2026-05-16'
+  last_reviewed: '2026-05-19'
 - id: CIP-SOP-016
   uuid: 1e6f3b1c-d25b-41d3-a9d8-a68d9a02ae02
   title: The Tenant Property Glossary — CIP's plain-English semantic layer
@@ -249,7 +249,16 @@ objects:
   domain: dat
   owner: tim
   path: docs/PROPERTY-GLOSSARY-PATTERN.md
-  last_reviewed: '2026-05-16'
+  last_reviewed: '2026-05-19'
+- id: CIP-SOP-017
+  uuid: 8a4c7e2d-0e9f-4c5b-9a3f-2b8e9c5d7e4a
+  title: Junior Dev Onboarding — Your First Two Weeks on CIP
+  type: sop
+  stage_label: adopt
+  domain: meta
+  owner: tim
+  path: docs/JUNIOR-DEV-ONBOARDING.md
+  last_reviewed: '2026-05-19'
 - id: CIP-SPEC-001
   uuid: 234e3bf4-eb26-4d33-a846-d4f3b7118710
   title: Four Access Paths Reference
@@ -258,16 +267,16 @@ objects:
   domain: doc
   owner: tim
   path: docs/FOUR-ACCESS-PATHS.md
-  last_reviewed: '2026-05-16'
+  last_reviewed: '2026-05-19'
 - id: CIP-SPEC-002
   uuid: d48dcb30-266e-492d-8c90-c163583f446c
   title: Phase 1 → Phase 2 Handoff
   type: spec
-  stage_label: trial
+  stage_label: adopt
   domain: meta
   owner: tim
   path: docs/PHASE-1-TO-PHASE-2-HANDOFF.md
-  last_reviewed: '2026-05-16'
+  last_reviewed: '2026-05-19'
 - id: CIP-SPEC-003
   uuid: 9ffcdbf2-1ff5-4e2a-9fa6-f7ad604fcd7c
   title: 'CIP Architecture — Phase 0: Data Model & Tenant Architecture'
@@ -276,7 +285,7 @@ objects:
   domain: eng
   owner: tim
   path: docs/architecture/ARCHITECTURE.md
-  last_reviewed: '2026-05-16'
+  last_reviewed: '2026-05-19'
 - id: CIP-SPEC-004
   uuid: 0ba7f3ec-7fa2-4d09-a672-09c4464f59e5
   title: CIP Phase 1 — Claude Code Handoff SPEC
@@ -285,7 +294,7 @@ objects:
   domain: meta
   owner: tim
   path: docs/vision/PHASE-1-PLAIN-SPEC.md
-  last_reviewed: '2026-05-16'
+  last_reviewed: '2026-05-19'
 - id: CIP-SPEC-005
   uuid: e4f3107c-b6b7-4575-9433-4942673bf748
   title: 'CIP Phase 1 — Plain Jane: Tenant-Neutral Blank-Slate Product'
@@ -294,7 +303,7 @@ objects:
   domain: meta
   owner: tim
   path: docs/vision/PHASE-1-PLAN.md
-  last_reviewed: '2026-05-16'
+  last_reviewed: '2026-05-19'
 - id: CIP-SPEC-006
   uuid: 178e40a8-c399-4876-bd8f-7a05c000b1d8
   title: Phase 2 — Wayward Onboarding · What Does Good Look Like (WDGLL)
@@ -303,7 +312,7 @@ objects:
   domain: meta
   owner: tim
   path: docs/vision/PHASE-2-WAYWARD-WDGLL.md
-  last_reviewed: '2026-05-16'
+  last_reviewed: '2026-05-19'
 - id: CIP-SPEC-007
   uuid: 58d90272-d82e-449a-bad1-765644d0f945
   title: CIP Phase 2.5 — Foundry Self-Tenant + Early Write-Back
@@ -312,7 +321,7 @@ objects:
   domain: meta
   owner: tim
   path: docs/vision/PHASE-2.5-PLAN.md
-  last_reviewed: '2026-05-16'
+  last_reviewed: '2026-05-19'
 - id: CIP-SPEC-008
   uuid: 0ddb2af5-06ed-4d5b-85eb-f634bb6c1787
   title: CIP Roadmap — Pillar-Aligned Phases
@@ -321,7 +330,7 @@ objects:
   domain: meta
   owner: tim
   path: docs/vision/ROADMAP.md
-  last_reviewed: '2026-05-16'
+  last_reviewed: '2026-05-19'
 - id: CIP-SPEC-009
   uuid: 12e165ca-6213-470e-a015-0d9ffc9c8668
   title: CIP Extraction Reference
@@ -330,7 +339,16 @@ objects:
   domain: meta
   owner: tim
   path: docs/EXTRACTION-HISTORY.md
-  last_reviewed: '2026-05-16'
+  last_reviewed: '2026-05-19'
+- id: CIP-SPEC-010
+  uuid: f8f54da6-9b9f-4d2a-b6e4-9c8f7d2e3a4b
+  title: CIP Hard Split — Data-Plane Architecture
+  type: spec
+  stage_label: adopt
+  domain: meta
+  owner: tim
+  path: docs/ARCHITECTURE-SPLIT.md
+  last_reviewed: '2026-05-19'
 - id: CIP-BP-911
   uuid: 4b7877c7-d0e5-4320-b0ab-827b5611a2b0
   title: Foundry Knowledge Base — Product Braindump

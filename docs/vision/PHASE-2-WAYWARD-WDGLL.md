@@ -11,7 +11,7 @@ domain: meta
 version: '1.0'
 created: '2026-05-15'
 last_modified: '2026-05-15'
-last_reviewed: '2026-05-16'
+last_reviewed: '2026-05-19'
 review_cadence: 180
 project_id: client-intelligence-platform
 pm_project_id: 596825db-61bc-4899-bc6c-e207489ca35d

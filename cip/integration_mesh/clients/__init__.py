@@ -16,5 +16,15 @@ double precision[] column). pgvector / Pinecone are deferred upgrades.
 """
 from cip.integration_mesh.clients.embedding import EmbeddingClient, EmbeddingError
 from cip.integration_mesh.clients.reranker import RerankerClient, RerankerError
+from cip.integration_mesh.clients.pinecone import (
+    PineconeClient,
+    PineconeError,
+    VectorUpsert,
+    namespace_for,
+)
 
-__all__ = ["EmbeddingClient", "EmbeddingError", "RerankerClient", "RerankerError"]
+__all__ = [
+    "EmbeddingClient", "EmbeddingError",
+    "RerankerClient", "RerankerError",
+    "PineconeClient", "PineconeError", "VectorUpsert", "namespace_for",
+]

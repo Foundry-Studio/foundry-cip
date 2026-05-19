@@ -5,13 +5,13 @@ title: Phase 1 → Phase 2 Handoff
 type: spec
 owner: tim
 solve_for: Phase boundary handoff doc — enumerates Phase 1 final state and Phase 2
-  entry criteria. Atlas finalizes on M8 close.
+  entry criteria. Finalized at M8 close 2026-05-16.
 stage_label: adopt
 domain: meta
 version: '1.0'
 created: '2026-04-21'
 last_modified: '2026-05-16'
-last_reviewed: '2026-05-16'
+last_reviewed: '2026-05-19'
 review_cadence: 180
 milestone: Phase-1-M7
 ---

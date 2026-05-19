@@ -11,7 +11,7 @@ domain: ops
 version: '1.0'
 created: '2026-04-27'
 last_modified: '2026-05-16'
-last_reviewed: '2026-05-16'
+last_reviewed: '2026-05-19'
 review_cadence: 90
 purpose: 'Incident-response playbook: what fails, how it surfaces, how to recover.'
 fill_when: First Phase 2 production incident OR Phase 6 (Intelligence & Alerts), whichever

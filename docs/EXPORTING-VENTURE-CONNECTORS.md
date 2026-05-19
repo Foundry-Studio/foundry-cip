@@ -11,7 +11,7 @@ domain: eng
 version: '1.0'
 created: '2026-04-27'
 last_modified: '2026-05-16'
-last_reviewed: '2026-05-16'
+last_reviewed: '2026-05-19'
 review_cadence: 180
 purpose: Procedure for moving a venture-specific connector out of foundry-cip into
   the venture's own repo at graduation.

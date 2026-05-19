@@ -10,7 +10,7 @@ domain: meta
 version: '1.0'
 created: '2026-04-21'
 last_modified: '2026-05-16'
-last_reviewed: '2026-05-16'
+last_reviewed: '2026-05-19'
 review_cadence: 9999
 archived_on: 2026-04-20
 archived_by: atlas (Tim-authorized hardening sweep)

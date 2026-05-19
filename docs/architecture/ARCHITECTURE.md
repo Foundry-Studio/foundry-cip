@@ -11,7 +11,7 @@ domain: eng
 version: '1.0'
 created: '2026-04-13'
 last_modified: '2026-04-17'
-last_reviewed: '2026-05-16'
+last_reviewed: '2026-05-19'
 review_cadence: 180
 project_id: client-intelligence-platform
 pm_project_id: 596825db-61bc-4899-bc6c-e207489ca35d
@@ -964,22 +964,20 @@ CIP's connector framework is built **inside the Integration Mesh platform servic
 
 ---
 
-## 15. Unstructured Store — Consumes Knowledge Subsystem + Graph Subsystem (D-119)
+## 15. Unstructured Store — CIP-Owned Pinecone + Postgres Staging + GraphRAG (D-119, revised D-d83c7e1d 2026-05-19)
 
-CIP's Unstructured Store **consumes the live Knowledge Subsystem (RAG) and Graph Subsystem (GraphRAG)** rather than building new vector/graph infrastructure. Memory Service is explicitly NOT used — it is agent-scoped (per-agent conversation memory), not venture-scoped document storage.
+> **REVISED 2026-05-19 by the CIP Hard Split (D-d83c7e1d).** The original D-119 wording said CIP would "consume the live Knowledge Subsystem (RAG)" inside Foundry-Agent-System. **That is no longer true.** CIP runs its own CIP-Pinecone index, its own embedding pipeline, and Postgres-staged `cip_knowledge_chunks` as the canonical source-of-truth. Foundry-Knowledge / Memory Service / per-venture stacks are off the CIP path entirely. See [ARCHITECTURE-SPLIT.md (CIP-SPEC-010)](../ARCHITECTURE-SPLIT.md).
 
-### 15a. RAG (Knowledge Subsystem)
+### 15a. RAG (CIP-Owned)
 
-Status: LIVE (`docs/subsystems/knowledge/CONTRACT.md`).
+Status: LIVE in `cip.integration_mesh.knowledge` (retriever) + `cip.integration_mesh.clients.pinecone` (PineconeClient) + `cip_knowledge_chunks` Postgres table (canonical staging).
 
-- `knowledge_ingester_service.ingest_text_content(content, source_id, tenant_id, db)` — chunk (512 tokens, D-055), hash (dedup), embed (Qwen3-Embedding-4B, 1024d), store in Pinecone + `knowledge_chunks` table
-- `knowledge_retriever_service.retrieve_knowledge(query, tenant_id, db)` — hybrid BM25 + Pinecone + RRF fusion with cross-encoder reranking
-- Pinecone namespace: `tenant_{tenant_id}_knowledge` (separate from memory namespace)
-- Authority levels: `validated` | `draft` | `agent_discovered` | `pending_review`
-
-**CIP additions:**
-- New `source_type` values in `knowledge_sources`: `cip_client_document`, `cip_call_transcript`, `cip_ticket_body`, `cip_email_thread`, `cip_sop`. Each registered per-source with ingestion_config (D-026 tenant-scoped).
-- CIP-specific retrieval wrappers in `src/services/cip/` that know when to call knowledge retriever vs graph retriever vs both.
+- **Ingestion:** `KnowledgeIndexer.index(...)` — chunk (512 tokens), hash (dedup), embed (Qwen3-Embedding-4B Q8_0, **2,560-dim**, via CIP embedding endpoint), store in `cip_knowledge_chunks` (canonical) AND CIP-Pinecone (hot). (NB: indexer Pinecone-write wiring lands with the migration scope; until then, migrate via `scripts/migrate_chunks_postgres_to_pinecone.py`.)
+- **Retrieval:** `KnowledgeRetriever.search(...)` — CIP-Pinecone-first hot path with reranker (Qwen3-Reranker-4B), graceful Postgres cosine fallback on `PineconeError`. Authority levels: `validated` | `draft` | `agent_discovered` | `pending_review`.
+- **CIP-Pinecone:** index `foundry-cip` (cosine, serverless aws/us-east-1), host `foundry-cip-h705p9t.svc.aped-4627-b74a.pinecone.io`.
+- **Namespace:** `cip__{tenant_id}__{client_id}` per (tenant, client). Tenant-wide content (no client scope) uses `cip__{tenant_id}___tenant`.
+- **Source kinds in `cip_knowledge_chunks`:** `cip_client_document`, `cip_call_transcript`, `cip_ticket_body`, `cip_ticket_comment`, `cip_engagement_note`, `cip_email_thread`, `cip_sop`. Registered per-source with ingestion_config (D-026 tenant-scoped).
+- **Foundry agents reach CIP-Pinecone exclusively via the bridge MCP tool** `foundry_mcp_cip_semantic_search` (scope filed under the hard-split reorg). Direct Pinecone access from outside the CIP product is prohibited.
 
 ### 15b. GraphRAG (Graph Subsystem)
 
@@ -1014,10 +1012,12 @@ One write path → both retrieval layers populated. No duplicated pipelines.
 
 CIP holds **three kinds of data**, each with a distinct store and a distinct discovery surface.
 
+> **CIP Hard Split (D-d83c7e1d, locked 2026-05-19).** All three layers are **CIP-owned, not shared with Foundry-Knowledge or per-venture stacks**. CIP runs its own dedicated Pinecone index (`foundry-cip`, 2,560-dim, host `foundry-cip-h705p9t.svc.aped-4627-b74a.pinecone.io`), its own R2 prefix (`cip-originals/` under the shared `foundry-agent-system` bucket; graduates to a dedicated bucket at Stage 3), and its own embedding pipeline (Qwen3-Embedding-4B Q8_0, 2,560-dim, via the CIP embedding endpoint). Postgres `cip_knowledge_chunks` remains as canonical source-of-truth + staging; Pinecone is the hot-retrieval store. Foundry agents must access CIP-owned vectors via the bridge MCP tool `foundry_mcp_cip_semantic_search` — never directly through Pinecone. See [ARCHITECTURE-SPLIT.md (CIP-SPEC-010)](../ARCHITECTURE-SPLIT.md) for the data classification rule and migration plan.
+
 | Layer | What it holds | Where it lives | Discovery surface |
 |-------|---------------|----------------|-------------------|
-| **Originals** | Actual files — PDFs, .docx, spreadsheets, images, ticket attachments, call recordings, deliverables | **R2 object storage** (via Storage Service, tenant-scoped prefix). Optionally mirrored to client Google Drive folders via Push & Sync | `cip_files` metadata table |
-| **Derived Knowledge** | Chunks + embeddings (RAG) + entities + relationships (GraphRAG) extracted from originals | **Pinecone** (tenant-scoped namespace) + **FalkorDB** (tenant-scoped namespace) + `knowledge_chunks` (metadata) | `knowledge_sources`, `knowledge_chunks`, `graph_templates` |
+| **Originals** | Actual files — PDFs, .docx, spreadsheets, images, ticket attachments, call recordings, deliverables | **CIP-R2** prefix `cip-originals/{tenant}/{client}/{source}/{source_id}/{file}` (graduates to dedicated bucket at Stage 3). Optionally mirrored to client Google Drive via Push & Sync | `cip_files` metadata table |
+| **Derived Knowledge** | Chunks + embeddings (RAG) + entities + relationships (GraphRAG) extracted from originals | **CIP-Pinecone** index `foundry-cip` (2,560-dim cosine), namespace `cip__{tenant}__{client}` — plus **FalkorDB** (tenant-scoped namespace) for GraphRAG; `cip_knowledge_chunks` Postgres table holds canonical content + metadata + a Postgres-side embedding for fallback cosine search | `cip_knowledge_sources`, `cip_knowledge_chunks`, `graph_templates` |
 | **Structured Data** | Normalized tabular rows — contacts, companies, tickets, deals, call-note metadata, sync runs | **Postgres** (`cip_*` tables, tenant_id scoped) | Standard SQL + `cip_*` registries |
 
 ### 16a. `cip_files` Metadata Table (Structured Store)
@@ -1045,20 +1045,22 @@ cip_files (
 )
 ```
 
-### 16b. R2 Path Convention
+### 16b. R2 Path Convention (CIP Hard Split, D-d83c7e1d)
 
+Stage 1/2 (shared bucket, CIP prefix):
 ```
-{R2_BUCKET}/
-    tenant_{venture_id}/
-        cip/
-            {client_id}/
-                originals/
-                    {file_id}.{ext}
-                deliverables/
-                    {deliverable_id}.{ext}
+foundry-agent-system/                          (CIP-R2 bucket, Stage 1+2)
+    cip-originals/                             (CIP root prefix)
+        {tenant_uuid}/
+            {client_uuid}/
+                {source_connector}/            (zendesk | hubspot | google_drive | manual_upload | ...)
+                    {source_id}/
+                        {file_name}.{ext}
+        _deliverables/
+            {tenant_uuid}/{client_uuid}/{deliverable_id}.{ext}
 ```
 
-Storage Service owns the bucket and the tenant-prefix convention. CIP populates under its `cip/` sub-prefix.
+Stage 3 (external customer) graduates the tenant onto a dedicated bucket; the inner path structure stays the same (drop the `cip-originals/` root). Storage Service owns bucket selection per tenant; CIP code paths construct paths via `cip.integration_mesh.storage.r2_path_for(tenant_id, client_id, source_connector, source_id, file_name)`.
 
 ### 16c. Google Drive Integration
 

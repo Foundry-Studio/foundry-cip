@@ -11,7 +11,7 @@ domain: eng
 version: '1.0'
 created: '2026-04-27'
 last_modified: '2026-05-16'
-last_reviewed: '2026-05-16'
+last_reviewed: '2026-05-19'
 review_cadence: 180
 purpose: Bare-minimum integration guide for an external developer using foundry-cip
   without Foundry's runtime.

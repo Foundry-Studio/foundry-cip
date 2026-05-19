@@ -5,13 +5,14 @@ title: CIP Phase 1 Retrospective
 type: diagnostic
 owner: tim
 solve_for: Phase 1 retrospective — what went right, what went wrong, calibration insights
-  carried into Phase 2.
+  carried into Phase 2. Includes 2026-05-16 addendum covering post-M8 Wayward push
+  + JOS adoption.
 stage_label: adopt
 domain: meta
 version: '1.0'
 created: '2026-05-12'
 last_modified: '2026-05-16'
-last_reviewed: '2026-05-16'
+last_reviewed: '2026-05-19'
 review_cadence: 365
 milestone: Phase-1-M8
 authors:

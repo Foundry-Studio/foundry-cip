@@ -10,7 +10,7 @@ domain: meta
 version: v4.2
 created: '2026-04-27'
 last_modified: '2026-04-29'
-last_reviewed: '2026-05-16'
+last_reviewed: '2026-05-19'
 review_cadence: 9999
 project_id: client-intelligence-platform
 pm_project_id: 596825db-61bc-4899-bc6c-e207489ca35d

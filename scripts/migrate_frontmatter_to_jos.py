@@ -111,6 +111,9 @@ DOC_MAPPING: dict[str, tuple[str, str, str, str, int, str]] = {
     "docs/EXTRACTION-HISTORY.md": (
         "CIP-SPEC-009", "spec", "meta", "adopt", 365,
         "Reference history of how foundry-cip was extracted from the Foundry-Agent-System monorepo, preserved for audit."),
+    "docs/ARCHITECTURE-SPLIT.md": (
+        "CIP-SPEC-010", "spec", "meta", "adopt", 90,
+        "Canonical rule for what data goes into CIP infrastructure vs Foundry/venture infrastructure. The 'hard split' architectural boundary."),
 
     # --- Frameworks (upstream architectural references) ---
     "docs/vision/VISION.md": (

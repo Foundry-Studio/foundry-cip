@@ -1,0 +1,45 @@
+# Pillar 2 — Structured Store
+object_id: foundry-cip-structured-store
+component_kind: subsystem
+title: "CIP Pillar 2 — Structured Store"
+owner: tim
+status: active
+created: 2026-05-21
+last_modified: 2026-05-21
+last_reviewed: 2026-05-21
+review_cadence: 90
+lifecycle_phase: operating
+graduation_event:
+  decision_id: JOS-D0069
+  graduated_at: 2026-05-12
+  evidence:
+    first_real_use: "8 cip_* tables in Railway prod since 2026-04-17; M8 fixture-tenant gate PASSED"
+
+slots:
+  identity:
+    overview: OVERVIEW.md
+
+code_home: "cip/migrations/ + cip/integration_mesh/persister.py + cip/integration_mesh/scd_differ.py"
+
+parent: foundry-cip
+features_tagged_in_root: true
+
+depends_on:
+  - foundry-cip-access-and-operations
+referenced_by:
+  - foundry-cip-ingestion-and-connectors
+  - foundry-cip-lens-engine
+  - foundry-cip-consumption-surfaces
+
+domain: eng
+adoption_tier: jos-adopted
+
+references:
+  - id: D-117
+    relationship: ratified-by
+  - id: D-120
+    relationship: implements
+  - id: D-123
+    relationship: implements
+  - id: D-135
+    relationship: implements

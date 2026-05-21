@@ -1,0 +1,45 @@
+# Pillar 3 — Unstructured Store
+object_id: foundry-cip-unstructured-store
+component_kind: subsystem
+title: "CIP Pillar 3 — Unstructured Store"
+owner: tim
+status: active
+created: 2026-05-21
+last_modified: 2026-05-21
+last_reviewed: 2026-05-21
+review_cadence: 90
+lifecycle_phase: building          # ingestion hook shipped; retrieval-side pending Phase 2-3
+
+slots:
+  identity:
+    overview: OVERVIEW.md
+
+code_home: "cip/integration_mesh/orchestrator.py (ingest_as_knowledge dispatch)"
+
+parent: foundry-cip
+features_tagged_in_root: true
+
+depends_on:
+  - foundry-cip-ingestion-and-connectors  # body-bearing records arrive via mappers
+  - foundry-cip-access-and-operations     # tenant scoping
+referenced_by: []                          # consumers in FAS, not CIP-internal
+
+domain: eng
+adoption_tier: jos-adopted
+
+# Cross-system dependencies (resolved in FAS, not CIP)
+external_dependencies:
+  - foundry-agent-system:foundry-knowledge-memory  # provides vector + graph storage
+
+references:
+  - id: D-117
+    relationship: ratified-by
+  - id: D-119
+    relationship: implements
+    note: "CIP consumes Knowledge + Graph subsystems"
+  - id: D-120
+    relationship: implements
+    note: "Three Data Layers — Derived Knowledge"
+  - id: D-133
+    relationship: implements
+    note: "KnowledgeText return type"

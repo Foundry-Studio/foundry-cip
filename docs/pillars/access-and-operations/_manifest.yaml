@@ -1,0 +1,45 @@
+# Pillar 8 — Access & Operations
+object_id: foundry-cip-access-and-operations
+component_kind: subsystem
+title: "CIP Pillar 8 — Access & Operations"
+owner: tim
+status: active
+created: 2026-05-21
+last_modified: 2026-05-21
+last_reviewed: 2026-05-21
+review_cadence: 90
+lifecycle_phase: operating
+graduation_event:
+  decision_id: JOS-D0069
+  graduated_at: 2026-05-12
+  evidence:
+    first_real_use: "RLS + SET LOCAL enforced on every cip_* table since 2026-04-17; 9 RLS smoke tests green; M8 cross-tenant probe (lens query as wrong tenant returns 0 rows) confirmed"
+
+slots:
+  identity:
+    overview: OVERVIEW.md
+
+code_home: "cip/integration_mesh/tenant_context.py + RLS policies in cip/migrations/"
+
+parent: foundry-cip
+features_tagged_in_root: true
+
+depends_on: []                       # Pillar 8 is the foundation; nothing CIP-internal depends on
+referenced_by:
+  - foundry-cip-ingestion-and-connectors
+  - foundry-cip-structured-store
+  - foundry-cip-unstructured-store
+  - foundry-cip-lens-engine
+  - foundry-cip-consumption-surfaces
+  - foundry-cip-push-and-sync
+  - foundry-cip-intelligence-and-alerts
+
+domain: meta
+adoption_tier: jos-adopted
+
+references:
+  - id: D-117
+    relationship: ratified-by
+  - id: D-026
+    relationship: implements
+    note: "Tenant scoping convention (FAS-inherited)"

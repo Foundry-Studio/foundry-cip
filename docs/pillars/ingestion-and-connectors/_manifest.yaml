@@ -1,0 +1,54 @@
+# Pillar 1 — Ingestion & Connectors (subsystem manifest per JOS-SPEC-009)
+object_id: foundry-cip-ingestion-and-connectors
+component_kind: subsystem
+title: "CIP Pillar 1 — Ingestion & Connectors"
+owner: tim
+status: active
+created: 2026-05-21
+last_modified: 2026-05-21
+last_reviewed: 2026-05-21
+review_cadence: 90
+
+lifecycle_phase: operating
+graduation_event:
+  decision_id: JOS-D0069
+  graduated_at: 2026-05-12
+  evidence:
+    first_real_use: "FixtureConnector + HubSpot + Zendesk shipped + bug-bashed 2026-05-14"
+
+slots:
+  identity:
+    overview: OVERVIEW.md
+
+# Code home (CIP-local extension field)
+code_home: "cip/integration_mesh/"
+connectors_code_home: "cip/integration_mesh/connectors/"
+
+parent: foundry-cip
+
+# Features tagged with pillar:ingestion-and-connectors in product-root features.yaml
+features_tagged_in_root: true
+
+depends_on:
+  - foundry-cip-structured-store          # connectors write to the structured store
+  - foundry-cip-access-and-operations     # tenant scoping on every record
+
+referenced_by:
+  - foundry-cip-unstructured-store        # body-bearing records flow through ingestion hook
+
+domain: eng
+adoption_tier: jos-adopted
+
+references:
+  - id: D-117
+    relationship: ratified-by
+    note: "8 CIP capability pillars locked as durable scopes"
+  - id: D-118
+    relationship: implements
+    note: "CIP connectors live INSIDE Integration Mesh"
+  - id: D-134
+    relationship: implements
+    note: "Protocol-based connector framework"
+  - id: D-159
+    relationship: implements
+    note: "Mandatory historical backfill"

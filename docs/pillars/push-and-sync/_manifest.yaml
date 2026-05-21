@@ -1,0 +1,29 @@
+# Pillar 6 — Push & Sync
+object_id: foundry-cip-push-and-sync
+component_kind: subsystem
+title: "CIP Pillar 6 — Push & Sync"
+owner: tim
+status: active
+created: 2026-05-21
+last_modified: 2026-05-21
+last_reviewed: 2026-05-21
+review_cadence: 90
+lifecycle_phase: building          # Phase 2-2.5 planned
+
+slots:
+  identity:
+    overview: OVERVIEW.md
+
+parent: foundry-cip
+features_tagged_in_root: true
+
+depends_on:
+  - foundry-cip-structured-store
+  - foundry-cip-access-and-operations
+
+domain: eng
+adoption_tier: jos-adopted
+
+references:
+  - id: D-117
+    relationship: ratified-by

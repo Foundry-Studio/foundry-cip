@@ -1,180 +1,419 @@
-# CIP Feature Registry
-# JOS-PM-schema-conformant. v0 authored 2026-05-09 post-M4.
-# Schema may tighten later (field additions only); shape is locked.
+# foundry-cip — Product-root features.yaml
+# Per JOS-SPEC-010 v1.1 (refactored 2026-05-21 from CIP-local v0 schema).
+# Includes interface_surface block per JOS-D0084.
 
+declared_thing: foundry-cip
+parent: foundry-studio
+last_modified: 2026-05-21
+last_reviewed: 2026-05-21
+review_cadence: 90
+
+# Venture-local extension fields (permitted per SPEC-010 v1.1 "Extra fields" clause)
+# Kept from previous CIP-local schema for backward-compat with internal tooling.
 layer: product
 product: cip
-last_updated: 2026-05-09
-auto_maintained: false  # future: commit-watching agent (M6 deliverable)
+auto_maintained: false
 
 features:
   # ─── Pillar 1: Ingestion & Connectors ────────────────────────────────
-  - id: connector-framework
-    name: "Generic Connector Framework"
-    description: "CIPConnector + CIPMapper Protocols + sync orchestrator with session-level advisory locks for dual-run prevention"
-    status: available
-    path_to_more: "cip/integration_mesh/orchestrator.py"
-    depends_on: []
+  - feature_id: connector-framework
+    title: Generic Connector Framework
+    summary: CIPConnector + CIPMapper Protocols + sync orchestrator with session-level advisory locks.
+    description: |
+      Protocol-based framework letting any external source (HubSpot, Zendesk, Plaid, etc.) plug in
+      by implementing CIPConnector.stream_records() + CIPMapper.map() + optional backfill_history().
+      Dual-run prevention via advisory locks; bug-bashed 2026-05-14.
+    status: shipped
+    maturity: silver
+    created: 2026-04-30
+    last_modified: 2026-05-14
+    shipped_date: 2026-04-30
+    owner: tim
+    domain: eng
+    tags: [pillar:ingestion-and-connectors]
+    interface_surface:
+      - type: internal
+        module: cip.integration_mesh.orchestrator
+    references:
+      - id: D-134
+        relationship: implements
+        note: "Protocol-based connector framework"
 
-  - id: fixture-connector
-    name: "Fixture (Deterministic Synthetic) Connector"
-    description: "Reference CIPConnector implementation. Generates 1150-row deterministic corpus from a single Faker seed for byte-identical reproducibility"
-    status: available
-    path_to_more: "cip/integration_mesh/connectors/fixture/connector.py"
-    depends_on: []
+  - feature_id: fixture-connector
+    title: Fixture (Deterministic Synthetic) Connector
+    summary: Reference connector producing 1150 rows from a fixed Faker seed for byte-identical reproducibility.
+    description: |
+      No external API. Generates ~50 companies / ~200 contacts / ~300 deals / ~500 tickets /
+      ~100 documents / ~50 notes from one fixed random seed. Pinned to Python 3.12 + PYTHONHASHSEED=0.
+    status: shipped
+    maturity: gold
+    created: 2026-04-30
+    last_modified: 2026-05-09
+    shipped_date: 2026-04-30
+    owner: tim
+    domain: eng
+    tags: [pillar:ingestion-and-connectors, exemplar]
+    interface_surface:
+      - type: internal
+        module: cip.integration_mesh.connectors.fixture.connector
 
-  - id: connector-conformance-harness
-    name: "Connector Conformance Test Suite"
-    description: "8-test harness validating any CIPConnector against framework contracts (Protocol shape, incremental sync, property registry, SCD history, sync run audit, tenant scoping, post-commit RLS isolation, concurrent-sync advisory lock)"
-    status: available
-    path_to_more: "tests/fixtures/connector_conformance/"
-    depends_on: []
+  - feature_id: hubspot-connector
+    title: HubSpot CRM Connector
+    summary: HubSpot v3 connector — companies/contacts/deals/tickets + mandatory property-history backfill per D-159.
+    description: |
+      Implementation landed 2026-05-12. Bug-bashed 2026-05-14 (schema-drift class). Awaits
+      Tim's "go" for first real-tenant Wayward ingestion. HubSpot retains only 20 property
+      revisions — Phase 2 begins history capture from first sync (delay = permanent loss).
+    status: shipped
+    maturity: silver
+    created: 2026-05-09
+    last_modified: 2026-05-14
+    shipped_date: 2026-05-12
+    owner: tim
+    domain: eng
+    tags: [pillar:ingestion-and-connectors]
+    interface_surface:
+      - type: internal
+        module: cip.integration_mesh.connectors.hubspot.connector
+
+  - feature_id: zendesk-connector
+    title: Zendesk Connector
+    summary: Zendesk Support v2 — orgs/users/tickets + mandatory ticket-audit history backfill per D-159.
+    description: |
+      Implementation landed 2026-05-12. Cursor-pagination fix 2026-05-14 (legacy next_page chain
+      was looping infinitely on Wayward 100-org corpus). Awaits Tim's "go" for first real-tenant
+      ingestion.
+    status: shipped
+    maturity: silver
+    created: 2026-05-09
+    last_modified: 2026-05-14
+    shipped_date: 2026-05-12
+    owner: tim
+    domain: eng
+    tags: [pillar:ingestion-and-connectors]
+    interface_surface:
+      - type: internal
+        module: cip.integration_mesh.connectors.zendesk.connector
+
+  - feature_id: plaid-connector
+    title: Plaid Financial Connector
+    summary: Per-tenant financial ingestion — accounts, transactions, balances (replaces earlier QBO plan).
+    status: planned
+    maturity: bronze
+    created: 2026-05-09
+    last_modified: 2026-05-21
+    owner: tim
+    domain: eng
+    tags: [pillar:ingestion-and-connectors]
+    references:
+      - id: connector-framework
+        relationship: derives-from
+
+  - feature_id: historical-backfill
+    title: Mandatory Historical Backfill (D-159)
+    summary: Every connector pulls source history on first sync and writes synthesized cip_*_history rows.
+    description: |
+      HubSpot Property History, Zendesk audit log, etc. — preserved per source's retention window.
+      Codified in CONNECTOR-AUTHORING-GUIDE.md §13.
+    status: shipped
+    maturity: silver
+    created: 2026-05-12
+    last_modified: 2026-05-13
+    shipped_date: 2026-05-13
+    owner: tim
+    domain: eng
+    tags: [pillar:ingestion-and-connectors, cross-cutting]
+    interface_surface:
+      - type: internal
+        module: cip.integration_mesh.base.HistoricalRecord
+    references:
+      - id: D-159
+        relationship: implements
+
+  - feature_id: connector-conformance-harness
+    title: Connector Conformance Test Suite
+    summary: 8-test harness validating any CIPConnector against framework contracts.
+    description: |
+      Protocol shape, incremental sync, property registry, SCD history, sync run audit,
+      tenant scoping, post-commit RLS isolation, concurrent-sync advisory lock.
+      Every future CIPConnector runs this harness before its migration lands.
+    status: shipped
+    maturity: gold
+    created: 2026-04-30
+    last_modified: 2026-05-12
+    shipped_date: 2026-04-30
+    owner: tim
+    domain: eng
+    tags: [pillar:ingestion-and-connectors, governance]
+    interface_surface:
+      - type: internal
+        module: tests.fixtures.connector_conformance
 
   # ─── Pillar 2: Structured Store ──────────────────────────────────────
-  - id: structured-store
-    name: "Multi-Tenant Structured Store"
-    description: "PostgreSQL tables (cip_companies, cip_contacts, cip_deals, cip_tickets, cip_files) with bitemporal SCD-2 history + 9 provenance columns + JSONB overflow + tenant-scoped RLS"
-    status: available
-    path_to_more: "cip/migrations/"
-    depends_on: []
+  - feature_id: structured-store
+    title: Multi-Tenant Structured Store
+    summary: 8 cip_* tables (companies/contacts/deals/tickets/files) with SCD-2 history + 9 provenance cols + JSONB overflow + RLS.
+    status: shipped
+    maturity: gold
+    created: 2026-04-17
+    last_modified: 2026-05-11
+    shipped_date: 2026-04-17
+    owner: tim
+    domain: eng
+    tags: [pillar:structured-store]
+    interface_surface:
+      - type: internal
+        module: cip.migrations
+    references:
+      - id: D-123
+        relationship: implements
+        note: "Alembic schema authority"
 
-  - id: property-registry
-    name: "Connector Property Registry"
-    description: "cip_connector_property_registry table populated from each connector's describe_schema(); declares property shapes (column vs overflow, data_type enum, custom flags) before ingestion"
-    status: available
-    path_to_more: "cip/integration_mesh/persister.py"
-    depends_on: []
+  - feature_id: property-registry
+    title: Connector Property Registry
+    summary: cip_connector_property_registry populated from each connector's describe_schema() before ingestion.
+    status: shipped
+    maturity: silver
+    created: 2026-04-30
+    last_modified: 2026-04-30
+    shipped_date: 2026-04-30
+    owner: tim
+    domain: eng
+    tags: [pillar:structured-store]
+    interface_surface:
+      - type: internal
+        module: cip.integration_mesh.persister
+    references:
+      - id: D-121
+        relationship: implements
+        note: "Discoverability — registry tables required"
 
-  - id: scd-history
-    name: "Bitemporal SCD-2 History"
-    description: "Per-entity *_history tables capturing both valid-time (record's truth window) and transaction-time (when CIP knew about it) for full audit + point-in-time queries"
-    status: available
-    path_to_more: "cip/integration_mesh/scd_differ.py"
-    depends_on: []
+  - feature_id: scd-history
+    title: Bitemporal SCD-2 History
+    summary: Per-entity *_history tables capturing valid-time + transaction-time for full audit + point-in-time queries.
+    status: shipped
+    maturity: gold
+    created: 2026-04-17
+    last_modified: 2026-04-30
+    shipped_date: 2026-04-17
+    owner: tim
+    domain: eng
+    tags: [pillar:structured-store]
+    interface_surface:
+      - type: internal
+        module: cip.integration_mesh.scd_differ
+    references:
+      - id: D-135
+        relationship: implements
+        note: "App-layer SCD Type 2"
 
-  - id: tenant-isolation-rls
-    name: "Multi-Tenant RLS Enforcement"
-    description: "PostgreSQL Row-Level Security policies on every cip_* table keyed on app.current_tenant GUC; defense-in-depth via explicit tenant_id predicates"
-    status: available
-    path_to_more: "cip/integration_mesh/tenant_context.py"
-    depends_on: []
+  - feature_id: tenant-isolation-rls
+    title: Multi-Tenant RLS Enforcement
+    summary: PostgreSQL Row-Level Security on every cip_* table keyed on app.current_tenant GUC.
+    description: |
+      Defense-in-depth via explicit tenant_id predicates inside lens views + RLS at the table layer.
+      9 RLS smoke tests at tests/migrations/test_rls_cip_*.py.
+    status: shipped
+    maturity: gold
+    created: 2026-04-17
+    last_modified: 2026-04-30
+    shipped_date: 2026-04-17
+    owner: tim
+    domain: eng
+    tags: [pillar:structured-store, pillar:access-and-operations, cross-cutting]
+    interface_surface:
+      - type: internal
+        module: cip.integration_mesh.tenant_context
+    references:
+      - id: D-026
+        relationship: implements
+        note: "Tenant scoping convention (FAS-inherited)"
 
-  # ─── Pillar 3: Unstructured Store (PARTIAL — read-side hooks only) ───
-  - id: knowledge-ingestion-hook
-    name: "Knowledge Ingestion Hook"
-    description: "CIPMapper.ingest_as_knowledge() emits KnowledgeText for body-bearing types (tickets, documents); orchestrator dispatches to platform Knowledge service"
-    status: partial
-    path_to_more: "cip/integration_mesh/orchestrator.py"
-    depends_on: []
+  # ─── Pillar 3: Unstructured Store ────────────────────────────────────
+  - feature_id: knowledge-ingestion-hook
+    title: Knowledge Ingestion Hook
+    summary: CIPMapper.ingest_as_knowledge() emits KnowledgeText for body-bearing types; orchestrator dispatches to FAS Knowledge service.
+    status: in-progress
+    maturity: bronze
+    created: 2026-05-01
+    last_modified: 2026-05-12
+    owner: tim
+    domain: eng
+    tags: [pillar:unstructured-store]
+    interface_surface:
+      - type: internal
+        module: cip.integration_mesh.orchestrator
+    references:
+      - id: D-119
+        relationship: implements
+        note: "CIP consumes Knowledge + Graph subsystems"
+      - id: D-133
+        relationship: implements
+        note: "KnowledgeText return type"
 
   # ─── Pillar 4: Lens Engine ───────────────────────────────────────────
-  - id: lens-engine
-    name: "Lens Engine (P-21 Multi-Lens by Default)"
-    description: "Query-time predicate compilation from cip_views.filter_config JSONB → SQLAlchemy WHERE clause; AND-composes with tenant RLS; equality-only v1, operator extensibility deferred to v2"
-    status: available
-    path_to_more: "cip/integration_mesh/lens_engine/"
-    depends_on: []
+  - feature_id: lens-engine
+    title: Lens Engine (P-21 Multi-Lens by Default)
+    summary: Query-time predicate compilation from cip_views.filter_config JSONB → SQLAlchemy WHERE clause; AND-composes with tenant RLS.
+    description: |
+      Equality-only v1; operator extensibility deferred to v2. Every data surface assumes
+      N consumers with N filter configs per P-21 — added a new lens by INSERT-only into cip_views.
+    status: shipped
+    maturity: silver
+    created: 2026-04-30
+    last_modified: 2026-05-09
+    shipped_date: 2026-04-30
+    owner: tim
+    domain: eng
+    tags: [pillar:lens-engine]
+    interface_surface:
+      - type: internal
+        module: cip.integration_mesh.lens_engine
+    references:
+      - id: P-21
+        relationship: implements
 
-  - id: lens-authoring
-    name: "Lens Authoring (INSERT-only)"
-    description: "Add a new lens by INSERTing into cip_views — no schema or code change required (P-21 falsifiability test). Documented in LENS-AUTHORING-GUIDE."
-    status: available
-    path_to_more: "docs/LENS-AUTHORING-GUIDE.md"
-    depends_on: []
+  - feature_id: lens-authoring
+    title: Lens Authoring (INSERT-only)
+    summary: Add a new lens by INSERTing into cip_views — no schema or code change required.
+    status: shipped
+    maturity: silver
+    created: 2026-04-30
+    last_modified: 2026-04-30
+    shipped_date: 2026-04-30
+    owner: tim
+    domain: doc
+    tags: [pillar:lens-engine, doc]
+    interface_surface:
+      - type: docs
+        name: docs/LENS-AUTHORING-GUIDE.md
 
-  - id: golden-file-snapshot-harness
-    name: "Golden-File Snapshot Test Harness"
-    description: "Determinism guard: canonicalized JSON output of corpus + lens applications SHA-256-locked. Drift fails loud; intentional bumps require commit-explained intent. Pinned to Python 3.12 + PYTHONHASHSEED=0."
-    status: available
-    path_to_more: "tests/integration_mesh/test_lens_golden_snapshots.py"
-    depends_on: []
+  - feature_id: golden-file-snapshot-harness
+    title: Golden-File Snapshot Test Harness
+    summary: Canonicalized JSON output of corpus + lens applications SHA-256-locked. Drift fails loud.
+    status: shipped
+    maturity: silver
+    created: 2026-04-30
+    last_modified: 2026-04-30
+    shipped_date: 2026-04-30
+    owner: tim
+    domain: eng
+    tags: [pillar:lens-engine, governance]
+    interface_surface:
+      - type: internal
+        module: tests.integration_mesh.test_lens_golden_snapshots
 
-  # ─── Pillar 5: Consumption Surfaces (PLANNED — M5+) ──────────────────
-  - id: metabase-platform-service
-    name: "Metabase Dashboards"
-    description: "Self-service dashboards over CIP structured store for tenant operators. M5 shipped cip_09 migration (cip_metabase_role + lens_all_companies + lens_eu_west_companies views; P-21 enforced via REVOKE on cip_* + GRANT on lens_*)."
-    status: available
-    path_to_more: "docs/METABASE-OPERATOR-GUIDE.md"
-    depends_on: []
+  # ─── Pillar 5: Consumption Surfaces ──────────────────────────────────
+  - feature_id: metabase-platform-service
+    title: Metabase Dashboards
+    summary: Self-service dashboards over CIP structured store. cip_metabase_role grants on lens_* views only (P-21 enforced).
+    description: |
+      M5 shipped cip_09 migration (cip_metabase_role + lens_all_companies + lens_eu_west_companies).
+      M8 fixture-tenant gate PASSED 2026-05-12 on reports.project-silk.com.
+    status: shipped
+    maturity: silver
+    created: 2026-05-09
+    last_modified: 2026-05-12
+    shipped_date: 2026-05-09
+    owner: tim
+    domain: eng
+    tags: [pillar:consumption-surfaces]
+    interface_surface:
+      - type: ui
+        route: "reports.project-silk.com (Metabase)"
 
-  - id: rest-api-endpoints
-    name: "Read-Side REST API"
-    description: "HTTP endpoints over lenses for external consumers"
+  - feature_id: rest-api-endpoints
+    title: Read-Side REST API
+    summary: HTTP endpoints over lenses for external consumers (Phase 4 deliverable).
     status: planned
-    path_to_more: "(Phase 4 deliverable — TBD)"
-    depends_on: []
+    maturity: bronze
+    created: 2026-05-09
+    last_modified: 2026-05-21
+    owner: tim
+    domain: eng
+    tags: [pillar:consumption-surfaces]
 
-  - id: mcp-tool-surface
-    name: "MCP Tool Surface for Agents"
-    description: "Agent-callable MCP tools wrapping common CIP queries"
+  - feature_id: mcp-tool-surface
+    title: MCP Tool Surface for Agents
+    summary: Agent-callable MCP tools wrapping common CIP queries (Phase 4 deliverable).
     status: planned
-    path_to_more: "(Phase 4 deliverable — TBD)"
-    depends_on: []
+    maturity: bronze
+    created: 2026-05-09
+    last_modified: 2026-05-21
+    owner: tim
+    domain: eng
+    tags: [pillar:consumption-surfaces]
+    # When shipped, expected handles:
+    #   foundry_mcp_cip_query, foundry_mcp_cip_search, foundry_mcp_cip_files
 
-  # ─── Pillar 6: Push & Sync (PLANNED — Phase 2 / 2.5) ─────────────────
-  - id: outbound-push
-    name: "Outbound Push to External Systems"
-    description: "Write-back from CIP to source-of-truth systems (Chatwoot, etc.)"
+  # ─── Pillar 6: Push & Sync ───────────────────────────────────────────
+  - feature_id: outbound-push
+    title: Outbound Push to External Systems
+    summary: Write-back from CIP to source-of-truth systems (Chatwoot, partner CRMs, Drive). Phase 2-2.5.
     status: planned
-    path_to_more: "(Phase 2 / 2.5 deliverable — TBD)"
-    depends_on: []
+    maturity: bronze
+    created: 2026-05-09
+    last_modified: 2026-05-21
+    owner: tim
+    domain: eng
+    tags: [pillar:push-and-sync]
 
-  # ─── Pillar 7: Intelligence & Alerts (PLANNED — Phase 6+) ────────────
-  - id: anomaly-detection
-    name: "Anomaly Detection & Alerts"
-    description: "Statistical + rule-based detection of unusual patterns in tenant data"
+  # ─── Pillar 7: Intelligence & Alerts ─────────────────────────────────
+  - feature_id: anomaly-detection
+    title: Anomaly Detection & Alerts
+    summary: Statistical + rule-based detection of unusual patterns in tenant data (Phase 6+).
     status: planned
-    path_to_more: "(Phase 6 deliverable — TBD)"
-    depends_on: []
+    maturity: bronze
+    created: 2026-05-09
+    last_modified: 2026-05-21
+    owner: tim
+    domain: eng
+    tags: [pillar:intelligence-and-alerts]
 
-  # ─── Pillar 8: Access & Operations ────────────────────────────────────
-  - id: cross-tenant-grants
-    name: "Cross-Tenant Grants Runtime"
-    description: "Schema + runtime for explicit tenant-to-tenant data sharing (e.g., partner portal access)"
+  # ─── Pillar 8: Access & Operations ───────────────────────────────────
+  - feature_id: cross-tenant-grants
+    title: Cross-Tenant Grants Runtime
+    summary: Schema + runtime for explicit tenant-to-tenant data sharing (Phase 3 — cip_09 schema + runtime ship together).
+    description: |
+      Held until Phase 3 explicitly so schema + runtime ship as a unit — no orphan migration
+      sitting unused for two phases.
     status: planned
-    path_to_more: "(Phase 3 deliverable — TBD; cip_09 migration)"
-    depends_on: []
+    maturity: bronze
+    created: 2026-05-09
+    last_modified: 2026-05-21
+    owner: tim
+    domain: eng
+    tags: [pillar:access-and-operations]
 
   # ─── Cross-cutting capabilities ──────────────────────────────────────
-  - id: deterministic-corpus
-    name: "Deterministic Synthetic Corpus"
-    description: "FixtureConnector seeded corpus reproducible byte-for-byte under same Python version + Faker pin + PYTHONHASHSEED=0. Snapshot SHA encoded in test."
-    status: available
-    path_to_more: "tests/integration_mesh/test_fixture_corpus_determinism.py"
-    depends_on: []
+  - feature_id: deterministic-corpus
+    title: Deterministic Synthetic Corpus
+    summary: FixtureConnector seeded corpus reproducible byte-for-byte under fixed Python + Faker pin + PYTHONHASHSEED=0.
+    status: shipped
+    maturity: gold
+    created: 2026-04-30
+    last_modified: 2026-04-30
+    shipped_date: 2026-04-30
+    owner: tim
+    domain: eng
+    tags: [cross-cutting, governance]
+    interface_surface:
+      - type: internal
+        module: tests.integration_mesh.test_fixture_corpus_determinism
 
-  - id: governance-conformance
-    name: "Governance Conformance (FND-S13 + FND-S14)"
-    description: "Dependency pinning discipline (FND-S13) + tier-based local verification (FND-S14) enforced via commit trailers + CI lint hooks"
-    status: available
-    path_to_more: "(monorepo: docs/governance/standards/)"
-    depends_on: []
-
-  # ─── Future connectors (Pillar 1 — planned per VISION connector inventory) ─
-  - id: plaid-connector
-    name: "Plaid Financial Connector"
-    description: "Per-tenant financial data ingestion via Plaid — accounts, transactions, balances. Replaces earlier QBO-based plan (Tim 2026-05-09 lock); new Bob will be rebuilt against this connector pattern."
-    status: planned
-    path_to_more: "(Phase 2+ deliverable)"
-    depends_on: []
-
-  - id: hubspot-connector
-    name: "HubSpot CRM Connector"
-    description: "HubSpot v3 connector — companies/contacts/deals/tickets + mandatory property-history backfill per D-159 (up to HubSpot's 20-revision retention window). Implementation landed 2026-05-12; not yet run against real Wayward data (Tier 3 pending Tim go)."
-    status: available
-    path_to_more: "cip/integration_mesh/connectors/hubspot/connector.py"
-    depends_on: []
-
-  - id: historical-backfill
-    name: "Mandatory Historical Backfill (D-159)"
-    description: "Every CIP connector pulls source-system history (HubSpot Property History, Zendesk audit log, etc.) on first sync for any new tenant and writes synthesized cip_*_history rows. Locked 2026-05-12 by D-159; codified in CONNECTOR-AUTHORING-GUIDE.md §13."
-    status: available
-    path_to_more: "docs/CONNECTOR-AUTHORING-GUIDE.md"
-    depends_on: []
-
-  - id: zendesk-connector
-    name: "Zendesk Connector"
-    description: "Zendesk Support v2 connector — orgs/users/tickets + mandatory ticket-audit history backfill per D-159. Implementation landed 2026-05-12; not yet run against real Wayward data (Tier 3 pending Tim go)."
-    status: available
-    path_to_more: "cip/integration_mesh/connectors/zendesk/connector.py"
-    depends_on: []
+  - feature_id: governance-conformance
+    title: Governance Conformance (FND-S13 + FND-S14)
+    summary: Dependency pinning discipline (FND-S13) + tier-based local verification (FND-S14) enforced via commit trailers + CI lint hooks.
+    status: shipped
+    maturity: silver
+    created: 2026-04-30
+    last_modified: 2026-05-11
+    shipped_date: 2026-04-30
+    owner: tim
+    domain: meta
+    tags: [cross-cutting, governance]
+    interface_surface:
+      - type: cli
+        command: "scripts/jos check"
+      - type: docs
+        name: CLAUDE.md (FND-S13 + FND-S14 sections)

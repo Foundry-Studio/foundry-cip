@@ -1,0 +1,29 @@
+# Pillar 7 — Intelligence & Alerts
+object_id: foundry-cip-intelligence-and-alerts
+component_kind: subsystem
+title: "CIP Pillar 7 — Intelligence & Alerts"
+owner: tim
+status: active
+created: 2026-05-21
+last_modified: 2026-05-21
+last_reviewed: 2026-05-21
+review_cadence: 90
+lifecycle_phase: building          # Phase 6+ planned; no code yet
+
+slots:
+  identity:
+    overview: OVERVIEW.md
+
+parent: foundry-cip
+features_tagged_in_root: true
+
+depends_on:
+  - foundry-cip-structured-store
+  - foundry-cip-unstructured-store
+
+domain: eng
+adoption_tier: jos-adopted
+
+references:
+  - id: D-117
+    relationship: ratified-by

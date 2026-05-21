@@ -1,0 +1,230 @@
+# foundry-cip — Product-root capabilities.yaml
+# Per JOS-SPEC-011 v1.1. Each capability = one of the 8 pillars locked per D-117.
+# Granular features live in features.yaml (tagged by pillar:<slug>).
+
+declared_thing: foundry-cip
+parent: foundry-studio
+last_modified: 2026-05-21
+last_reviewed: 2026-05-21
+review_cadence: 90
+
+capabilities:
+  - capability_id: CIP-CAP-001
+    title: Ingest Client Data from External Sources
+    summary: Pull a client's data from CRM, support, financial, and document systems into CIP automatically.
+    description: |
+      Connector framework + concrete connectors (FixtureConnector, HubSpot, Zendesk;
+      Plaid planned). Every connector implements CIPConnector + CIPMapper Protocols,
+      backfills source-system history on first sync (D-159), and passes the
+      8-test conformance harness.
+    status: shipped
+    maturity: silver
+    created: 2026-04-17
+    last_modified: 2026-05-14
+    shipped_date: 2026-04-30
+    owner: tim
+    domain: eng
+    audience: [internal-team, agent]
+    composed_of_features:
+      - connector-framework
+      - fixture-connector
+      - hubspot-connector
+      - zendesk-connector
+      - plaid-connector
+      - historical-backfill
+      - connector-conformance-harness
+    value_delivered: A new tenant onboards in hours, not weeks; source history captured on first sync; framework gates schema drift before it lands in production.
+    consumer_workflows:
+      - new-tenant-onboard: Operator drops connector config + runs FixtureConnector or real connector; data flows into cip_* tables with provenance.
+      - bug-bash: Every connector passes the conformance harness before Wayward exposure.
+    tags: [pillar:ingestion-and-connectors]
+    references:
+      - id: D-117
+        relationship: ratified-by
+      - id: D-134
+        relationship: implements
+
+  - capability_id: CIP-CAP-002
+    title: Multi-Tenant Structured Store with Audit-Grade History
+    summary: One Postgres home for every tenant's structured client data, with bitemporal SCD-2 history and 9-column provenance on every row.
+    description: |
+      cip_* tables (companies, contacts, deals, tickets, files-metadata) carry
+      Tenant-scoped RLS + JSONB overflow + transaction-time + valid-time history.
+      Every row knows where it came from, when CIP knew about it, and what its
+      authority level is.
+    status: shipped
+    maturity: gold
+    created: 2026-04-17
+    last_modified: 2026-05-11
+    shipped_date: 2026-04-17
+    owner: tim
+    domain: eng
+    audience: [internal-team, agent]
+    composed_of_features:
+      - structured-store
+      - property-registry
+      - scd-history
+      - tenant-isolation-rls
+    value_delivered: Auditable single source of truth — point-in-time queries, full lineage, no hand-rolled schemas per tenant.
+    tags: [pillar:structured-store]
+    references:
+      - id: D-117
+        relationship: ratified-by
+      - id: D-120
+        relationship: implements
+      - id: D-123
+        relationship: implements
+      - id: D-135
+        relationship: implements
+
+  - capability_id: CIP-CAP-003
+    title: Derived Knowledge from Unstructured Content
+    summary: Tickets, notes, documents, and call transcripts become searchable knowledge + queryable graph.
+    description: |
+      CIP emits KnowledgeText for body-bearing types; Foundry-Agent-System's
+      Knowledge subsystem (Pinecone BM25+vector) and Graph subsystem (FalkorDB
+      GraphRAG) own the actual storage + retrieval. CIP owns the ingestion
+      hook and provenance.
+    status: in-progress
+    maturity: bronze
+    created: 2026-05-01
+    last_modified: 2026-05-12
+    owner: tim
+    domain: eng
+    audience: [internal-team, agent]
+    composed_of_features:
+      - knowledge-ingestion-hook
+    value_delivered: Unstructured client content reaches the same retrieval surfaces agents already use; no separate per-tenant retrieval stack.
+    tags: [pillar:unstructured-store]
+    references:
+      - id: D-117
+        relationship: ratified-by
+      - id: D-119
+        relationship: implements
+      - id: D-120
+        relationship: implements
+
+  - capability_id: CIP-CAP-004
+    title: Multi-Lens Filtered Views (P-21)
+    summary: Every data surface serves N consumers with N filter configs; new lens = INSERT-only into cip_views.
+    description: |
+      Query-time predicate compilation from cip_views.filter_config JSONB
+      AND-composed with tenant RLS. Add a new lens by INSERT-only —
+      no schema or code change. Golden-file snapshot harness locks
+      determinism.
+    status: shipped
+    maturity: silver
+    created: 2026-04-30
+    last_modified: 2026-05-09
+    shipped_date: 2026-04-30
+    owner: tim
+    domain: eng
+    audience: [internal-team, client, agent]
+    composed_of_features:
+      - lens-engine
+      - lens-authoring
+      - golden-file-snapshot-harness
+    value_delivered: One source of truth, N stakeholder views — partner sees their slice, internal team sees everything, agent sees what its lens permits.
+    tags: [pillar:lens-engine]
+    references:
+      - id: D-117
+        relationship: ratified-by
+      - id: P-21
+        relationship: implements
+
+  - capability_id: CIP-CAP-005
+    title: Consumption Surfaces (Dashboards / API / Agent Tools)
+    summary: One canonical store; many ways to consume — Metabase dashboards today, REST + MCP coming Phase 4.
+    description: |
+      M5 shipped Metabase with cip_metabase_role + lens_* grants enforcing P-21
+      structurally (REVOKE on cip_*, GRANT only on lens_*). Phase 4 brings
+      foundry_mcp_cip_* tools + /cip/* REST. Phase 5 brings the chatbot.
+    status: in-progress
+    maturity: bronze
+    created: 2026-05-09
+    last_modified: 2026-05-12
+    owner: tim
+    domain: eng
+    audience: [internal-team, client, agent]
+    composed_of_features:
+      - metabase-platform-service
+      - rest-api-endpoints
+      - mcp-tool-surface
+    value_delivered: Pick the right consumer surface per audience — dashboards for humans, APIs for systems, MCP for agents, chatbot for conversational consumption.
+    tags: [pillar:consumption-surfaces]
+    references:
+      - id: D-117
+        relationship: ratified-by
+
+  - capability_id: CIP-CAP-006
+    title: Push & Sync to External Systems
+    summary: Write back from CIP to source-of-truth systems — Chatwoot, partner CRMs, client Google Drive.
+    description: |
+      Phase 2 lights up the first push surfaces (Chatwoot for support tickets,
+      PS Twenty CRM for lead nurture, Google Drive for client artifacts).
+      Phase 2.5 adds the authority model (agent_discovered / ingested /
+      validated) for write-back governance.
+    status: planned
+    maturity: bronze
+    created: 2026-05-09
+    last_modified: 2026-05-21
+    owner: tim
+    domain: eng
+    audience: [internal-team, client]
+    composed_of_features:
+      - outbound-push
+    value_delivered: CIP closes the loop — not just intelligence in, but governed action out.
+    tags: [pillar:push-and-sync]
+    references:
+      - id: D-117
+        relationship: ratified-by
+
+  - capability_id: CIP-CAP-007
+    title: Intelligence & Alerts
+    summary: Anomaly detection, freshness scoring, proactive signals, scheduled reports.
+    description: |
+      Phase 6+ lights this up. Ticket spikes, overdue payments, freshness
+      crossings → Slack alert channel + Metabase freshness signals +
+      scheduled analytical reports. Phase 7 adds investigative agents.
+    status: planned
+    maturity: bronze
+    created: 2026-05-09
+    last_modified: 2026-05-21
+    owner: tim
+    domain: eng
+    audience: [internal-team, client]
+    composed_of_features:
+      - anomaly-detection
+    value_delivered: CIP stops being passive — it surfaces what's worth noticing without operators having to ask.
+    tags: [pillar:intelligence-and-alerts]
+    references:
+      - id: D-117
+        relationship: ratified-by
+
+  - capability_id: CIP-CAP-008
+    title: Access & Operations
+    summary: Multi-tenant isolation (RLS + SET LOCAL), cross-tenant grants, sync-run health, observability.
+    description: |
+      Tenant isolation is structural — RLS at the table layer + SET LOCAL
+      app.current_tenant GUC + explicit tenant_id predicates in lens views.
+      Phase 3 adds cross-tenant grants runtime (cip_09 schema + runtime
+      ship together). Phase 8 extracts the cip_* tables to a dedicated
+      Postgres for scale.
+    status: shipped
+    maturity: silver
+    created: 2026-04-17
+    last_modified: 2026-04-30
+    shipped_date: 2026-04-17
+    owner: tim
+    domain: eng
+    audience: [internal-team, agent]
+    composed_of_features:
+      - tenant-isolation-rls
+      - cross-tenant-grants
+    value_delivered: Every query carries tenant scoping by construction — no class of "leaked across tenants" bug possible at the data layer.
+    tags: [pillar:access-and-operations]
+    references:
+      - id: D-117
+        relationship: ratified-by
+      - id: D-026
+        relationship: implements

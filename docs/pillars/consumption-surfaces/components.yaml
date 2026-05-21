@@ -1,0 +1,104 @@
+# CIP — Pillar 5 (Consumption Surfaces) components.yaml
+# Per JOS-SPEC-024 v1.1 + JOS-D0086 + JOS-D0087.
+
+declared_thing: foundry-cip-consumption-surfaces
+parent: foundry-cip
+last_modified: 2026-05-21
+last_reviewed: 2026-05-21
+review_cadence: 90
+generation_mode: file-authored
+
+components:
+
+  - component_id: cip-metabase-role
+    type: service
+    title: cip_metabase_role (Postgres role)
+    summary: Read-only Postgres role with REVOKE on cip_* tables + GRANT on lens_* views (P-21 enforcement).
+    description: |
+      Authored in cip_09 migration. NOSUPERUSER NOBYPASSRLS LOGIN. Grant matrix
+      structurally enforces P-21 — REVOKE ALL on every cip_* table; GRANT SELECT
+      on every lens_* view. A BI tool connected as this role can read lens views
+      (which carry RLS scoping) but CANNOT directly read raw tables. Password
+      lives in Railway env vars.
+    status: shipped
+    maturity: silver
+    created: 2026-05-09
+    last_modified: 2026-05-09
+    shipped_date: 2026-05-09
+    owner: tim
+    domain: eng
+    container:
+      thing_id: foundry-cip-consumption-surfaces
+    storage_path: cip_metabase_role (Postgres role)
+    interface_surface:
+      - type: internal
+        module: cip.migrations.versions.cip_09_metabase_role_views
+    visibility: tenant-scoped
+    tags: [postgres-role, grant-matrix, p-21-enforcement]
+    relations:
+      delivers_features: [metabase-platform-service]
+      uses_components: [foundry-cip:cip-postgres-schema]
+
+  - component_id: cip-lens-views
+    type: data_store
+    title: lens_* Postgres Views (M5/M8)
+    summary: lens_all_companies, lens_eu_west_companies, lens_companies_history (M5 + M8 deliverables).
+    description: |
+      Postgres views authored in cip_09 (M5) + cip_10 (M8 history lens proof-of-life)
+      migrations. Each view carries explicit WHERE tenant_id = NULLIF(current_setting(
+      'app.current_tenant', true), '')::uuid for defense-in-depth tenant scoping. Granted
+      SELECT only to cip_metabase_role.
+    status: shipped
+    maturity: silver
+    created: 2026-05-09
+    last_modified: 2026-05-11
+    shipped_date: 2026-05-09
+    owner: tim
+    domain: eng
+    container:
+      thing_id: foundry-cip-consumption-surfaces
+    storage_path: lens_* (Postgres views)
+    visibility: tenant-scoped
+    tags: [postgres-view, lens, tenant-scoped]
+    relations:
+      delivers_features: [metabase-platform-service]
+      uses_components: [cip-metabase-role, foundry-cip:cip-lens-resolver]
+
+  - component_id: cip-rest-api-endpoints
+    type: api
+    title: Read-Side REST API (planned, Phase 4)
+    summary: HTTP endpoints at /cip/query, /cip/search, /cip/files (Phase 4 deliverable).
+    status: planned
+    maturity: bronze
+    created: 2026-05-09
+    last_modified: 2026-05-21
+    owner: tim
+    domain: eng
+    container:
+      thing_id: foundry-cip-consumption-surfaces
+    visibility: public-in-portfolio
+    tags: [rest-api, planned, phase-4]
+    relations:
+      delivers_features: [rest-api-endpoints]
+
+  - component_id: cip-mcp-tools
+    type: tool
+    title: foundry_mcp_cip_* MCP Tool Surface (planned, Phase 4)
+    summary: Agent-callable MCP tools wrapping CIP queries (planned Phase 4 deliverable; lives in FAS).
+    description: |
+      Phase 4 deliverable. foundry_mcp_cip_query / _search / _files. Lives in FAS
+      (Foundry-Agent-System) per D-146 service-vs-library split; CIP exposes the
+      Postgres views + Python API that these MCP tools wrap.
+    status: planned
+    maturity: bronze
+    created: 2026-05-09
+    last_modified: 2026-05-21
+    owner: tim
+    domain: eng
+    container:
+      thing_id: foundry-cip-consumption-surfaces
+    visibility: public-in-portfolio
+    tags: [mcp-tool, planned, phase-4, cross-system]
+    relations:
+      delivers_features: [mcp-tool-surface]
+      external_dependencies: [foundry-agent-system-mcp-server]

@@ -1,0 +1,44 @@
+# CIP — Pillar 3 (Unstructured Store) components.yaml
+# Per JOS-SPEC-024 v1.1 + JOS-D0086 + JOS-D0087.
+
+declared_thing: foundry-cip-unstructured-store
+parent: foundry-cip
+last_modified: 2026-05-21
+last_reviewed: 2026-05-21
+review_cadence: 90
+generation_mode: file-authored
+
+components:
+
+  - component_id: cip-knowledge-hook
+    type: service
+    title: Knowledge Ingestion Hook
+    summary: Emits KnowledgeText for body-bearing records; orchestrator dispatches to FAS Knowledge subsystem.
+    description: |
+      CIPMapper.ingest_as_knowledge() emits KnowledgeText for body-bearing entity types
+      (tickets, notes, documents, call transcripts). The orchestrator dispatches these
+      through to FAS's Knowledge subsystem (Pinecone + R2 + FalkorDB) at sync time.
+      Source_type values like cip_fixture_ticket / cip_fixture_note carry provenance.
+    status: in-progress
+    maturity: bronze
+    created: 2026-05-01
+    last_modified: 2026-05-12
+    owner: tim
+    domain: eng
+    container:
+      thing_id: foundry-cip-unstructured-store
+    code_path: cip.integration_mesh.knowledge_hook
+    interface_surface:
+      - type: internal
+        module: cip.integration_mesh.knowledge_hook
+    visibility: public-in-portfolio
+    tags: [knowledge, ingestion-hook, cross-system]
+    relations:
+      delivers_features: [knowledge-ingestion-hook]
+      uses_components: [foundry-cip:cip-connector-protocol]
+      external_dependencies: [foundry-agent-system-knowledge-subsystem]
+    governance_refs:
+      - id: D-119
+        relationship: implements
+      - id: D-133
+        relationship: implements

@@ -1,0 +1,105 @@
+# CIP — Pillar 6 (Push & Sync) components.yaml
+# Per JOS-SPEC-024 v1.1 + JOS-D0086 + JOS-D0087.
+# All components in this pillar are PLANNED (Phase 2 / 2.5 deliverables).
+
+declared_thing: foundry-cip-push-and-sync
+parent: foundry-cip
+last_modified: 2026-05-21
+last_reviewed: 2026-05-21
+review_cadence: 90
+generation_mode: file-authored
+
+components:
+
+  - component_id: cip-chatwoot-push
+    type: connector
+    title: Chatwoot Push Connector (planned, Phase 2)
+    summary: Outbound push of support tickets from CIP → Chatwoot per-tenant instance.
+    status: planned
+    maturity: bronze
+    created: 2026-05-09
+    last_modified: 2026-05-21
+    owner: tim
+    domain: eng
+    container:
+      thing_id: foundry-cip-push-and-sync
+    visibility: tenant-scoped
+    tags: [push, chatwoot, planned, phase-2]
+    relations:
+      delivers_features: [outbound-push]
+      external_dependencies: [chatwoot-api]
+
+  - component_id: cip-ps-twenty-crm-push
+    type: connector
+    title: PS Twenty CRM Push Connector (planned, Phase 2)
+    summary: Outbound push of lead-nurture signals from CIP → Project Silk's Twenty CRM instance.
+    status: planned
+    maturity: bronze
+    created: 2026-05-09
+    last_modified: 2026-05-21
+    owner: tim
+    domain: eng
+    container:
+      thing_id: foundry-cip-push-and-sync
+    visibility: tenant-scoped
+    tags: [push, twenty-crm, planned, phase-2]
+    relations:
+      delivers_features: [outbound-push]
+      external_dependencies: [twenty-crm-api]
+
+  - component_id: cip-google-drive-push
+    type: connector
+    title: Google Drive Push Connector (planned, Phase 2)
+    summary: Outbound push of client artifacts from CIP → client Google Drive folders.
+    status: planned
+    maturity: bronze
+    created: 2026-05-09
+    last_modified: 2026-05-21
+    owner: tim
+    domain: eng
+    container:
+      thing_id: foundry-cip-push-and-sync
+    visibility: tenant-scoped
+    tags: [push, google-drive, planned, phase-2]
+    relations:
+      delivers_features: [outbound-push]
+      external_dependencies: [google-drive-api]
+
+  - component_id: cip-write-api
+    type: service
+    title: cip_write() API (planned, Phase 2.5)
+    summary: Three-surface (REST / MCP / Python) write-back API converging on one write_service.cip_write().
+    description: |
+      Phase 2.5 deliverable. Single write_service.cip_write() function exposed
+      through three surfaces (REST endpoint + MCP tool + Python import). All three
+      route through the same authority model (agent_discovered / ingested / validated
+      with TSP thresholds).
+    status: planned
+    maturity: bronze
+    created: 2026-05-09
+    last_modified: 2026-05-21
+    owner: tim
+    domain: eng
+    container:
+      thing_id: foundry-cip-push-and-sync
+    visibility: public-in-portfolio
+    tags: [write-api, authority-model, planned, phase-2.5]
+    relations:
+      delivers_features: [outbound-push]
+
+  - component_id: cip-authority-model
+    type: service
+    title: Three-Tier Authority Model (planned, Phase 2.5)
+    summary: agent_discovered / ingested / validated authority levels with TSP thresholds for write-back governance.
+    status: planned
+    maturity: bronze
+    created: 2026-05-09
+    last_modified: 2026-05-21
+    owner: tim
+    domain: eng
+    container:
+      thing_id: foundry-cip-push-and-sync
+    visibility: public-in-portfolio
+    tags: [authority, governance, planned, phase-2.5]
+    relations:
+      delivers_features: [outbound-push]

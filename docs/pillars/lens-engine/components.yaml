@@ -1,0 +1,90 @@
+# CIP — Pillar 4 (Lens Engine) components.yaml
+# Per JOS-SPEC-024 v1.1 + JOS-D0086 + JOS-D0087.
+
+declared_thing: foundry-cip-lens-engine
+parent: foundry-cip
+last_modified: 2026-05-21
+last_reviewed: 2026-05-21
+review_cadence: 90
+generation_mode: file-authored
+
+components:
+
+  - component_id: cip-lens-resolver
+    type: service
+    title: Lens Resolver (resolve_lens)
+    summary: Resolves a cip_views row to a SQLAlchemy WHERE clause per filter_config JSONB.
+    description: |
+      Reads cip_views.filter_config (JSONB) for the given lens_id; compiles the JSON
+      predicate into a SQLAlchemy WHERE clause; AND-composes with the tenant RLS
+      predicate. Equality-only operators in v1 (per Phase 1 lock); operator
+      extensibility deferred to v2.
+    status: shipped
+    maturity: silver
+    created: 2026-04-30
+    last_modified: 2026-05-09
+    shipped_date: 2026-04-30
+    owner: tim
+    domain: eng
+    container:
+      thing_id: foundry-cip-lens-engine
+    code_path: cip.integration_mesh.lens_engine
+    interface_surface:
+      - type: internal
+        module: cip.integration_mesh.lens_engine
+    visibility: public-in-portfolio
+    tags: [lens, query-time, predicate-compilation]
+    relations:
+      delivers_features: [lens-engine]
+    governance_refs:
+      - id: P-21
+        relationship: implements
+
+  - component_id: cip-lens-snapshot-harness
+    type: service
+    title: Golden-File Lens Snapshot Test Harness
+    summary: SHA-256-locked golden-file snapshots of corpus + lens applications; drift fails loud.
+    description: |
+      Canonicalized JSON output of corpus + lens applications SHA-256-hashed and committed.
+      Re-running the harness on every CI build catches non-deterministic regressions in
+      lens evaluation OR fixture corpus generation. Drift = explicit commit-message
+      justified bump.
+    status: shipped
+    maturity: silver
+    created: 2026-04-30
+    last_modified: 2026-04-30
+    shipped_date: 2026-04-30
+    owner: tim
+    domain: eng
+    container:
+      thing_id: foundry-cip-lens-engine
+    code_path: tests.integration_mesh.test_lens_golden_snapshots
+    storage_path: tests/integration_mesh/test_lens_golden_snapshots.py
+    visibility: public-in-portfolio
+    tags: [test-harness, determinism, golden-file]
+    relations:
+      delivers_features: [golden-file-snapshot-harness]
+
+  - component_id: cip-lens-authoring-discipline
+    type: data_store
+    title: cip_views INSERT-only Lens Authoring
+    summary: Adding a new lens is INSERT-only into cip_views; no schema or code change required.
+    description: |
+      P-21 falsifiability test: if adding a lens requires touching code, the
+      principle has been violated. cip_views table is the lens authoring surface;
+      operators add lens rows via SQL or admin tooling.
+    status: shipped
+    maturity: silver
+    created: 2026-04-30
+    last_modified: 2026-04-30
+    shipped_date: 2026-04-30
+    owner: tim
+    domain: eng
+    container:
+      thing_id: foundry-cip-lens-engine
+    storage_path: cip_views (table)
+    visibility: tenant-scoped
+    tags: [lens-authoring, discipline]
+    relations:
+      delivers_features: [lens-authoring]
+      uses_components: [cip-lens-resolver]

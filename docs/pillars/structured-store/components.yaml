@@ -1,0 +1,97 @@
+# CIP — Pillar 2 (Structured Store) components.yaml
+# Per JOS-SPEC-024 v1.1 + JOS-D0086 (typed composition) + JOS-D0087 (visibility).
+
+declared_thing: foundry-cip-structured-store
+parent: foundry-cip
+last_modified: 2026-05-21
+last_reviewed: 2026-05-21
+review_cadence: 90
+generation_mode: file-authored
+
+components:
+
+  - component_id: cip-postgres-schema
+    type: data_store
+    title: cip_* Postgres Schema (11 Alembic Migrations)
+    summary: 11 Alembic migrations creating cip_clients/companies/contacts/deals/tickets/files + history tables.
+    description: |
+      Apply via `alembic upgrade head` against any consumer's Postgres. Version table is
+      alembic_version_cip (separate from FAS's alembic_version per D-146 multi-repo model).
+      Migrations cip_01..cip_08 ship the base schema; cip_09/cip_10/cip_11 added M5/M8
+      metabase role + history lens views + sync_mode_backfill column.
+    status: shipped
+    maturity: gold
+    created: 2026-04-17
+    last_modified: 2026-05-12
+    shipped_date: 2026-04-17
+    owner: tim
+    domain: eng
+    container:
+      thing_id: foundry-cip-structured-store
+    code_path: cip.migrations
+    storage_path: migrations/versions/
+    visibility: tenant-scoped
+    tags: [migrations, schema, postgres, scd-2]
+    relations:
+      delivers_features: [structured-store]
+      external_dependencies: [postgresql-16, alembic]
+    governance_refs:
+      - id: D-123
+        relationship: implements
+      - id: D-146
+        relationship: implements
+
+  - component_id: cip-property-registry
+    type: service
+    title: Connector Property Registry
+    summary: cip_connector_property_registry table + service populating it from connector.describe_schema().
+    description: |
+      Each CIPConnector declares its property schema (column vs JSONB overflow, data_type enum,
+      custom flags) via describe_schema(). Registered into cip_connector_property_registry table
+      before ingestion so persister knows where each field lands. Required by D-121 discoverability.
+    status: shipped
+    maturity: silver
+    created: 2026-04-30
+    last_modified: 2026-04-30
+    shipped_date: 2026-04-30
+    owner: tim
+    domain: eng
+    container:
+      thing_id: foundry-cip-structured-store
+    code_path: cip.integration_mesh.persister
+    storage_path: cip_connector_property_registry
+    visibility: public-in-portfolio
+    tags: [registry, property-schema, discoverability]
+    relations:
+      delivers_features: [property-registry]
+    governance_refs:
+      - id: D-121
+        relationship: implements
+
+  - component_id: cip-history-tables
+    type: data_store
+    title: cip_*_history bitemporal SCD-2 Tables
+    summary: Per-entity *_history tables capturing valid-time + transaction-time per D-135.
+    description: |
+      Every cip_* entity table has a paired *_history table (cip_companies_history,
+      cip_contacts_history, etc.). Each history row carries valid_from / valid_to
+      (record's truth window) + transaction_from / transaction_to (when CIP knew about it).
+      Populated by cip-scd-differ on detected change + cip-row-persister on D-159 backfill.
+    status: shipped
+    maturity: gold
+    created: 2026-04-17
+    last_modified: 2026-04-17
+    shipped_date: 2026-04-17
+    owner: tim
+    domain: eng
+    container:
+      thing_id: foundry-cip-structured-store
+    storage_path: cip_*_history (8 tables)
+    visibility: tenant-scoped
+    tags: [scd-2, bitemporal, history]
+    relations:
+      delivers_features: [scd-history]
+      uses_components: [cip-postgres-schema]
+    governance_refs:
+      - id: D-135
+        relationship: implements

@@ -1,0 +1,138 @@
+# CIP — Pillar 8 (Access & Operations) components.yaml
+# Per JOS-SPEC-024 v1.1 + JOS-D0086 + JOS-D0087.
+
+declared_thing: foundry-cip-access-and-operations
+parent: foundry-cip
+last_modified: 2026-05-21
+last_reviewed: 2026-05-21
+review_cadence: 90
+generation_mode: file-authored
+
+components:
+
+  - component_id: cip-rls-policies
+    type: data_store
+    title: cip_* Row-Level Security Policies
+    summary: PostgreSQL RLS policy on every cip_* table keyed on app.current_tenant GUC.
+    description: |
+      Authored in each migration alongside the table DDL. Every cip_* table has a
+      USING policy that filters rows by tenant_id matching the current
+      app.current_tenant session GUC. Defense-in-depth: lens views ALSO carry
+      explicit tenant_id predicates, but the RLS at the table layer is the
+      structural enforcement.
+    status: shipped
+    maturity: gold
+    created: 2026-04-17
+    last_modified: 2026-04-17
+    shipped_date: 2026-04-17
+    owner: tim
+    domain: eng
+    container:
+      thing_id: foundry-cip-access-and-operations
+    storage_path: pg_policies (Postgres RLS policies on every cip_* table)
+    visibility: tenant-scoped
+    tags: [rls, tenant-isolation, defense-in-depth]
+    relations:
+      delivers_features: [tenant-isolation-rls]
+      uses_components: [foundry-cip:cip-tenant-context, foundry-cip:cip-postgres-schema]
+    governance_refs:
+      - id: D-026
+        relationship: implements
+
+  - component_id: cip-rls-smoke-test-harness
+    type: service
+    title: 9 RLS Smoke Tests
+    summary: pytest suite validating tenant isolation at the SQL layer; runs against postgres:16-alpine.
+    description: |
+      9 RLS smoke tests at tests/migrations/test_rls_cip_*.py — one per table.
+      Each test inserts data as tenant A, switches to tenant B, verifies B sees
+      0 rows. SQLite is NOT supported (RLS is a Postgres-only feature). Runs
+      on every CI build.
+    status: shipped
+    maturity: gold
+    created: 2026-04-17
+    last_modified: 2026-04-30
+    shipped_date: 2026-04-17
+    owner: tim
+    domain: eng
+    container:
+      thing_id: foundry-cip-access-and-operations
+    code_path: tests.migrations
+    storage_path: tests/migrations/test_rls_cip_*.py
+    visibility: public-in-portfolio
+    tags: [test-harness, rls, smoke-test]
+    relations:
+      delivers_features: [tenant-isolation-rls]
+      uses_components: [foundry-cip:cip-rls-policies]
+
+  - component_id: cip-cross-tenant-grants
+    type: service
+    title: Cross-Tenant Grants Runtime (planned, Phase 3)
+    summary: cip_09 cross_tenant_grants table + runtime for explicit tenant-to-tenant data sharing.
+    description: |
+      Phase 3 deliverable. cip_09 migration adds cross_tenant_grants table (schema)
+      + corresponding runtime that allows tenant A to explicitly grant tenant B
+      access to specific lens views or row subsets. Required for partner-portal
+      access patterns (PS grant-in to Wayward, etc.).
+    status: planned
+    maturity: bronze
+    created: 2026-05-09
+    last_modified: 2026-05-21
+    owner: tim
+    domain: eng
+    container:
+      thing_id: foundry-cip-access-and-operations
+    visibility: public-in-portfolio
+    tags: [cross-tenant-grants, runtime, planned, phase-3]
+    relations:
+      delivers_features: [cross-tenant-grants]
+      uses_components: [foundry-cip:cip-rls-policies]
+
+  - component_id: cip-sync-run-recorder
+    type: service
+    title: Sync Run Recorder
+    summary: Records every sync (success/error/running) to cip_sync_runs with structured error_detail.
+    description: |
+      Records every connector run (status='running' on start, 'success' or 'error'
+      on completion) to cip_sync_runs table. Captures row counts, error tracebacks
+      (structured), source_connector identity, sync_mode (incremental/backfill).
+      Operators query this table for health monitoring + incident response.
+    status: shipped
+    maturity: silver
+    created: 2026-04-30
+    last_modified: 2026-05-13
+    shipped_date: 2026-04-30
+    owner: tim
+    domain: eng
+    container:
+      thing_id: foundry-cip-access-and-operations
+    code_path: cip.integration_mesh.sync_run_recorder
+    storage_path: cip_sync_runs
+    interface_surface:
+      - type: internal
+        module: cip.integration_mesh.sync_run_recorder
+    visibility: public-in-portfolio
+    tags: [observability, sync-tracking]
+    relations:
+      delivers_features: [tenant-isolation-rls]
+      uses_components: [foundry-cip:cip-tenant-context]
+
+  - component_id: cip-rate-limit-service
+    type: service
+    title: Per-Connector Rate Limiter
+    summary: Token-bucket rate limiter applied per-connector per-tenant to respect external API quotas.
+    status: shipped
+    maturity: silver
+    created: 2026-04-30
+    last_modified: 2026-04-30
+    shipped_date: 2026-04-30
+    owner: tim
+    domain: eng
+    container:
+      thing_id: foundry-cip-access-and-operations
+    code_path: cip.integration_mesh.rate_limit
+    interface_surface:
+      - type: internal
+        module: cip.integration_mesh.rate_limit
+    visibility: public-in-portfolio
+    tags: [rate-limiting, external-api]

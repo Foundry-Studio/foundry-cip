@@ -1,0 +1,89 @@
+# CIP — Pillar 7 (Intelligence & Alerts) components.yaml
+# Per JOS-SPEC-024 v1.1 + JOS-D0086 + JOS-D0087.
+# All components in this pillar are PLANNED (Phase 6+ deliverables).
+
+declared_thing: foundry-cip-intelligence-and-alerts
+parent: foundry-cip
+last_modified: 2026-05-21
+last_reviewed: 2026-05-21
+review_cadence: 90
+generation_mode: file-authored
+
+components:
+
+  - component_id: cip-anomaly-detector
+    type: engine
+    title: Anomaly Detection Engine (planned, Phase 6)
+    summary: Statistical + rule-based detection of unusual patterns in tenant data.
+    description: |
+      Phase 6 deliverable. Detects ticket spikes, overdue payments, freshness
+      crossings (data getting stale), unusual volume changes. Emits signals to
+      cip-slack-alert-channel + Metabase freshness dashboards.
+    status: planned
+    maturity: bronze
+    created: 2026-05-09
+    last_modified: 2026-05-21
+    owner: tim
+    domain: eng
+    container:
+      thing_id: foundry-cip-intelligence-and-alerts
+    visibility: tenant-scoped
+    tags: [anomaly-detection, planned, phase-6]
+    relations:
+      delivers_features: [anomaly-detection]
+
+  - component_id: cip-slack-alert-channel
+    type: connector
+    title: Slack Alert Channel (planned, Phase 6)
+    summary: Outbound alert dispatch from anomaly detector → tenant-configured Slack channels.
+    status: planned
+    maturity: bronze
+    created: 2026-05-09
+    last_modified: 2026-05-21
+    owner: tim
+    domain: eng
+    container:
+      thing_id: foundry-cip-intelligence-and-alerts
+    visibility: tenant-scoped
+    tags: [slack, alerting, planned, phase-6]
+    relations:
+      delivers_features: [anomaly-detection]
+      external_dependencies: [slack-api, foundry-agent-system-integration-mesh]
+
+  - component_id: cip-freshness-signals
+    type: data_store
+    title: Freshness Signal Computation (planned, Phase 6)
+    summary: Exponential-decay freshness signal computed per entity type per Phase 0 decision #6.
+    description: |
+      Phase 0 decision #6 locked the exponential-decay model with configurable
+      half-life per entity type, computed at query time. Phase 6 builds the
+      surface that renders these in Metabase + uses them as anomaly triggers.
+    status: planned
+    maturity: bronze
+    created: 2026-05-09
+    last_modified: 2026-05-21
+    owner: tim
+    domain: eng
+    container:
+      thing_id: foundry-cip-intelligence-and-alerts
+    visibility: tenant-scoped
+    tags: [freshness, exponential-decay, planned, phase-6]
+    relations:
+      delivers_features: [anomaly-detection]
+
+  - component_id: cip-investigative-agents
+    type: engine
+    title: Investigative Agents (planned, Phase 7)
+    summary: Long-running investigative agents drilling on detected signals (Phase 7).
+    status: planned
+    maturity: bronze
+    created: 2026-05-09
+    last_modified: 2026-05-21
+    owner: tim
+    domain: eng
+    container:
+      thing_id: foundry-cip-intelligence-and-alerts
+    visibility: tenant-scoped
+    tags: [investigative-agent, planned, phase-7]
+    relations:
+      delivers_features: [anomaly-detection]

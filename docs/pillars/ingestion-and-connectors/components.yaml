@@ -1,0 +1,340 @@
+# CIP — Pillar 1 (Ingestion & Connectors) components.yaml
+# Per JOS-SPEC-024 v1.0 + JOS-D0085 (Components are First-Class Declared Substrate).
+# CIP uses file-authored mode (no DB catalog to auto-generate from).
+# Future iterations: add more components as new connectors land; A2.4 wires post-commit snapshot.
+
+declared_thing: foundry-cip-ingestion-and-connectors
+parent: foundry-cip
+last_modified: 2026-05-21
+last_reviewed: 2026-05-21
+review_cadence: 90
+generation_mode: file-authored
+
+components:
+
+  # ─── Connector framework primitives (delivers: connector-framework feature) ──
+
+  - component_id: cip-connector-protocol
+    type: service
+    title: CIPConnector + CIPMapper Protocols
+    summary: The Protocol-based contract every CIP connector implements.
+    description: |
+      Two typing.Protocol classes defining the contract every CIP connector must satisfy:
+      CIPConnector.stream_records() (incremental sync) + CIPMapper.map() (translate to cip_*
+      schema) + optional CIPConnectorBase.backfill_history() per D-159. Protocol-based per
+      D-134 to avoid base-class inheritance constraints.
+    status: shipped
+    maturity: silver
+    created: 2026-04-30
+    last_modified: 2026-05-14
+    shipped_date: 2026-04-30
+    owner: tim
+    domain: eng
+    container:
+      thing_id: foundry-cip-ingestion-and-connectors
+    code_path: cip.integration_mesh.base
+    interface_surface:
+      - type: internal
+        module: cip.integration_mesh.base
+    visibility: public-in-portfolio
+    tags: [protocol, contract, framework-primitive]
+    relations:
+      delivers_features: [connector-framework]
+    governance_refs:
+      - id: D-134
+        relationship: implements
+      - id: D-159
+        relationship: implements
+
+  - component_id: cip-sync-orchestrator
+    type: service
+    title: Sync Orchestrator (run_sync / run_backfill)
+    summary: Top-level orchestrator wrapping connector + mapper with advisory-lock dual-run prevention.
+    description: |
+      Functions run_sync() and run_backfill() that take a connector + mapper, wrap them with
+      session-level Postgres advisory locks to prevent dual-running for the same tenant,
+      and drive the batched-commit pipeline through CIPRowPersister.
+    status: shipped
+    maturity: silver
+    created: 2026-04-30
+    last_modified: 2026-05-13
+    shipped_date: 2026-04-30
+    owner: tim
+    domain: eng
+    container:
+      thing_id: foundry-cip-ingestion-and-connectors
+    code_path: cip.integration_mesh.orchestrator
+    interface_surface:
+      - type: internal
+        module: cip.integration_mesh.orchestrator
+    visibility: public-in-portfolio
+    tags: [orchestrator, framework-primitive]
+    relations:
+      delivers_features: [connector-framework, historical-backfill]
+      uses_components: [cip-connector-protocol, cip-row-persister]
+
+  - component_id: cip-row-persister
+    type: service
+    title: CIPRowPersister
+    summary: Schema-aware Postgres writer with SCD-2 history + property-registry integration.
+    description: |
+      Writes connector-yielded rows into cip_* tables. Owns the SCD-2 history-row generation
+      (paired with cip-scd-differ for change detection), the 9 provenance columns, and the
+      property-registry lookup that maps connector field names → SQL columns vs JSONB overflow.
+      persist_history_record() handles D-159 backfill rows that bypass SCD differ.
+    status: shipped
+    maturity: silver
+    created: 2026-04-30
+    last_modified: 2026-05-14
+    shipped_date: 2026-04-30
+    owner: tim
+    domain: eng
+    container:
+      thing_id: foundry-cip-ingestion-and-connectors
+    code_path: cip.integration_mesh.persister
+    interface_surface:
+      - type: internal
+        module: cip.integration_mesh.persister
+    visibility: public-in-portfolio
+    tags: [persister, scd-2, framework-primitive]
+    relations:
+      delivers_features: [connector-framework, property-registry, scd-history]
+      uses_components: [cip-scd-differ, cip-tenant-context]
+    governance_refs:
+      - id: D-135
+        relationship: implements
+        note: "App-layer SCD Type 2"
+
+  - component_id: cip-scd-differ
+    type: service
+    title: SCD-2 Differ
+    summary: Diffs incoming rows vs existing to determine which create *_history rows.
+    description: |
+      Bitemporal SCD-2 history generator. Compares each incoming connector row against the
+      latest cip_* table row for the same source_id; on detected change, closes the prior
+      version (sets valid_to) + writes a new active row + writes the prior row's snapshot
+      to the corresponding *_history table.
+    status: shipped
+    maturity: gold
+    created: 2026-04-30
+    last_modified: 2026-05-09
+    shipped_date: 2026-04-30
+    owner: tim
+    domain: eng
+    container:
+      thing_id: foundry-cip-ingestion-and-connectors
+    code_path: cip.integration_mesh.scd_differ
+    interface_surface:
+      - type: internal
+        module: cip.integration_mesh.scd_differ
+    visibility: public-in-portfolio
+    tags: [scd-2, history, framework-primitive]
+    relations:
+      delivers_features: [scd-history]
+    governance_refs:
+      - id: D-135
+        relationship: implements
+
+  - component_id: cip-tenant-context
+    type: service
+    title: Tenant Context (SET LOCAL middleware)
+    summary: Postgres SET LOCAL app.current_tenant context manager keying RLS policies.
+    description: |
+      Sets the app.current_tenant GUC for the current Postgres session via context manager.
+      Every cip_* table's RLS policy keys on this GUC; the explicit tenant_id predicates in
+      lens views provide defense-in-depth. Used by orchestrator on every batch.
+    status: shipped
+    maturity: gold
+    created: 2026-04-17
+    last_modified: 2026-04-30
+    shipped_date: 2026-04-17
+    owner: tim
+    domain: eng
+    container:
+      thing_id: foundry-cip-ingestion-and-connectors
+    code_path: cip.integration_mesh.tenant_context
+    interface_surface:
+      - type: internal
+        module: cip.integration_mesh.tenant_context
+    visibility: public-in-portfolio
+    tags: [tenant-isolation, rls, framework-primitive, cross-cutting]
+    relations:
+      delivers_features: [tenant-isolation-rls]
+    governance_refs:
+      - id: D-026
+        relationship: implements
+
+  # ─── Concrete connectors (each delivers its own feature) ──
+
+  - component_id: cip-fixture-connector
+    type: connector
+    title: FixtureConnector
+    summary: Deterministic synthetic-data connector producing 1150 rows from a fixed Faker seed.
+    description: |
+      Reference CIPConnector implementation that needs no external API. Generates
+      ~50 companies / ~200 contacts / ~300 deals / ~500 tickets / ~100 documents /
+      ~50 notes from one fixed random seed. Pinned to Python 3.12 + PYTHONHASHSEED=0
+      for byte-identical reproducibility (golden-file snapshot harness enforces).
+    status: shipped
+    maturity: gold
+    created: 2026-04-30
+    last_modified: 2026-05-09
+    shipped_date: 2026-04-30
+    owner: tim
+    domain: eng
+    container:
+      thing_id: foundry-cip-ingestion-and-connectors
+    code_path: cip.integration_mesh.connectors.fixture.connector
+    interface_surface:
+      - type: internal
+        module: cip.integration_mesh.connectors.fixture.connector
+    visibility: public-in-portfolio
+    tags: [connector, exemplar, deterministic]
+    relations:
+      delivers_features: [fixture-connector, deterministic-corpus]
+      composes_components: [cip-connector-protocol]
+
+  - component_id: cip-hubspot-connector
+    type: connector
+    title: HubSpotConnector
+    summary: HubSpot CRM v3 connector — companies/contacts/deals/tickets + property-history backfill.
+    description: |
+      Implements CIPConnector + CIPMapper against HubSpot v3 API. stream_records() pulls
+      companies/contacts/deals/tickets via incremental sync; backfill_history() re-paginates
+      each entity with propertiesWithHistory and yields HistoricalRecord rows. Awaits Tim's
+      "go" for first real-tenant Wayward ingestion (HubSpot retains only 20 property revisions
+      — clock starts at Phase 2 kickoff per D-159).
+    status: shipped
+    maturity: silver
+    created: 2026-05-09
+    last_modified: 2026-05-14
+    shipped_date: 2026-05-12
+    owner: tim
+    domain: eng
+    container:
+      thing_id: foundry-cip-ingestion-and-connectors
+    code_path: cip.integration_mesh.connectors.hubspot.connector
+    interface_surface:
+      - type: internal
+        module: cip.integration_mesh.connectors.hubspot.connector
+    visibility: tenant-scoped
+    tags: [connector, hubspot, crm]
+    relations:
+      delivers_features: [hubspot-connector, historical-backfill]
+      composes_components: [cip-connector-protocol]
+      external_dependencies: [hubspot-api-v3]
+    governance_refs:
+      - id: D-159
+        relationship: implements
+
+  - component_id: cip-zendesk-connector
+    type: connector
+    title: ZendeskConnector
+    summary: Zendesk Support v2 connector — orgs/users/tickets + ticket-audit history backfill.
+    description: |
+      Implements CIPConnector + CIPMapper against Zendesk Support v2 API. Uses cursor-based
+      pagination (legacy next_page chaining was retired 2026-05-14 after looping infinitely on
+      Wayward 100-org corpus). backfill_history() walks /api/v2/tickets/{id}/audits.json and
+      reconstructs state via Change-event replay per D-159.
+    status: shipped
+    maturity: silver
+    created: 2026-05-09
+    last_modified: 2026-05-14
+    shipped_date: 2026-05-12
+    owner: tim
+    domain: eng
+    container:
+      thing_id: foundry-cip-ingestion-and-connectors
+    code_path: cip.integration_mesh.connectors.zendesk.connector
+    interface_surface:
+      - type: internal
+        module: cip.integration_mesh.connectors.zendesk.connector
+    visibility: tenant-scoped
+    tags: [connector, zendesk, support]
+    relations:
+      delivers_features: [zendesk-connector, historical-backfill]
+      composes_components: [cip-connector-protocol]
+      external_dependencies: [zendesk-api-v2]
+    governance_refs:
+      - id: D-159
+        relationship: implements
+
+  - component_id: cip-plaid-connector
+    type: connector
+    title: Plaid Financial Connector
+    summary: Per-tenant financial ingestion via Plaid — accounts, transactions, balances.
+    description: |
+      Planned for Phase 2+. Replaces the earlier QBO-based plan (Tim 2026-05-09 lock).
+      The new Bob product will be rebuilt against this connector pattern.
+    status: planned
+    maturity: bronze
+    created: 2026-05-09
+    last_modified: 2026-05-21
+    owner: tim
+    domain: eng
+    container:
+      thing_id: foundry-cip-ingestion-and-connectors
+    visibility: tenant-scoped
+    tags: [connector, plaid, financial, planned]
+    relations:
+      delivers_features: [plaid-connector]
+      composes_components: [cip-connector-protocol]
+      external_dependencies: [plaid-api]
+
+  # ─── Historical backfill (D-159) ──
+
+  - component_id: cip-historical-record
+    type: service
+    title: HistoricalRecord dataclass
+    summary: Immutable dataclass representing one historical snapshot from a connector backfill.
+    description: |
+      Carries target_table, source_id, valid_from, valid_to, fields, overflow, changed_by,
+      change_reason. Connector backfill_history() methods yield these; persister writes them
+      directly to *_history tables bypassing the SCD differ (backfill records are known-
+      historical, not detected-changes).
+    status: shipped
+    maturity: silver
+    created: 2026-05-13
+    last_modified: 2026-05-13
+    shipped_date: 2026-05-13
+    owner: tim
+    domain: eng
+    container:
+      thing_id: foundry-cip-ingestion-and-connectors
+    code_path: cip.integration_mesh.base.HistoricalRecord
+    interface_surface:
+      - type: internal
+        module: cip.integration_mesh.base
+    visibility: public-in-portfolio
+    tags: [dataclass, historical-backfill]
+    relations:
+      delivers_features: [historical-backfill]
+    governance_refs:
+      - id: D-159
+        relationship: implements
+
+  # ─── Conformance harness (governance primitive) ──
+
+  - component_id: cip-connector-conformance-harness
+    type: service
+    title: Connector Conformance Test Suite
+    summary: 8-test pytest harness validating any CIPConnector against framework contracts.
+    description: |
+      Tests: Protocol shape, incremental sync, property registry, SCD history, sync run audit,
+      tenant scoping, post-commit RLS isolation, concurrent-sync advisory lock. Every new
+      CIPConnector implementation runs this harness before its migration lands.
+    status: shipped
+    maturity: gold
+    created: 2026-04-30
+    last_modified: 2026-05-12
+    shipped_date: 2026-04-30
+    owner: tim
+    domain: eng
+    container:
+      thing_id: foundry-cip-ingestion-and-connectors
+    code_path: tests.fixtures.connector_conformance
+    storage_path: tests/fixtures/connector_conformance/
+    visibility: public-in-portfolio
+    tags: [test-harness, governance, framework-primitive]
+    relations:
+      delivers_features: [connector-conformance-harness, governance-conformance]

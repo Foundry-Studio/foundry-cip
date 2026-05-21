@@ -1,0 +1,41 @@
+# Pillar 4 — Lens Engine
+object_id: foundry-cip-lens-engine
+component_kind: subsystem
+title: "CIP Pillar 4 — Lens Engine"
+owner: tim
+status: active
+created: 2026-05-21
+last_modified: 2026-05-21
+last_reviewed: 2026-05-21
+review_cadence: 90
+lifecycle_phase: operating
+graduation_event:
+  decision_id: JOS-D0069
+  graduated_at: 2026-05-12
+  evidence:
+    first_real_use: "Two lens views (lens_all_companies, lens_eu_west_companies) production on Railway 2026-05-09"
+
+slots:
+  identity:
+    overview: OVERVIEW.md
+
+code_home: "cip/integration_mesh/lens_engine/"
+
+parent: foundry-cip
+features_tagged_in_root: true
+
+depends_on:
+  - foundry-cip-structured-store      # lenses query cip_* tables
+  - foundry-cip-access-and-operations # AND-composes with tenant RLS
+referenced_by:
+  - foundry-cip-consumption-surfaces  # Metabase + REST + MCP consume lenses
+
+domain: eng
+adoption_tier: jos-adopted
+
+references:
+  - id: D-117
+    relationship: ratified-by
+  - id: P-21
+    relationship: implements
+    note: "Multi-Lens by Default — platform-wide principle"

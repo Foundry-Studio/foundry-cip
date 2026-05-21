@@ -1,0 +1,36 @@
+# Pillar 5 — Consumption Surfaces
+object_id: foundry-cip-consumption-surfaces
+component_kind: subsystem
+title: "CIP Pillar 5 — Consumption Surfaces"
+owner: tim
+status: active
+created: 2026-05-21
+last_modified: 2026-05-21
+last_reviewed: 2026-05-21
+review_cadence: 90
+lifecycle_phase: building          # Metabase shipped; REST + MCP + chatbot planned
+
+slots:
+  identity:
+    overview: OVERVIEW.md
+
+# Most consumption-surface code lives in FAS, not CIP
+code_home: "cip_metabase_role + lens_* Postgres views (in cip/migrations/cip_09 + cip_10)"
+external_code_home: "Foundry-Agent-System for REST API + MCP tools + chatbot"
+
+parent: foundry-cip
+features_tagged_in_root: true
+
+depends_on:
+  - foundry-cip-lens-engine
+  - foundry-cip-structured-store
+
+domain: eng
+adoption_tier: jos-adopted
+
+references:
+  - id: D-117
+    relationship: ratified-by
+  - id: P-21
+    relationship: implements
+    note: "Multi-Lens by Default — structurally enforced via Postgres REVOKE/GRANT"

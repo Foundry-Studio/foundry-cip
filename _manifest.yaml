@@ -1,0 +1,118 @@
+# foundry-cip — product-root Manifest
+# Per JOS-SPEC-009 (Per-Thing Manifest Specification).
+# Authored 2026-05-21 via FAS-JOS CIP MVP scope.
+
+# --- Universal base fields (per JOS-SPEC-007 cascade) ---
+
+object_id: foundry-cip
+component_kind: product-internal      # Foundry-Studio internal product, not externally-sold
+title: "Foundry Client Intelligence Platform (CIP)"
+owner: tim
+status: active
+created: 2026-04-30
+last_modified: 2026-05-21
+last_reviewed: 2026-05-21
+review_cadence: 90
+
+# --- Lifecycle phase (per JOS-C47 + JOS-D0069) ---
+
+# Phase 1 (Plain-Jane + Doc Suite) LOCKED + COMPLETE 2026-05-12 (M0-M8 all green).
+# Phase 2 (Wayward Onboarding — Full Round-Trip) is the active build-out.
+# Library is published to internal pypi; consumed by Foundry-Agent-System.
+lifecycle_phase: operating
+graduation_event:
+  decision_id: JOS-D0069
+  graduated_at: 2026-05-12
+  evidence:
+    charter_ratified: true
+    req_doc_types_populated: true        # README, CLAUDE.md, CHANGELOG, features.yaml, CONTRIBUTING, SECURITY, charter all present
+    decision_log_founding_entries: 18    # D-117 through D-159 + D-122/D-123/D-126/D-133/D-134/D-135/D-146 + P-21
+    no_workbench_only_operational_answers: true
+    first_real_use: "Phase 1 M8 fixture-tenant gate PASSED 2026-05-12; lens_all_companies (50 rows) + lens_eu_west_companies (13 rows) confirmed in Railway Metabase deployment"
+
+# --- Boundary Contract slot map (per JOS-D0054) ---
+
+slots:
+  identity:
+    purpose: null                       # TBD — bucket-3 backlog (PURPOSE.md not yet required)
+    overview: OVERVIEW.md                # authored 2026-05-21
+    readme: README.md                    # present, content-rich
+  governance:
+    charter: .jos/charter.yaml           # JOS-bound; schema=1.9 tier=full
+  capability:
+    guarantees: null                     # TBD — backlog
+    health_standard: null                # TBD — backlog
+    wdgll: null                          # TBD — backlog
+  interface:
+    architecture: ARCHITECTURE.md        # authored 2026-05-21 (JOS-shaped index → docs/architecture/ARCHITECTURE.md)
+  lifecycle:
+    vision: VISION.md                    # authored 2026-05-21 (JOS-shaped index → docs/vision/VISION.md)
+    roadmap: ROADMAP.md                  # authored 2026-05-21 (JOS-shaped index → docs/vision/ROADMAP.md)
+    decision_log: DECISION-LOG.md        # authored 2026-05-21 (JOS-shaped index; CIP decisions live in Foundry-Agent-System per CLAUDE.md §"Decisions that govern this repo")
+    changelog: CHANGELOG.md              # present, content-rich
+
+# --- Enumeration siblings ---
+
+features_ref: features.yaml              # 22 features across 8 pillars; SPEC-010 v1.1 conformant per 2026-05-21 refactor
+capabilities_ref: capabilities.yaml      # 8 capability pillars per D-117
+
+# --- Hierarchy ---
+
+parent: foundry-studio                   # CIP is a Foundry-Studio product (Product #6 in FOUNDRY-TAXONOMY.md)
+
+children:
+  # The 8 capability pillars locked per D-117. Each is a logical subsystem of CIP.
+  # Per-pillar _manifest.yaml + OVERVIEW.md authored under docs/pillars/<slug>/.
+  - foundry-cip-ingestion-and-connectors     # Pillar 1
+  - foundry-cip-structured-store             # Pillar 2
+  - foundry-cip-unstructured-store           # Pillar 3
+  - foundry-cip-lens-engine                  # Pillar 4
+  - foundry-cip-consumption-surfaces         # Pillar 5
+  - foundry-cip-push-and-sync                # Pillar 6 (planned)
+  - foundry-cip-intelligence-and-alerts      # Pillar 7 (planned)
+  - foundry-cip-access-and-operations        # Pillar 8
+
+# --- Cross-references (non-hierarchical) ---
+
+depends_on:
+  - foundry-agent-system                 # FAS hosts the database, Knowledge service, Graph service, and consumes the library
+  - jordan-operating-system              # Governance source; charter binds this product to JOS substrate
+
+referenced_by:
+  - foundry-agent-system                 # FAS imports `cip` Python package; runs migrations against shared Postgres
+  - jordan-operating-system              # JOS distribution/charters/foundry-cip.yaml binds back
+
+# --- Optional fields ---
+
+domain: eng                              # Library + schema + docs; eng-domain primarily
+adoption_tier: jos-adopted               # Tier=full per .jos/charter.yaml
+
+provenance:
+  source_id: foundry-cip
+  source_repo: Foundry-Studio/foundry-cip
+  relationship: extracted-from           # Extracted 2026-04-20 from Foundry-Agent-System WORKBENCH/tim/research/client-intelligence-platform/
+
+# --- Product-specific metadata ---
+
+product_kind: python-library             # NOT a service; pip install foundry-cip
+distribution:
+  package_name: foundry-cip
+  pyproject_path: pyproject.toml
+  license: Apache-2.0
+  consumed_by:
+    - Foundry-Agent-System (imports `cip` package; runs migrations against shared Postgres)
+
+# --- Manifest authorship audit ---
+
+manifest_authored:
+  by: claude-code
+  on: 2026-05-21
+  source: foundry-cip/README.md + CLAUDE.md + features.yaml + docs/vision/VISION.md + docs/architecture/ARCHITECTURE.md
+  fas_jos_task: C1.2 (CIP MVP — Agent Readiness scope)
+  notes: >
+    Initial creation. CIP is a Python library product extracted from
+    Foundry-Agent-System (D-146). 8 capability pillars per D-117. Phase
+    1 LOCKED + M0-M8 complete 2026-05-12; Phase 2 (Wayward Onboarding —
+    Full Round-Trip) is the active phase. Children list reflects the
+    8 pillars as logical subsystems; per-pillar manifests at
+    docs/pillars/<pillar-slug>/_manifest.yaml.

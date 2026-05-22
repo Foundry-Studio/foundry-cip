@@ -12,23 +12,23 @@ created: '2026-05-22'
 last_modified: '2026-05-22'
 last_reviewed: '2026-05-22'
 review_cadence: 1
-last_generated_at: 2026-05-22 13:07 UTC
+last_generated_at: 2026-05-22 13:54 UTC
 generator: scripts/generate_cip_cheatsheet.py (PM scope 9cd4071c)
 ---
 
 # CIP Cheatsheet
 
-> **Generated:** 2026-05-22 13:07 UTC  
+> **Generated:** 2026-05-22 13:54 UTC  
 > **Do not edit by hand** — re-run `python scripts/generate_cip_cheatsheet.py`. Pass `--strict` for CI to exit 3 if drift is flagged.
 
 ## Scoreboard
 
 - **Active tenants:** 9
 - **Clients:** 2
-- **Postgres chunks (`cip_knowledge_chunks`):** 33,367
-- **CIP-Pinecone vectors:** 33,288
-- **`cip_files` rows:** 26
-- **CIP-R2 (`cip-originals/`):** 52.8 MB
+- **Postgres chunks (`cip_knowledge_chunks`):** 36,593
+- **CIP-Pinecone vectors:** 36,593
+- **`cip_files` rows:** 70
+- **CIP-R2 (`cip-originals/`):** 185.2 MB
 
 ### Status
 
@@ -59,7 +59,7 @@ generator: scripts/generate_cip_cheatsheet.py (PM scope 9cd4071c)
 - **Derived:** `cip_knowledge_chunks` 0  ·  CIP-Pinecone 0  ·  parity ✓
 - **Originals:** `cip_files` 0  ·  CIP-R2 0 B across 0 files
 - **Drift:**
-  - ⚠ Legacy R2 prefix `f554c334-43e5-458e-9857-0b268f8f99bf/` holds 1 objects (141.0 KB) — not under `cip-originals/`
+  - ⚠ Legacy R2 prefix `f554c334-43e5-458e-9857-0b268f8f99bf/` holds 2 objects (260.8 KB) — not under `cip-originals/`
 
 ## Ecomlever
 
@@ -109,13 +109,12 @@ generator: scripts/generate_cip_cheatsheet.py (PM scope 9cd4071c)
 - `tenant_id` = `80252ad9-72d5-4c5a-b273-af804224872e`  ·  type = venture  ·  status = active
 - **Clients (1):**
   - `rocky-ridge` — Rocky Ridge · *land-management* — `23f09caf-9dcc-51d6-a64d-5ec3172071cc`
-- **Structured:** `cip_clients`=1  ·  `cip_files`=26
-- **Derived:** `cip_knowledge_chunks` 1,279  ·  CIP-Pinecone 1,200  ·  parity ⚠ · embed: `Qwen3-Embedding-4B-Q8_0.gguf` @ 2560d
-  - by source_kind: `cip_client_document`=1,279
-  - Pinecone ns `cip__80252ad9-72d5-4c5a-b273-af804224872e__23f09caf-9dcc-51d6-a64d-5ec3172071cc`: 1,200 vectors
-- **Originals:** `cip_files` 26  ·  CIP-R2 52.8 MB across 26 files
+- **Structured:** `cip_clients`=1  ·  `cip_files`=70
+- **Derived:** `cip_knowledge_chunks` 4,505  ·  CIP-Pinecone 4,505  ·  parity ✓ · embed: `Qwen3-Embedding-4B-Q8_0.gguf` @ 2560d
+  - by source_kind: `cip_client_document`=4,505
+  - Pinecone ns `cip__80252ad9-72d5-4c5a-b273-af804224872e__23f09caf-9dcc-51d6-a64d-5ec3172071cc`: 4,505 vectors
+- **Originals:** `cip_files` 70  ·  CIP-R2 185.2 MB across 62 files
 - **Drift:**
-  - ⚠ Foundry-Knowledge holds 5,825 chunks for this tenant — Rocky Ridge Research Library (document_library) (5,825 chunks)
   - ⚠ Legacy R2 prefix `80252ad9-72d5-4c5a-b273-af804224872e/` holds 72 objects (189.8 MB) — not under `cip-originals/`
 
 ## Team Assessment Platform
@@ -141,13 +140,12 @@ generator: scripts/generate_cip_cheatsheet.py (PM scope 9cd4071c)
 ⚠ One or more venture tenants have CIP-shaped data on the Foundry side:
 
 - **Bob** (`f554c334-43e5-458e-9857-0b268f8f99bf`):
-  - R2 legacy: 1 objects under `f554c334-43e5-458e-9857-0b268f8f99bf/` — copy into `cip-originals/f554c334-43e5-458e-9857-0b268f8f99bf/<client>/...` or leave as cold backup
+  - R2 legacy: 2 objects under `f554c334-43e5-458e-9857-0b268f8f99bf/` — copy into `cip-originals/f554c334-43e5-458e-9857-0b268f8f99bf/<client>/...` or leave as cold backup
 - **Ecomlever** (`dec814db-722a-4730-8e60-51afc4a5dad9`):
   - R2 legacy: 4 objects under `dec814db-722a-4730-8e60-51afc4a5dad9/` — copy into `cip-originals/dec814db-722a-4730-8e60-51afc4a5dad9/<client>/...` or leave as cold backup
 - **Project Silk** (`078a37d6-6ae2-4e22-869e-cc08f6cb2787`):
   - R2 legacy: 15 objects under `078a37d6-6ae2-4e22-869e-cc08f6cb2787/` — copy into `cip-originals/078a37d6-6ae2-4e22-869e-cc08f6cb2787/<client>/...` or leave as cold backup
 - **Rocky Ridge Land Management** (`80252ad9-72d5-4c5a-b273-af804224872e`):
-  - `knowledge_chunks` 5,825 chunks under `Rocky Ridge Research Library (document_library)` (source_id `52ad54c0-acfd-49db-b9b4-dc9c6098d9f6`) — migrate via foundry-cip `scripts/migrate_rocky_ridge_to_cip.py` pattern
   - R2 legacy: 72 objects under `80252ad9-72d5-4c5a-b273-af804224872e/` — copy into `cip-originals/80252ad9-72d5-4c5a-b273-af804224872e/<client>/...` or leave as cold backup
 
 **For CI:** run `python scripts/generate_cip_cheatsheet.py --strict` to fail the build when drift is detected.

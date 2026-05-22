@@ -115,6 +115,15 @@ objects:
   owner: tim
   path: docs/vision/ATLAS-REVIEW-PHASE-2.6-RESPONSE.md
   last_reviewed: '2026-05-22'
+- id: CIP-FW-004
+  uuid: 7f3b8c9d-2e4a-4f6b-a8c1-3d5e9b2c7a4f
+  title: Atlas Review Request — Association Contract (typed-FK vs JSONB-source-id)
+  type: framework
+  stage_label: trial
+  domain: meta
+  owner: tim
+  path: docs/vision/ATLAS-REVIEW-ASSOCIATION-CONTRACT.md
+  last_reviewed: '2026-05-22'
 - id: CIP-K01
   uuid: ae7524b9-ef2e-402d-a9a2-782aacb4b8a1
   title: CIP CSS Classification Contract

@@ -189,6 +189,49 @@ After current-state succeeds:
 | Placeholder UUIDs ("we'll fix the tenant_id later") become migration debt | Wayward 2026-05-12 reserved `b0000000-...0001` as a vacation-mode shortcut; 2026-05-16 correction required a 1.26M-row data migration | **Tenant UUIDs MUST come from the JOS `tenants` table from day one.** Generate via JOS provisioning, not by hand. Client UUIDs SHOULD be deterministic UUIDv5 derived from `uuid5(tenant_id, client_slug)`. See Phase 0 of this runbook + `cip_12_seed_wayward_client` migration + `scripts/migrate_b0_to_ecomlever.py` for the corrective pattern. |
 | Tenant-vs-client confusion (treating a client as if it were a tenant) | Wayward 2026-05-12 onward: Wayward was treated as a tenant; should always have been a client inside EcomLever per VISION §4 | The model is non-negotiable: **tenant = venture/operator; client = subject of intelligence**. Onboarding Phase 0 clarifies this with the new tenant's stakeholders. The cip_* tables carry BOTH `tenant_id` AND `client_id`; queries filter on both. Lens views provide the "filter perspective on top" if needed (e.g., a China-only view of a multi-region client). |
 
+## Cross-tenant lens-mirror onboarding (Phase 2.6, new 2026-05-22)
+
+A second onboarding path exists for tenants who don't ingest their own external sources — instead they MIRROR a subset of another CIP tenant's data + enrich it locally via Twenty CRM. Project Silk + Wayward is the first example (Phase 2.6).
+
+**When this applies** (vs. the standard 7-phase flow above):
+
+Use the lens-mirror path when ALL of these are true:
+- The new tenant is consuming a SUBSET of another CIP tenant's existing structured data
+- The new tenant needs to write back companion fields (notes, alias names, local-language context) without polluting the source tenant's source-of-truth
+- The subset is definable as a SQL view on the source tenant's `cip_*` tables
+- The new tenant doesn't need any direct external-source connector (HubSpot, Zendesk, etc.) of its own
+
+Otherwise use the standard 7-phase discovery-first flow.
+
+**The lens-mirror onboarding (8 steps):**
+
+1. **Confirm the access pattern is "mirror" not "grant."** Walk through the picking rule in [`CROSS-TENANT-ACCESS-PATTERNS.md`](CROSS-TENANT-ACCESS-PATTERNS.md). If grant fits, skip ahead to Phase 3 grant-runtime onboarding (separate runbook).
+
+2. **Lock the source-tenant subset.** Author the source-side lens view(s) that define exactly which rows the mirror reads. For PS+Wayward this was `lens_china_clients` + `lens_china_companies` + `lens_china_contacts` (cip_18 + cip_24). Each lens is GUC-filtered; the mirror connector sets the source tenant's GUC at read time.
+
+3. **Provision the destination tenant** — REAL UUIDv4 only. The b0000000-...0001 incident from 2026-05-12 cost a 1.26M-row migration to clean up. If a "Project XYZ" tenant already exists in the `tenants` table for ANY reason (e.g., marketing/web work), REUSE that tenant — don't create a parallel one. (PS+Wayward 2026-05-22: accidental duplicate provisioning happened; canonical tenant `078a37d6-…` already existed from the marketing scope.)
+
+4. **Apply the Phase 2.6 schema migrations** to give the destination tenant the companion + intake_route columns + lens-mirror sync_mode:
+   - `cip_23_phase26_schema` — companion_data + initial_intake_route + sync_mode CHECK
+   - `cip_24_china_entity_lenses` (or per-tenant equivalent) — the source-side lens views
+   - `cip_25_project_silk_twenty_role` (or per-tenant equivalent) — the Twenty CRM role with column-level GRANT UPDATE on companion_data
+
+5. **Author the LensMirrorConnector instances + mappers.** Three per-entity instances usually (deals, companies, contacts) — see `cip/integration_mesh/connectors/lens_mirror/` for the pattern. Connector tenant_id = destination; source_tenant_id = source.
+
+6. **Author the two-pass orchestrator script.** Template: `scripts/orchestrate_ps_lens_mirror.py`. Pass 1 derives destination `cip_clients` from a chosen dedup key (upstream HubSpot company_id for PS+Wayward); Pass 2 mirrors entity rows with resolved client_ids.
+
+7. **Run the first mirror.** Validates the lens → mapper → persister chain end-to-end. Verify row counts match the lens count minus any unattributable rows (the mapper skips rows whose lookup-key resolves to nothing).
+
+8. **Generate the destination tenant's MANIFEST** via `scripts/generate_tenant_manifest.py`. Wire the foundry-metabase (or other consumer surface) to the destination tenant's CIP role + the destination-side lenses (when authored — that's Phase 2.7 for PS).
+
+The standard 7-phase discovery flow STILL APPLIES alongside if the destination tenant ALSO ingests its own external sources. Most cross-tenant tenants are pure mirrors for v1 and add their own connectors later.
+
+**Cross-references for this path:**
+- [`CROSS-TENANT-ACCESS-PATTERNS.md`](CROSS-TENANT-ACCESS-PATTERNS.md) — the picking rule
+- [`vision/ATLAS-REVIEW-PHASE-2.6-RESPONSE.md`](vision/ATLAS-REVIEW-PHASE-2.6-RESPONSE.md) (CIP-FW-003) — the Atlas-locked deep plan
+- [`CONNECTOR-AUTHORING-GUIDE.md`](CONNECTOR-AUTHORING-GUIDE.md) §15 — LensMirrorConnector as a worked example
+- `scripts/orchestrate_ps_lens_mirror.py` — reference two-pass driver
+
 ## Outputs of a complete onboarding
 
 For each newly-onboarded tenant, the repo should contain:

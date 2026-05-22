@@ -89,6 +89,7 @@ packages = [
     "cip.integration_mesh.connectors.fixture",
     "cip.integration_mesh.connectors.zendesk",
     "cip.integration_mesh.connectors.hubspot",
+    "cip.integration_mesh.connectors.lens_mirror",
     "cip.integration_mesh.lens_engine",
     "cip.migrations",
     "cip.migrations.versions",

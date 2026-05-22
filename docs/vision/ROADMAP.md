@@ -208,6 +208,36 @@ Phase 2.5 pulls **write-back** capability forward from the original Phase 7 slot
 
 ---
 
+## Phase 2.6 — Cross-Tenant Lens-Mirror + Project Silk Provisioning (Provisional · NEW 2026-05-22)
+
+**Primary pillar:** Access & Operations (cross-tenant mirror pattern) + Ingestion & Connectors (new connector type). **Owner:** Tim + Atlas + Claude Code. **Depends on:** Phase 2.5 (Hard Split closed 2026-05-22). **Atlas review:** completed 2026-05-22, deep plan locked at `docs/vision/ATLAS-REVIEW-PHASE-2.6-RESPONSE.md`.
+
+Project Silk becomes a real CIP tenant with a physical mirror of the Chinese subset of EcomLever's Wayward data. PS staff edit a companion data layer on top via Twenty CRM. CIP stays source-of-truth.
+
+**Architectural decisions locked (Atlas 2026-05-22):**
+- **Mirror-based, NOT grant-based** — PS needs to own and enrich, not just read.
+- **Sidecar JSONB `companion_data` column** on the 5 PS-relevant tables (`cip_clients`, `cip_companies`, `cip_contacts`, `cip_deals`, `cip_tickets`) — distinct from the existing `properties`/`metadata` overflow columns the mirror writes. Mirror cannot write companion (not in mapper fields); Twenty's role has column-level `GRANT UPDATE (companion_data)` only.
+- **Authority enum stays per-row** (orthogonal to companion-per-column).
+- **Two-pass orchestration** (not a drop-in connector) — Pass 1 dedup-and-upsert PS `cip_clients`, Pass 2 write companies/contacts/deals/tickets with resolved client_id FKs.
+- **Mirror and grant patterns coexist** going forward (picking rule: own-and-enrich = mirror; read-only = grant).
+
+Ships:
+- **`cip_23_phase26_schema`** — `companion_data JSONB DEFAULT '{}'::jsonb` on 5 tables (NOT _history), `initial_intake_route TEXT` on `cip_clients`, extend `cip_sync_runs.sync_mode` CHECK with `'lens-mirror'`.
+- **`cip_24_china_entity_lenses`** — new source-side views `lens_china_companies / _contacts / _tickets` joining back to China-attributed deals (the existing `lens_china_*` are deals-only — gap surfaced by Atlas).
+- **`cip_25_project_silk_tenant_role`** — `cip_twenty_project_silk` Postgres role with column-level `UPDATE (companion_data)` on the 5 tables. Twenty connects as this role.
+- **`LensMirrorConnector`** under `cip/integration_mesh/connectors/lens_mirror/` — conforms to existing `CIPConnector`/`CIPMapper` Protocols. Holds source_tenant_id, opens its own short-lived read connection, materializes source rows, yields to the standard orchestrator pipeline writing to PS tenant.
+- **`scripts/orchestrate_ps_lens_mirror.py`** — two-pass driver + `initial_intake_route` post-sync backfill. Two invokers: event-triggered on EcomLever Wayward sync completions, scheduled every 30 minutes.
+- **PS tenant provisioning** — real UUIDv4 (NO placeholders — see the b0000000-... cautionary tale from 2026-05-12).
+- **`docs/CROSS-TENANT-ACCESS-PATTERNS.md`** — mirror vs grant + picking rule.
+- **The cip_21 grant-role interim** (shipped 2026-05-22 as the fast-path unblocker for the China team's Metabase dashboard) gets superseded by the PS CIP tenant binding at the end of 2.6 — lens names preserved, dashboards survive the cutover.
+
+What ships in Phase 2.7 (split per Atlas Q5):
+- **PS dest-side lens recut** — PS lenses are NOT 1:1 with EcomLever's (PS organizes by PS rep + PS pipeline stage, not by Wayward attribution source). Needs Tim's mental model lock. Mirror data is queryable via `cip_views` + raw SQL in the meantime.
+
+**Why insert at 2.6 rather than fold into 2.5 or 3:** the Hard Split (Phase 2.5) is closed; Phase 3's grant-runtime work is separate and continues unchanged. Phase 2.6 establishes the mirror pattern that future cross-tenant work will lean on alongside grant.
+
+---
+
 ## Phase 3 — Rocky Ridge + Multi-Tenant + Cross-Tenant Grants Runtime (Provisional)
 
 **Primary pillar:** Access & Operations (dual-tenant proof + grant runtime). **Owner:** Tim + Atlas + Claude Code. **Depends on:** Phase 1 + Phase 2 + Phase 2.5 LIT.
@@ -219,7 +249,7 @@ Rocky Ridge onboards as tenant #2 — validates tenant isolation under real cond
 - **`cip_09` (cross_tenant_grants) migration** — held back from Phase 1 so schema + runtime ship together. Creates `cip_cross_tenant_grants` with source/target tenant, client scope, filter JSONB, authority floor, grant window.
 - **Cross-tenant grant runtime goes live.** Grant-lookup at access-layer, filter composition (grant filter + lens filter), authority_floor enforcement, audit logging on every cross-tenant read, grant-window activation/expiry checks, the minimal grant-admin surface Tim uses to create/revoke grants (likely a simple CLI or DB-seeded rows at first; richer admin UX in Phase 7).
 - **Rocky Ridge as tenant #2** — PDF-Q&A-native use case. The Tenant Onboarding Checklist (Phase 1 deliverable) is validated a second time.
-- **Project Silk grant-in to Wayward** — PS Twenty CRM consumer uses the live grant runtime instead of raw SQL joins, closing out the Wayward cross-tenant story that Phase 2 deferred.
+- **Project Silk grant-in to Wayward** — ~~PS Twenty CRM consumer uses the live grant runtime instead of raw SQL joins~~ **SUPERSEDED 2026-05-22 by Phase 2.6 mirror.** PS now owns a physical mirror of Wayward's Chinese subset rather than reading via grant. Reasoning: PS needs Twenty CRM to write back companion fields, which the read-only grant model cannot support. See [`CROSS-TENANT-ACCESS-PATTERNS.md`](../CROSS-TENANT-ACCESS-PATTERNS.md) for the mirror-vs-grant picking rule.
 - **Cross-tenant lens validation** — do filters work cleanly when two tenants share storage?
 - **Observability hardening on the access layer** — per-tenant query counts, per-grant read counts, slow-query alerts distinguished by tenant vs grant-scoped.
 
@@ -327,7 +357,11 @@ Phase 2:   Wayward Onboarding — Full Round-Trip          [inbound + push]
     ↓
 Phase 2.5: Foundry Self-Tenant + Write-Back              [write-back only]
     ↓
-Phase 3:   Rocky Ridge + Multi-Tenant + Grants Runtime   [cip_09 + runtime]
+Phase 2.6: Cross-Tenant Lens-Mirror + PS Provisioning    [NEW 2026-05-22 — mirror pattern]
+    ↓
+Phase 2.7: PS dest-side lens recut                       [parallel-able; needs Tim]
+    ↓
+Phase 3:   Rocky Ridge + Multi-Tenant + Grants Runtime   [cip_09 + runtime; PS grant-in superseded]
     ↓
 Phase 4:   Agent Access Surfaces (MCP + REST)
     ↓

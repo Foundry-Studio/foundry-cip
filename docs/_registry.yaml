@@ -97,6 +97,24 @@ objects:
   owner: tim
   path: docs/vision/VISION.md
   last_reviewed: '2026-05-19'
+- id: CIP-FW-002
+  uuid: 5e8c2a91-7b3f-4d6e-9c8a-1f4d3a5b7c9e
+  title: Atlas Review Request — Phase 2.6 Cross-Tenant Lens-Mirror Architecture
+  type: framework
+  stage_label: retire
+  domain: meta
+  owner: tim
+  path: docs/vision/ATLAS-REVIEW-PHASE-2.6-CROSS-TENANT-MIRROR.md
+  last_reviewed: '2026-05-22'
+- id: CIP-FW-003
+  uuid: 8d4a7c2e-9f1b-4e8d-a6c3-5b2f9a8d1e7c
+  title: Atlas Review Response — Phase 2.6 Cross-Tenant Lens-Mirror (locked plan)
+  type: framework
+  stage_label: adopt
+  domain: meta
+  owner: tim
+  path: docs/vision/ATLAS-REVIEW-PHASE-2.6-RESPONSE.md
+  last_reviewed: '2026-05-22'
 - id: CIP-K01
   uuid: ae7524b9-ef2e-402d-a9a2-782aacb4b8a1
   title: CIP CSS Classification Contract

@@ -1,0 +1,35 @@
+name: components-framework
+
+# Component Declaration Framework per-PR gate (CIP — file-authored mode).
+# Per JOS-SPEC-026 v1.1 + JOS-FDS-A3.1.
+#
+# CIP is file-authored: pillar components.yaml files live at
+# docs/pillars/*/components.yaml. The freshness check fires on any
+# of those + the snapshot.yaml. Drift checker is N/A for file-authored
+# mode (no DB code_path mismatch class).
+
+on:
+  pull_request:
+    paths:
+      - '.jos/components/**'
+      - 'docs/pillars/**/components.yaml'
+      - 'scripts/components_snapshot.py'
+      - 'scripts/check_snapshot_freshness.py'
+  push:
+    branches: [master, main]
+    paths:
+      - '.jos/components/**'
+      - 'docs/pillars/**/components.yaml'
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: astral-sh/setup-uv@v3
+
+      - name: Snapshot freshness (per JOS-SPEC-026 v1.1)
+        run: uv run --with pyyaml python scripts/check_snapshot_freshness.py

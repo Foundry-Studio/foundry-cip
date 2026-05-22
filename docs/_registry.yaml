@@ -79,6 +79,15 @@ objects:
   owner: tim
   path: docs/tenants/dec814db-722a-4730-8e60-51afc4a5dad9/MANIFEST.md
   last_reviewed: '2026-05-19'
+- id: CIP-DIAG-103
+  uuid: 6b4e8d12-7a2c-4b9e-9f3a-8d2c4e5f6a7b
+  title: CIP Cheatsheet — cross-tenant data-plane inventory
+  type: diagnostic
+  stage_label: adopt
+  domain: meta
+  owner: tim
+  path: docs/CIP-CHEATSHEET.md
+  last_reviewed: '2026-05-22'
 - id: CIP-FW-001
   uuid: c9076719-808e-45df-8260-c2ed499a9e80
   title: Foundry Client Intelligence Platform — Product Vision

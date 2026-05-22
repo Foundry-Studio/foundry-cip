@@ -39,8 +39,19 @@ dependencies = [
 fixture = [
     "faker==40.15.0",
 ]
+# 2026-05-22 — Rocky Ridge ingest path needs to read PDFs + .docx for the
+# manual_upload connector. PyMuPDF (~15 MB) is the de-facto PDF text-extraction
+# library; python-docx (~500 KB) handles Word. boto3 (~16 MB) is needed for
+# CIP-R2 access (PineconeClient is pure httpx, but R2 staging uses S3 API).
+# Kept as an extra so connector-only consumers (e.g., fixture-only deploys)
+# don't pay the install cost.
+ingest = [
+    "pymupdf>=1.24",
+    "python-docx>=1.1",
+    "boto3>=1.34",
+]
 dev = [
-    "foundry-cip[fixture]",
+    "foundry-cip[fixture,ingest]",
     "pytest>=8.0",
     "pytest-cov>=4.0",
     "mypy>=1.8",

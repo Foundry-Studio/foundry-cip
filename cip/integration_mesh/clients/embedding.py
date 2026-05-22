@@ -1,27 +1,32 @@
 # foundry: kind=service domain=client-intelligence-platform touches=integration
 """Thin HTTP client for Qwen3-Embedding-4B with OpenRouter fallback.
 
-Per PM scope 2d6390fa (Layer 2 wiring v1, tenant-agnostic capability)
-+ option A decision (2026-05-17): CIP keeps its own thin wrapper
-rather than importing from the monorepo's src/services/embedding_client.
+Primary backend: llama-server hosting Qwen3-Embedding-4B Q8_0 on server-b
+(2026-05-19 Track B Phase 3 cutover from Ollama). Speaks the OpenAI-style
+/v1/embeddings shape. Default URL: the cloudflared tunnel
+https://embedding-serverb.foundrytunnel.dev. Requires LLAMA_SERVER_API_KEY
+(or CIP_EMBEDDING_PRIMARY_API_KEY) for Bearer auth on the tunnel.
 
-Primary backend: Ollama on the Foundry fleet (server-b at
-http://100.100.10.110:11434 by default; tunneled hostname
-https://ollama-gpu.foundrytunnel.dev for remote callers).
+Fallback: OpenRouter's qwen/qwen3-embedding-4b model when primary fails
+(timeout, 5xx, model-not-loaded). Requires OPENROUTER_API_KEY.
 
-Fallback: OpenRouter's qwen/qwen3-embedding-4b model when primary
-fails (timeout, 5xx, model-not-loaded). OpenRouter requires
-OPENROUTER_API_KEY env.
+For local-only smoke (Ollama still installed on server-b, retained for
+rollback per inventory note), set CIP_EMBEDDING_PROTOCOL=ollama to flip
+to the legacy /api/embeddings shape.
 
 Config via env vars:
-  CIP_EMBEDDING_PRIMARY_URL    Ollama base URL (default
-                               http://100.100.10.110:11434)
-  CIP_EMBEDDING_PRIMARY_MODEL  Model name on Ollama
-                               (default qwen3-embedding:4b-q8_0)
-  CIP_EMBEDDING_FALLBACK_MODEL OpenRouter model id
-                               (default qwen/qwen3-embedding-4b)
-  OPENROUTER_API_KEY           Required only when fallback activates
-  CIP_EMBEDDING_TIMEOUT_S      Per-request timeout (default 60)
+  CIP_EMBEDDING_PRIMARY_URL       Base URL (default
+                                  https://embedding-serverb.foundrytunnel.dev)
+  CIP_EMBEDDING_PRIMARY_MODEL     Model id reported in request (default
+                                  Qwen3-Embedding-4B-Q8_0.gguf for openai;
+                                  qwen3-embedding:4b-q8_0 for ollama)
+  CIP_EMBEDDING_PRIMARY_API_KEY   Bearer token for tunnel (falls back to
+                                  LLAMA_SERVER_API_KEY)
+  CIP_EMBEDDING_PROTOCOL          'openai' (default) | 'ollama'
+  CIP_EMBEDDING_FALLBACK_MODEL    OpenRouter model id
+                                  (default qwen/qwen3-embedding-4b)
+  OPENROUTER_API_KEY              Required only when fallback activates
+  CIP_EMBEDDING_TIMEOUT_S         Per-request timeout (default 60)
 """
 from __future__ import annotations
 
@@ -51,19 +56,48 @@ class EmbeddingClient:
         *,
         primary_url: str | None = None,
         primary_model: str | None = None,
+        primary_api_key: str | None = None,
+        protocol: str | None = None,
         fallback_model: str | None = None,
         timeout_s: float | None = None,
         openrouter_api_key: str | None = None,
     ) -> None:
+        self.protocol = (
+            protocol
+            or os.environ.get("CIP_EMBEDDING_PROTOCOL")
+            or "openai"
+        ).lower()
+        if self.protocol not in {"openai", "ollama"}:
+            raise ValueError(
+                f"protocol must be 'openai' or 'ollama', got {self.protocol!r}"
+            )
+        # Defaults differ by protocol — OpenAI is the new normal (Track B Phase 3
+        # 2026-05-19 cutover from Ollama). Ollama path retained for the rollback
+        # case the inventory note describes.
+        default_url = (
+            "https://embedding-serverb.foundrytunnel.dev"
+            if self.protocol == "openai"
+            else "http://100.100.10.110:11434"
+        )
+        default_model = (
+            "Qwen3-Embedding-4B-Q8_0.gguf"
+            if self.protocol == "openai"
+            else "qwen3-embedding:4b-q8_0"
+        )
         self.primary_url = (
             primary_url
             or os.environ.get("CIP_EMBEDDING_PRIMARY_URL")
-            or "http://100.100.10.110:11434"
+            or default_url
         )
         self.primary_model = (
             primary_model
             or os.environ.get("CIP_EMBEDDING_PRIMARY_MODEL")
-            or "qwen3-embedding:4b-q8_0"
+            or default_model
+        )
+        self.primary_api_key = (
+            primary_api_key
+            or os.environ.get("CIP_EMBEDDING_PRIMARY_API_KEY")
+            or os.environ.get("LLAMA_SERVER_API_KEY", "")
         )
         self.fallback_model = (
             fallback_model
@@ -90,7 +124,7 @@ class EmbeddingClient:
     @property
     def model_id(self) -> str:
         """Canonical model identifier recorded with each embedding."""
-        return f"qwen/qwen3-embedding-4b (primary={self.primary_model})"
+        return f"qwen/qwen3-embedding-4b (primary={self.primary_model}, protocol={self.protocol})"
 
     def embed(self, text: str) -> list[float]:
         """Return a single embedding vector for ``text``.
@@ -125,7 +159,33 @@ class EmbeddingClient:
             ) from fallback_exc
 
     def _embed_primary(self, text: str) -> list[float]:
-        """Ollama /api/embeddings endpoint."""
+        """Primary embedding call — OpenAI-style by default, Ollama if configured."""
+        if self.protocol == "openai":
+            return self._embed_primary_openai(text)
+        return self._embed_primary_ollama(text)
+
+    def _embed_primary_openai(self, text: str) -> list[float]:
+        """llama-server /v1/embeddings — Bearer-auth, OpenAI-compatible."""
+        headers = {"Content-Type": "application/json"}
+        if self.primary_api_key:
+            headers["Authorization"] = f"Bearer {self.primary_api_key}"
+        r = httpx.post(
+            f"{self.primary_url}/v1/embeddings",
+            headers=headers,
+            json={"model": self.primary_model, "input": text},
+            timeout=self.timeout_s,
+        )
+        r.raise_for_status()
+        data = r.json()
+        arr = data.get("data") or []
+        if not arr or "embedding" not in arr[0]:
+            raise EmbeddingError(
+                f"Primary returned no embedding (model={self.primary_model})"
+            )
+        return [float(x) for x in arr[0]["embedding"]]
+
+    def _embed_primary_ollama(self, text: str) -> list[float]:
+        """Legacy Ollama /api/embeddings — retained for rollback per Track B Phase 3 note."""
         r = httpx.post(
             f"{self.primary_url}/api/embeddings",
             json={"model": self.primary_model, "prompt": text},

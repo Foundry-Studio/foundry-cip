@@ -326,13 +326,24 @@ def _render(blocks: list[TenantBlock], generated_at: datetime) -> tuple[str, boo
         lines.append(f"## {b.tenant_name}")
         lines.append("")
         lines.append(f"- `tenant_id` = `{b.tenant_id}`  ·  type = {b.tenant_type}  ·  status = {b.tenant_status}")
-        # Clients
+        # Clients — cap the inline list at 10 to keep the cheatsheet
+        # scannable. Tenants with many clients (PS lens-mirror = 1,404
+        # at write-time) get a summary line + the first 10 + an overflow
+        # link to the per-tenant MANIFEST.
+        CLIENT_LIST_CAP = 10
         if b.clients:
             lines.append(f"- **Clients ({len(b.clients)}):**")
-            for c in b.clients:
+            for c in b.clients[:CLIENT_LIST_CAP]:
                 indus = f" · *{c.get('industry') or 'n/a'}*"
                 lines.append(
                     f"  - `{c['slug']}` — {c['name']}{indus} — `{c['client_id']}`"
+                )
+            if len(b.clients) > CLIENT_LIST_CAP:
+                remaining = len(b.clients) - CLIENT_LIST_CAP
+                lines.append(
+                    f"  - … and {remaining:,} more — see "
+                    f"[`docs/tenants/{b.tenant_id}/MANIFEST.md`]"
+                    f"(tenants/{b.tenant_id}/MANIFEST.md)"
                 )
         else:
             lines.append("- **Clients:** (none yet)")

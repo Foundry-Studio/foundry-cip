@@ -587,6 +587,42 @@ Tim 2026-05-12: historical reporting (deal-stage trends, ticket-state transition
 
 ---
 
+### 15. Cross-Tenant LensMirrorConnector (Phase 2.6 worked example)
+
+**New connector shape introduced 2026-05-22** — reads from a SOURCE tenant's lens view, writes to a DESTINATION tenant's `cip_*` tables. Different in two important ways from a normal external-source connector (HubSpot, Zendesk, FixtureConnector):
+
+1. **No external API.** The source is another tenant's Postgres. The connector opens its own short-lived read connection bound to the source tenant's `app.current_tenant` GUC, materializes the lens view's rows into memory, then yields back to the orchestrator running under the destination tenant's GUC. Two connections, each with a single stable tenant context (Atlas Q4 safety — there is NO "two GUC swaps per session" anti-pattern).
+
+2. **Two-pass orchestration is required, not optional.** Destination `cip_clients` rows don't pre-exist — they're derived from the source's company set. So Pass 1 dedupes upstream company_ids → destination clients (deterministic `uuid5`), then Pass 2 mirrors entity rows with resolved `client_id` FKs. The driver lives in `scripts/orchestrate_ps_lens_mirror.py` (not the connector). Template for future cross-tenant flows.
+
+**Companion field model.** Destination tables get a `companion_data JSONB` column distinct from existing `properties`/`metadata` overflow. Mirror writes ONLY mapper-emitted fields and the overflow column — never `companion_data`. The destination-tenant's Twenty CRM (or equivalent) holds the only `UPDATE (companion_data)` grant via a dedicated Postgres role (cip_25 pattern for Project Silk; replicate per-consumer-tenant for future cases). This means re-syncs survive without clobbering local edits, by construction.
+
+**File layout:**
+```
+cip/integration_mesh/connectors/lens_mirror/
+    __init__.py         # exports
+    connector.py        # LensMirrorConnector (CIPConnector)
+    mapper.py           # per-entity LensMirrorXxxMapper (CIPMapperBase)
+```
+
+**Mapper invariants** (enforced via unit tests in `tests/integration_mesh/test_lens_mirror_connector.py`):
+- NEVER emit `companion_data` (Atlas Q1 — destination-private)
+- NEVER emit `initial_intake_route` on `cip_clients` (Atlas C-2 — backfilled post-sync to avoid persister UPDATE overwrites)
+- Strip orchestrator-owned fields (`tenant_id`, `id`, `ingestion_batch_id`, etc.)
+- Rewrite `source_connector` to `'lens-mirror'` (provenance for the destination tenant)
+- Skip rows whose lookup key (e.g., `properties->>'hs_primary_associated_company'`) resolves to None in the Pass-1 lookup — unattributable means out-of-scope
+
+**Sync-mode tagging:** call `run_sync(..., sync_mode="lens-mirror")` so `cip_sync_runs` distinguishes mirror runs from full / incremental connector runs. The `'lens-mirror'` value is in the CHECK constraint via `cip_23_phase26_schema`.
+
+**Cross-references:**
+- [`CROSS-TENANT-ACCESS-PATTERNS.md`](CROSS-TENANT-ACCESS-PATTERNS.md) — when to mirror vs grant
+- [`vision/ATLAS-REVIEW-PHASE-2.6-RESPONSE.md`](vision/ATLAS-REVIEW-PHASE-2.6-RESPONSE.md) (CIP-FW-003) — the locked deep plan
+- `cip/migrations/versions/cip_23_phase26_schema.py` — companion_data schema
+- `cip/migrations/versions/cip_24_china_entity_lenses.py` — source-side lens shape
+- `cip/migrations/versions/cip_25_project_silk_twenty_role.py` — column-level GRANT enforcement pattern
+
+---
+
 ## v5.4 plan-hygiene TODOs surfaced by this guide
 
 Captured for the next plan-hygiene pass:

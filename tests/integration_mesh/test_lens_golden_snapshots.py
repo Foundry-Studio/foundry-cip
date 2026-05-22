@@ -155,11 +155,17 @@ def _run_lens_against_standard(
 # changed its column selection / predicate output, OR a new column landed
 # on cip_companies via a future migration.
 _LENS_A_STANDARD_SEED42_SHA256: str = (
-    "8c384082678d261d97ee30ca22ba49fc14e0713a625270074f8ae1f2a14e5e93"
+    # Re-baselined 2026-05-22 after cip_23_phase26_schema added
+    # `companion_data JSONB` to cip_companies. The `lens_a` view does
+    # SELECT * FROM cip_companies, so the new column changes the
+    # canonical output shape. Re-baseline is intentional.
+    "0ac2c9eeb72ed961a9744f3a037c33b2f358b688374ba5efd09c0a5d3388e267"
 )
 
 _LENS_B_STANDARD_SEED42_SHA256: str = (
-    "a11b830c57dd5adf3d309aa1b9aa35a3296d3cc8e8a7461b4cd6889cfe165c55"
+    # Re-baselined 2026-05-22 same reason as Lens-A (cip_23 added
+    # companion_data to cip_companies).
+    "3f5355c9fce664d2d7beb07ccd40abcded0f9a13ca85dff3d4d7c3f0cb14fde5"
 )
 
 

@@ -376,6 +376,15 @@ objects:
   owner: tim
   path: docs/ARCHITECTURE-SPLIT.md
   last_reviewed: '2026-05-19'
+- id: CIP-SPEC-011
+  uuid: a5c8e3d2-7f4b-4e9a-b1d6-9c2e8f3a4b5d
+  title: Cross-Tenant Access Patterns — Mirror vs Grant
+  type: spec
+  stage_label: adopt
+  domain: meta
+  owner: tim
+  path: docs/CROSS-TENANT-ACCESS-PATTERNS.md
+  last_reviewed: '2026-05-22'
 - id: CIP-BP-911
   uuid: 4b7877c7-d0e5-4320-b0ab-827b5611a2b0
   title: Foundry Knowledge Base — Product Braindump

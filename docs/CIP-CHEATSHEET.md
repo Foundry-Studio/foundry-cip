@@ -12,19 +12,19 @@ created: '2026-05-22'
 last_modified: '2026-05-22'
 last_reviewed: '2026-05-22'
 review_cadence: 1
-last_generated_at: 2026-05-22 16:37 UTC
+last_generated_at: 2026-05-22 19:00 UTC
 generator: scripts/generate_cip_cheatsheet.py (PM scope 9cd4071c)
 ---
 
 # CIP Cheatsheet
 
-> **Generated:** 2026-05-22 16:37 UTC  
+> **Generated:** 2026-05-22 19:00 UTC  
 > **Do not edit by hand** — re-run `python scripts/generate_cip_cheatsheet.py`. Pass `--strict` for CI to exit 3 if drift is flagged.
 
 ## Scoreboard
 
 - **Active tenants:** 9
-- **Clients:** 2
+- **Clients:** 1406
 - **Postgres chunks (`cip_knowledge_chunks`):** 36,492
 - **CIP-Pinecone vectors:** 36,492
 - **`cip_files` rows:** 65
@@ -59,7 +59,7 @@ generator: scripts/generate_cip_cheatsheet.py (PM scope 9cd4071c)
 - **Derived:** `cip_knowledge_chunks` 0  ·  CIP-Pinecone 0  ·  parity ✓
 - **Originals:** `cip_files` 0  ·  CIP-R2 0 B across 0 files
 - **Drift:**
-  - ⚠ Legacy R2 prefix `f554c334-43e5-458e-9857-0b268f8f99bf/` holds 3 objects (342.0 KB) — not under `cip-originals/`
+  - ⚠ Legacy R2 prefix `f554c334-43e5-458e-9857-0b268f8f99bf/` holds 4 objects (410.8 KB) — not under `cip-originals/`
 
 ## Ecomlever
 
@@ -97,8 +97,19 @@ generator: scripts/generate_cip_cheatsheet.py (PM scope 9cd4071c)
 ## Project Silk
 
 - `tenant_id` = `078a37d6-6ae2-4e22-869e-cc08f6cb2787`  ·  type = venture  ·  status = active
-- **Clients:** (none yet)
-- **Structured:** (no rows)
+- **Clients (1404):**
+  - `wayward-china-100030771899` — iDaPro · *n/a* — `59054012-e9e2-520f-98ef-f3adee8899ad`
+  - `wayward-china-100133192384` — Indelala · *n/a* — `e16816ab-459d-5946-bd64-2b06760ab50b`
+  - `wayward-china-100142914286` — Funistree · *n/a* — `982e37b4-0a0b-5b33-ac9b-ae042f356504`
+  - `wayward-china-100204518122` — zofgenow · *n/a* — `47748f56-a76a-594f-ad37-bebaf300ec29`
+  - `wayward-china-100213502666` — Redliro · *n/a* — `47068cb1-ebf3-5460-9fed-ee020a30a3f8`
+  - `wayward-china-100581992156` — Zooplan · *n/a* — `c15a5435-0a57-5c8f-88fa-6b32e82cdc78`
+  - `wayward-china-100582063827` — Julysuns · *n/a* — `3d15322e-6574-5fa4-a9f9-c809a55bc3a4`
+  - `wayward-china-100666606307` — maleous · *n/a* — `5f6c3806-188e-5fc7-ab8f-e769c26eee3a`
+  - `wayward-china-100841802432` — Housavvy · *n/a* — `ae1533b2-1efe-5673-9e6d-59e529aeaacb`
+  - `wayward-china-101596648129` — KZ · *n/a* — `da73f702-e279-5b53-a4ae-72d09a0eaf08`
+  - … and 1,394 more — see [`docs/tenants/078a37d6-6ae2-4e22-869e-cc08f6cb2787/MANIFEST.md`](tenants/078a37d6-6ae2-4e22-869e-cc08f6cb2787/MANIFEST.md)
+- **Structured:** `cip_clients`=1,404  ·  `cip_companies`=1,404  ·  `cip_contacts`=1,014  ·  `cip_deals`=1,407
 - **Derived:** `cip_knowledge_chunks` 0  ·  CIP-Pinecone 0  ·  parity ✓
 - **Originals:** `cip_files` 0  ·  CIP-R2 0 B across 0 files
 - **Drift:**
@@ -140,7 +151,7 @@ generator: scripts/generate_cip_cheatsheet.py (PM scope 9cd4071c)
 ⚠ One or more venture tenants have CIP-shaped data on the Foundry side:
 
 - **Bob** (`f554c334-43e5-458e-9857-0b268f8f99bf`):
-  - R2 legacy: 3 objects under `f554c334-43e5-458e-9857-0b268f8f99bf/` — copy into `cip-originals/f554c334-43e5-458e-9857-0b268f8f99bf/<client>/...` or leave as cold backup
+  - R2 legacy: 4 objects under `f554c334-43e5-458e-9857-0b268f8f99bf/` — copy into `cip-originals/f554c334-43e5-458e-9857-0b268f8f99bf/<client>/...` or leave as cold backup
 - **Ecomlever** (`dec814db-722a-4730-8e60-51afc4a5dad9`):
   - R2 legacy: 4 objects under `dec814db-722a-4730-8e60-51afc4a5dad9/` — copy into `cip-originals/dec814db-722a-4730-8e60-51afc4a5dad9/<client>/...` or leave as cold backup
 - **Project Silk** (`078a37d6-6ae2-4e22-869e-cc08f6cb2787`):

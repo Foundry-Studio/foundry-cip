@@ -65,6 +65,14 @@ def _safety_gate(url: str) -> int | None:
 
 
 def main() -> int:
+    # Heartbeat marker — paired with RUN_ENDED at the bottom of main().
+    # If you see RUN_BEGAN without a corresponding RUN_ENDED, the process
+    # died mid-stream (the harness's "completed" notification can fire
+    # on the wrapper exit even if Python crashed). PM scope 0f15a060.
+    from datetime import datetime, timezone
+    _run_began = datetime.now(timezone.utc)
+    print(f"RUN_BEGAN tag=migrate_chunks_postgres_to_pinecone at={_run_began.isoformat()}")
+
     url = os.environ.get("DATABASE_URL", "")
     if not url:
         print("ERROR: DATABASE_URL not set", file=sys.stderr)
@@ -200,6 +208,9 @@ def main() -> int:
     namespaces = post_stats.get("namespaces", {})
     for ns, info in sorted(namespaces.items()):
         print(f"  {ns}: {info.get('vectorCount', 0):,}")
+
+    from datetime import datetime, timezone
+    print(f"RUN_ENDED tag=migrate_chunks_postgres_to_pinecone at={datetime.now(timezone.utc).isoformat()}")
     return 0
 
 

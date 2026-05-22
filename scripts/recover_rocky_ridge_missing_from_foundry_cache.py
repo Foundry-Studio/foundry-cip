@@ -42,6 +42,7 @@ import os
 import re
 import sys
 import time
+from datetime import datetime, timezone
 from uuid import UUID, uuid4, uuid5
 
 from sqlalchemy import create_engine, text
@@ -80,6 +81,7 @@ def _safety_gate(url: str) -> int | None:
 
 
 def main() -> int:
+    print(f"RUN_BEGAN tag=recover_rocky_ridge_missing_from_foundry_cache at={datetime.now(timezone.utc).isoformat()}")
     url = os.environ.get("DATABASE_URL", "")
     if not url:
         print("ERROR: DATABASE_URL not set", file=sys.stderr)
@@ -320,6 +322,7 @@ def main() -> int:
     post = pc.describe_index_stats()
     ns_info = (post.get("namespaces") or {}).get(ns, {})
     print(f"\n[recover-rr] CIP-Pinecone namespace {ns}: {ns_info.get('vectorCount', 0):,} vectors")
+    print(f"RUN_ENDED tag=recover_rocky_ridge_missing_from_foundry_cache at={datetime.now(timezone.utc).isoformat()}")
     return 0 if not errors else 1
 
 

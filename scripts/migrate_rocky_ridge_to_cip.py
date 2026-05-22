@@ -63,6 +63,7 @@ import sys
 import time
 from collections import defaultdict
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from typing import Iterable
 from uuid import UUID, uuid4, uuid5
 
@@ -233,6 +234,9 @@ def _ensure_rocky_ridge_client(db: Session, batch_id: UUID) -> None:
 # -- Main --------------------------------------------------------------------
 
 def main() -> int:
+    # Heartbeat marker — see PM scope 0f15a060.
+    print(f"RUN_BEGAN tag=migrate_rocky_ridge_to_cip at={datetime.now(timezone.utc).isoformat()}")
+
     url = os.environ.get("DATABASE_URL", "")
     if not url:
         print("ERROR: DATABASE_URL not set", file=sys.stderr)
@@ -569,6 +573,7 @@ def main() -> int:
     ns_info = (post.get("namespaces") or {}).get(ns, {})
     print()
     print(f"[migrate-rr] CIP-Pinecone namespace {ns}: {ns_info.get('vectorCount', 0):,} vectors")
+    print(f"RUN_ENDED tag=migrate_rocky_ridge_to_cip at={datetime.now(timezone.utc).isoformat()}")
     return 0 if stats.files_errored == 0 else 1
 
 

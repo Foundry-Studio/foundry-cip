@@ -32,9 +32,19 @@ from sqlalchemy import text
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
 
-from cip.integration_mesh.clients import EmbeddingClient
+from cip.integration_mesh.clients import (
+    EmbeddingClient,
+    PineconeClient,
+    PineconeError,
+    VectorUpsert,
+    namespace_for,
+)
 from cip.integration_mesh.knowledge.chunker import chunk_text, ChunkSpec
 from cip.integration_mesh.tenant_context import apply_tenant_context
+
+
+# Pinecone metadata cap (40 KB per value; we cap content at 30 KB for safety).
+_PINECONE_CONTENT_CAP = 30_000
 
 
 @dataclass
@@ -48,6 +58,9 @@ class IndexResult:
     errors: int = 0
     elapsed_s: float = 0.0
     first_errors: list[str] = field(default_factory=list)
+    # Pinecone parity tracking (cip_22 wiring 2026-05-22).
+    pinecone_upserted: int = 0
+    pinecone_errors: int = 0
 
 
 class KnowledgeIndexer:
@@ -63,12 +76,20 @@ class KnowledgeIndexer:
         commit_every: int = 100,
         embed_concurrency: int = 4,
         embed_batch_size: int = 32,
+        pinecone_client: PineconeClient | None = None,
     ) -> None:
         self.engine = engine
         self.client = embedding_client
         self.tenant_id = tenant_id
         self.chunk_spec = chunk_spec or ChunkSpec()
         self.commit_every = commit_every
+        # Pinecone wiring (PM scope ed653420, 2026-05-22). When supplied,
+        # every persisted chunk is ALSO upserted into CIP-Pinecone under
+        # `cip__{tenant}__{client}` so search parity stays automatic
+        # rather than depending on a separate backfill script. Pinecone
+        # failures are NON-fatal: Postgres is the canonical store, the
+        # Pinecone-side backfill script can repair drift after the fact.
+        self.pinecone = pinecone_client
         # Parallelism for the embed step. Embedding is the slow hop;
         # batching K chunks and issuing K embeds in parallel against an
         # ollama server with OLLAMA_NUM_PARALLEL>=K cuts wall-time
@@ -174,6 +195,11 @@ class KnowledgeIndexer:
                                     f"embed-fallback: {type(ie).__name__}: {str(ie)[:200]}"
                                 )
 
+                # Pinecone upserts are grouped by namespace (tenant+client)
+                # within the batch — Pinecone's upsert API takes one
+                # namespace per call.
+                pinecone_pending: dict[str, list[VectorUpsert]] = {}
+
                 for item, emb in zip(batch, vecs):
                     if emb is None:
                         continue
@@ -202,6 +228,25 @@ class KnowledgeIndexer:
                         })
                         result.persisted += 1
                         pending[0] += 1
+                        # Queue Pinecone upsert for this chunk.
+                        if self.pinecone is not None:
+                            ns = namespace_for(self.tenant_id, item["client_id"])
+                            pinecone_pending.setdefault(ns, []).append(VectorUpsert(
+                                id=f"cip-{source_kind}-{item['src_id']}-{item['chunk_index']}",
+                                values=[float(x) for x in emb],
+                                metadata={
+                                    "tenant_id": str(self.tenant_id),
+                                    "client_id": str(item["client_id"]) if item["client_id"] else "",
+                                    "source_kind": source_kind,
+                                    "source_id": item["src_id"],
+                                    "chunk_index": int(item["chunk_index"]),
+                                    "total_chunks": int(item["total_chunks"]),
+                                    "content_chars": len(item["content"]),
+                                    "content_hash": item["content_hash"],
+                                    "embedding_model": self.client.model_id,
+                                    "content": item["content"][:_PINECONE_CONTENT_CAP],
+                                },
+                            ))
                         if pending[0] >= self.commit_every:
                             db.commit()
                             apply_tenant_context(db, self.tenant_id)
@@ -214,6 +259,22 @@ class KnowledgeIndexer:
                             )
                         db.rollback()
                         apply_tenant_context(db, self.tenant_id)
+
+                # Pinecone upsert pass — fire once per namespace per
+                # batch. Failures here are NON-fatal: Postgres is the
+                # canonical store; the backfill script can repair drift.
+                if self.pinecone is not None and pinecone_pending:
+                    for ns, vectors in pinecone_pending.items():
+                        try:
+                            self.pinecone.upsert(namespace=ns, vectors=vectors)
+                            result.pinecone_upserted += len(vectors)
+                        except (PineconeError, Exception) as pe:  # noqa: BLE001
+                            result.pinecone_errors += len(vectors)
+                            if len(result.first_errors) < 5:
+                                result.first_errors.append(
+                                    f"pinecone-upsert ns={ns} batch={len(vectors)}: "
+                                    f"{type(pe).__name__}: {str(pe)[:200]}"
+                                )
                 batch.clear()
 
             for row in rows:

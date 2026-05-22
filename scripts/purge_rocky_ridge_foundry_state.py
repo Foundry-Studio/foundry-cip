@@ -39,6 +39,7 @@ import argparse
 import os
 import re
 import sys
+from datetime import datetime, timezone
 from uuid import UUID
 
 from sqlalchemy import create_engine, text
@@ -73,6 +74,7 @@ def _safety_gate(url: str) -> int | None:
 
 
 def main() -> int:
+    print(f"RUN_BEGAN tag=purge_rocky_ridge_foundry_state at={datetime.now(timezone.utc).isoformat()}")
     ap = argparse.ArgumentParser()
     ap.add_argument("--apply", action="store_true", help="Actually delete (default: dry-run)")
     args = ap.parse_args()
@@ -183,6 +185,7 @@ def main() -> int:
             return 5
 
     print("[purge-rr] Foundry-side Rocky Ridge state purged.")
+    print(f"RUN_ENDED tag=purge_rocky_ridge_foundry_state at={datetime.now(timezone.utc).isoformat()}")
     return 0
 
 

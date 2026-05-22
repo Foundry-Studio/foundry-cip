@@ -27,6 +27,8 @@ Config via env vars:
                                   (default qwen/qwen3-embedding-4b)
   OPENROUTER_API_KEY              Required only when fallback activates
   CIP_EMBEDDING_TIMEOUT_S         Per-request timeout (default 60)
+  CIP_EMBEDDING_SKIP_HEALTHCHECK  '1' to skip startup healthcheck (e.g.
+                                  for offline tests / mocks)
 """
 from __future__ import annotations
 
@@ -61,6 +63,7 @@ class EmbeddingClient:
         fallback_model: str | None = None,
         timeout_s: float | None = None,
         openrouter_api_key: str | None = None,
+        healthcheck: bool | None = None,
     ) -> None:
         self.protocol = (
             protocol
@@ -120,6 +123,46 @@ class EmbeddingClient:
         self.primary_failures = 0
         self.fallback_successes = 0
         self.fallback_failures = 0
+
+        # Startup healthcheck — fail fast if primary endpoint is unreachable.
+        # Without this, the failure surfaces deep in the first embed call
+        # (often inside a long-running migration), wasting setup time
+        # before the real problem becomes visible. The 2026-05-22
+        # server-b Ollama-decommissioning incident is the cautionary
+        # tale: silent URL staleness ran for 3 days because no startup
+        # check existed.
+        skip_env = os.environ.get("CIP_EMBEDDING_SKIP_HEALTHCHECK", "").strip()
+        if healthcheck is None:
+            healthcheck = skip_env not in {"1", "true", "yes"}
+        if healthcheck:
+            self._startup_healthcheck()
+
+    def _startup_healthcheck(self) -> None:
+        """Probe the primary endpoint at construction time.
+
+        Uses a fast non-embedding endpoint (`/v1/models` for OpenAI-style,
+        `/api/tags` for Ollama-style). Network or 5xx → EmbeddingError
+        immediately so callers know to investigate before they've queued
+        an hour of work behind the bad URL.
+        """
+        if self.protocol == "openai":
+            probe_path = "/v1/models"
+        else:
+            probe_path = "/api/tags"
+        url = f"{self.primary_url}{probe_path}"
+        headers = {}
+        if self.protocol == "openai" and self.primary_api_key:
+            headers["Authorization"] = f"Bearer {self.primary_api_key}"
+        try:
+            r = httpx.get(url, headers=headers, timeout=min(self.timeout_s, 10.0))
+            r.raise_for_status()
+        except httpx.HTTPError as e:
+            raise EmbeddingError(
+                f"Embedding healthcheck failed for {url}: "
+                f"{type(e).__name__}: {str(e)[:200]}. "
+                f"If you intend to skip this check, set "
+                f"CIP_EMBEDDING_SKIP_HEALTHCHECK=1."
+            ) from e
 
     @property
     def model_id(self) -> str:

@@ -165,6 +165,36 @@ class PineconeClient:
             ) from exc
         return r.json()
 
+    def delete(self, *, namespace: str, ids: list[str]) -> dict[str, Any]:
+        """Delete specific vector ids in a namespace.
+
+        Used for surgical cleanup — e.g., removing orphan vectors when
+        their backing cip_files row has been deleted. Pinecone accepts
+        up to 1000 ids per call; chunks larger requests automatically.
+        """
+        if not ids:
+            return {}
+        all_results: list[dict[str, Any]] = []
+        # 1000-id chunking per Pinecone limit
+        for i in range(0, len(ids), 1000):
+            batch = ids[i:i + 1000]
+            body = {"ids": batch, "namespace": namespace}
+            try:
+                r = httpx.post(
+                    f"{self.index_host}/vectors/delete",
+                    headers=self._headers,
+                    json=body,
+                    timeout=self.timeout_s,
+                )
+                r.raise_for_status()
+                all_results.append(r.json())
+            except httpx.HTTPError as exc:
+                raise PineconeError(
+                    f"delete failed (batch of {len(batch)}): "
+                    f"{type(exc).__name__}: {str(exc)[:300]}"
+                ) from exc
+        return {"batches": len(all_results), "ids_deleted": len(ids)}
+
     def describe_index_stats(
         self, *, filter: dict[str, Any] | None = None
     ) -> dict[str, Any]:

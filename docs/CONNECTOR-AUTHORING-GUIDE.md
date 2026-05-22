@@ -623,6 +623,69 @@ cip/integration_mesh/connectors/lens_mirror/
 
 ---
 
+### 16. Associations — JSONB source-id is the contract (CIP-FW-004)
+
+> **Normative as of 2026-05-22.** Authored from Atlas review CIP-FW-004 ([`vision/ATLAS-REVIEW-ASSOCIATION-CONTRACT.md`](vision/ATLAS-REVIEW-ASSOCIATION-CONTRACT.md)).
+
+#### 16.1 The contract in one sentence
+
+> Cross-entity associations join on `target.source_id = source.properties->>'<source_key>'` within `(tenant_id, source_connector)`. The four legacy CIP-UUID soft-FK columns (`cip_deals.company_id`, `cip_deals.contact_id`, `cip_contacts.company_id`, `cip_tickets.requester_id`) are DEPRECATED and must not be written.
+
+#### 16.2 What this means for mapper authors
+
+- **DO** dump source-system association ids into `properties` JSONB via `overflow_fields()`. Example: HubSpot's deal mapper lists `"hs_primary_associated_company"` in overflow → the persister writes it to `cip_deals.properties->>'hs_primary_associated_company'`. Lens views and orchestrators read it from there.
+- **DO NOT** emit a CIP-UUID FK field in `CIPRow.fields`. `cip_deals.company_id` (and the three other deprecated columns — see cip_27 for the full list) must NEVER appear as a key in `CIPRow.fields`. The drift test `tests/integration_mesh/test_mapper_schema_drift.py::test_no_mapper_emits_deprecated_soft_fk_for_known_fixtures` enforces this for all shipped mappers.
+- **DO NOT** add new typed `*_id UUID` columns for cross-entity associations. The legitimate typed-promotion pattern is `<assoc>_source_id TEXT` (e.g., `cip_deals.company_source_id` holding the HubSpot company source_id directly), populated by a one-line mapper write — never a UUID FK that requires source_id→uuid resolution at ingest time. New typed UUID columns that aren't on the explicit `_INTENTIONAL_TYPED_PROMOTIONS` allowlist in the drift test are rejected.
+- **DO** register every association key in `cip/integration_mesh/lens_engine/joins.py::ASSOC_KEYS`. This is the canonical place lens authors look up which JSONB key carries which association — keeps the join shape uniform across the codebase and prevents the correlated-subquery perf bug that bit cip_24's first draft.
+
+#### 16.3 Canonical join shape (uncorrelated)
+
+The cip_27 expression indexes are built specifically for this query shape — using the correlated form (where the inner subquery references the outer row's `tenant_id`) defeats them.
+
+```sql
+-- CORRECT: uncorrelated, index-backed via idx_cip_deals_assoc_company
+SELECT d.*
+FROM cip_deals d
+WHERE d.tenant_id = NULLIF(current_setting('app.current_tenant', true), '')::uuid
+  AND d.source_id IN (
+    SELECT DISTINCT d2.properties->>'hs_primary_associated_company'
+    FROM cip_deals d2
+    WHERE d2.tenant_id = NULLIF(current_setting('app.current_tenant', true), '')::uuid
+      AND d2.properties->>'hs_primary_associated_company' IS NOT NULL
+  )
+```
+
+For lens views authored in Python (generator scripts), use `cip.integration_mesh.lens_engine.joins.assoc_join_sql(...)` to compose the IN-clause uniformly.
+
+```python
+from cip.integration_mesh.lens_engine.joins import get_assoc_key, assoc_join_sql
+
+ak = get_assoc_key(
+    source_connector="hubspot-v1",
+    source_entity="contact",
+    target_entity="company",
+)
+# ak.json_key == "associatedcompanyid"
+# Use ak.json_key in your view body.
+```
+
+#### 16.4 Cross-connector associations (e.g., Zendesk requester → HubSpot contact)
+
+Cross-connector resolution is OUT of scope for the single-mapper association contract. The deferred ticket-mirror case (Phase 2.6 Atlas Q5 ruling) goes through a future `cip_identity_links` table — a separate Atlas-gated scope. Mappers don't try to resolve across connectors at ingest time.
+
+#### 16.5 Eventual cleanup
+
+Atlas's ruling deferred the actual DROP of the four deprecated columns until a consumer audit (Metabase questions / saved SQL may still reference them by name). For now the columns exist with `COMMENT` markers; future agents reading them in psql / Postico see the deprecation immediately. The audit + DROP is a Tim-gated follow-up scope.
+
+**Cross-references:**
+- [`vision/ATLAS-REVIEW-ASSOCIATION-CONTRACT.md`](vision/ATLAS-REVIEW-ASSOCIATION-CONTRACT.md) (CIP-FW-004) — the locked deep plan
+- [`CROSS-TENANT-ACCESS-PATTERNS.md`](CROSS-TENANT-ACCESS-PATTERNS.md) (CIP-SPEC-011) — uses this contract for the mirror join shape
+- `cip/migrations/versions/cip_27_association_contract.py` — expression indexes + COMMENT-deprecation
+- `cip/integration_mesh/lens_engine/joins.py` — canonical `ASSOC_KEYS` registry + `assoc_join_sql`
+- `tests/integration_mesh/test_mapper_schema_drift.py` — enforcement guards
+
+---
+
 ## v5.4 plan-hygiene TODOs surfaced by this guide
 
 Captured for the next plan-hygiene pass:

@@ -117,6 +117,8 @@ If you pick **mirror** when **grant** is right:
 
 - [`docs/ARCHITECTURE-SPLIT.md`](ARCHITECTURE-SPLIT.md) (CIP-SPEC-010) — the CIP Hard Split, which is *intra-CIP* data-plane isolation. This doc is *inter-CIP-tenant*. Different axis; both apply.
 - [`docs/vision/ATLAS-REVIEW-PHASE-2.6-RESPONSE.md`](vision/ATLAS-REVIEW-PHASE-2.6-RESPONSE.md) (CIP-FW-003) — the locked design behind mirror.
+- [`docs/vision/ATLAS-REVIEW-ASSOCIATION-CONTRACT.md`](vision/ATLAS-REVIEW-ASSOCIATION-CONTRACT.md) (CIP-FW-004) — the Association Contract Atlas locked 2026-05-22. Both mirror and grant patterns use that contract for cross-entity joins (JSONB source-id natural-key joins; CIP-UUID FKs rejected; `*_source_id TEXT` is the typed promotion path).
+- [`CONNECTOR-AUTHORING-GUIDE.md`](CONNECTOR-AUTHORING-GUIDE.md) §16 — the normative connector-side rules implementing the Association Contract.
 - [`docs/vision/ROADMAP.md`](vision/ROADMAP.md) — phase ordering. Phase 2.6 ships mirror; Phase 3 ships grant runtime; both coexist.
 
 ---

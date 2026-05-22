@@ -12,13 +12,13 @@ created: '2026-05-22'
 last_modified: '2026-05-22'
 last_reviewed: '2026-05-22'
 review_cadence: 1
-last_generated_at: 2026-05-22 19:00 UTC
+last_generated_at: 2026-05-22 21:30 UTC
 generator: scripts/generate_cip_cheatsheet.py (PM scope 9cd4071c)
 ---
 
 # CIP Cheatsheet
 
-> **Generated:** 2026-05-22 19:00 UTC  
+> **Generated:** 2026-05-22 21:30 UTC  
 > **Do not edit by hand** — re-run `python scripts/generate_cip_cheatsheet.py`. Pass `--strict` for CI to exit 3 if drift is flagged.
 
 ## Scoreboard

@@ -1,19 +1,26 @@
 ---
 id: CIP-FW-004
 uuid: 7f3b8c9d-2e4a-4f6b-a8c1-3d5e9b2c7a4f
-title: Atlas Review Request — Association Contract (typed-FK vs JSONB-source-id normalization)
+title: Atlas Review — Association Contract (Option B hardened — locked 2026-05-22)
 type: framework
 owner: tim
-solve_for: Self-contained prompt for Atlas's review of how CIP should
-  formally treat entity associations going forward. Surfaced as a latent
-  gap during Phase 2.6 build (2026-05-22).
-stage_label: trial
+solve_for: Locks the canonical contract for cross-entity associations
+  in CIP. Atlas ruled 2026-05-22 — Option B (JSONB source-id natural-key
+  joins) hardened with a *_source_id promotion path; CIP-UUID FKs
+  formally rejected. Shipped as cip_27.
+stage_label: adopt
 domain: meta
-version: '1.0'
+version: '1.1'
 created: '2026-05-22'
 last_modified: '2026-05-22'
 last_reviewed: '2026-05-22'
-review_cadence: 30
+review_cadence: 180
+---
+
+# Status
+
+**LOCKED 2026-05-22.** Atlas ruling delivered; implementation shipped as `cip_27_association_contract` + `cip/integration_mesh/lens_engine/joins.py` + `tests/integration_mesh/test_mapper_schema_drift.py`. See "Atlas Response — Decision Summary" at the bottom of this doc for the canonical record. The "Review Request" section below is preserved verbatim for the historical trail.
+
 ---
 
 # Atlas Review — Association Contract (typed-FK vs JSONB-source-id)
@@ -171,3 +178,35 @@ A v5.x-style deep plan. Sections:
 8. **Blocking decisions for Tim** — tagged `[BLOCKING: Tim decision required]` if any
 
 When you're done, output as a single markdown response. Tim will paste it back.
+
+---
+
+# Atlas Response — Decision Summary (returned 2026-05-22, against `f4cd734`)
+
+**Decision: Option B (JSONB source-id contract), hardened. Option A rejected.** Atlas reframed the prompt: the "typed FK = CIP-UUID FK" abstraction is wrong for a multi-source store. The legitimate typed-promotion path is `<assoc>_source_id TEXT` (the source-system's native id, indexed), populated by a one-line mapper write. **CIP-UUID FKs are formally REJECTED** — they reintroduce the ingest-ordering dependency the connectors deliberately avoid + don't solve cross-connector identity + don't fit many-to-many.
+
+## What shipped (in commit landing this doc)
+
+| Surface | Deliverable |
+|---|---|
+| Migration | `cip_27_association_contract` — expression indexes on the hot JSONB keys (`idx_cip_deals_assoc_company`, `idx_cip_contacts_assoc_company`), COMMENT-deprecation on the 4 dead soft-FK columns, DROP of the dead `idx_cip_contacts_company`. **No row mutations, no column drops, no renames** — additive + reversible. |
+| Code | `cip/integration_mesh/lens_engine/joins.py` — `ASSOC_KEYS` registry of known JSONB association keys per `(source_connector, source_entity, target_entity)` + `assoc_join_sql(...)` helper for uniform uncorrelated-join SQL composition + `assert_no_uuid_fk_join(sql)` lint for lens authors. |
+| LensMirror fix | `LensMirrorDealMapper` / `ContactMapper` previously inherited `company_id` / `contact_id` in their domain field sets (copied from HubSpot's pattern). Atlas's new drift test caught it on first run. Stripped — the deprecated columns are explicitly in `_STRIP_COLS` now, never propagating through the mirror. |
+| Tests | `tests/integration_mesh/test_mapper_schema_drift.py` — (1) `test_mapper_instantiates_cleanly`, (2) `test_no_mapper_emits_deprecated_soft_fk_for_known_fixtures` (the load-bearing guard against `CIPRow.fields` writes to dead columns), (3) `test_no_surprise_typed_uuid_fk_columns` (walks `information_schema.columns` on live cip_* tables, requires `seeded_engine` fixture). |
+| Docs | `CONNECTOR-AUTHORING-GUIDE.md` §16 Associations — the new normative section. Cross-linked from `CROSS-TENANT-ACCESS-PATTERNS.md`. |
+
+## What's deferred (per Atlas §5 + §8)
+
+- **`cip_identity_links` table** for cross-connector identity resolution (Zendesk requester ↔ HubSpot contact by email) — separate Atlas-gated scope. Tickets-in-mirror is blocked on this.
+- **Eventual DROP of the 4 deprecated columns** — Tim-gated follow-up after a consumer audit (Metabase questions / saved SQL may still reference them by name). The columns are COMMENT-deprecated so an operator reading the schema can't miss the deprecation, but they remain queryable.
+
+## What this means for future work
+
+- Any new connector authoring follows §16 of the Connector Authoring Guide
+- Any new lens view uses `assoc_join_sql` (or matches the uncorrelated pattern manually)
+- Any new typed UUID column on a `cip_*` entity table that isn't on `_LEGITIMATE_UUID_COLUMNS` or `_INTENTIONAL_TYPED_PROMOTIONS` in the drift test fails CI
+- Any future `*_source_id` promotion is a normal migration that adds a TEXT column + a one-line mapper write — no UUID resolution machinery, no backfill cross-table joins
+
+## Decision recorded
+
+Surfaced as PM decision (see follow-up commit) with `decision_type=architecture`, summary `"Association contract = JSONB source-id natural-key joins; CIP-UUID soft-FKs deprecated; typed promotion is *_source_id only"`, references CIP-FW-004 (this doc).

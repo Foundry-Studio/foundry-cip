@@ -45,7 +45,8 @@ from cip.integration_mesh.base import CIPMapperBase, CIPRow, KnowledgeText
 # Columns we strip from every source row before producing the
 # destination row. These are either orchestrator-finalized (tenant_id,
 # ingestion_batch_id, *_at), persister-owned (id, previous_version_id),
-# or destination-private (companion_data, initial_intake_route — Atlas).
+# destination-private (companion_data, initial_intake_route — Atlas),
+# or formally DEPRECATED per CIP-FW-004 (the soft-FK UUID columns).
 _STRIP_COLS = frozenset({
     "id",  # destination persister assigns
     "tenant_id",  # orchestrator finalizes
@@ -60,6 +61,11 @@ _STRIP_COLS = frozenset({
     "authority",  # mapper sets explicitly
     "companion_data",  # PS-owned — mirror cannot write (Atlas Q1)
     "initial_intake_route",  # post-sync backfill only (Atlas C-2)
+    # Deprecated soft-FK columns per CIP-FW-004 — never propagate
+    # through the mirror. Associations live in `properties` JSONB.
+    "company_id",
+    "contact_id",
+    "requester_id",
     # debug-only fields injected by LensMirrorConnector.stream_records
     "_source_tenant_id",
     "_source_lens",
@@ -68,6 +74,12 @@ _STRIP_COLS = frozenset({
 # Per-entity domain columns. These mirror the cip_* table's typed
 # columns (the lens view's `SELECT t.*` exposes all of them). Anything
 # not in this set + not in _STRIP_COLS routes to overflow.
+# Per CIP-FW-004 (Association Contract, 2026-05-22): the deprecated
+# soft-FK UUID columns (cip_deals.company_id, cip_deals.contact_id,
+# cip_contacts.company_id) are NOT in any mapper's domain set. They're
+# vestigial schema (kept for backward-compat; COMMENT-deprecated in
+# cip_27). Cross-entity association data lives in `properties` JSONB —
+# the mapper preserves it there via the overflow-merge logic below.
 _DOMAIN_FIELDS_BY_ENTITY: dict[str, set[str]] = {
     "company": {
         "name", "domain", "industry", "city", "country",
@@ -76,11 +88,11 @@ _DOMAIN_FIELDS_BY_ENTITY: dict[str, set[str]] = {
     "contact": {
         "first_name", "last_name", "email", "phone",
         "title", "country", "city", "lifecycle_stage",
-        "company_name", "company_id",
+        "company_name",
     },
     "deal": {
         "name", "amount", "stage", "pipeline", "close_date",
-        "currency", "probability", "company_id", "contact_id",
+        "currency", "probability",
     },
 }
 

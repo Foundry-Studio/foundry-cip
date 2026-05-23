@@ -466,32 +466,28 @@ def test_combined_query_path_1_then_path_4(
 
 
 def test_features_yaml_lists_all_deployed_capabilities() -> None:
-    """For each ``status: available`` feature, its ``path_to_more`` must
-    resolve at HEAD. Parenthesized entries (``(monorepo: ...)`` or
-    placeholder-style) skip the existence check with an explicit
-    in-registry annotation.
-
-    This is the registry-vs-reality gate for the capability slice of
-    discoverability.
-    """
     data = yaml.safe_load(_FEATURES_YAML.read_text(encoding="utf-8"))
-    available = [f for f in data["features"] if f["status"] == "available"]
-    assert available, "features.yaml has zero status:available features"
+    shipped = [f for f in data["features"] if f["status"] == "shipped"]
+    assert shipped, "features.yaml has zero status:shipped features"
+
+    def _resolves(module: str) -> bool:
+        parts = module.split(".")
+        for n in range(len(parts), 0, -1):
+            base = _REPO_ROOT / Path(*parts[:n])
+            if base.with_suffix(".py").exists() or base.is_dir():
+                return True
+        return False
 
     broken: list[str] = []
-    for f in available:
-        p2m = f["path_to_more"]
-        if p2m.startswith("("):
-            # Parenthesized = cross-repo or descriptive; skip path check.
+    for f in shipped:
+        surfaces = f.get("interface_surface") or []
+        if not surfaces:
+            broken.append(f"{f['feature_id']!r} (no interface_surface)")
             continue
-        target = _REPO_ROOT / p2m
-        if not target.exists():
-            broken.append(f"{f['id']!r} -> {p2m!r} (path missing)")
-
-    assert not broken, (
-        "features.yaml registry-vs-reality drift: paths that don't "
-        f"resolve at HEAD: {broken}"
-    )
+        for s in surfaces:
+            if s.get("type") == "internal" and s.get("module") and not _resolves(s["module"]):
+                broken.append(f"{f['feature_id']!r} -> {s['module']!r} (module missing)")
+    assert not broken, f"features.yaml registry-vs-reality drift at HEAD: {broken}"
 
 
 # Quiet unused-import warning — sa is used reflexively above (sa.MetaData

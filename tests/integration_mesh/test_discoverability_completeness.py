@@ -341,42 +341,25 @@ def test_lens_postgres_views_exist_and_isolate_per_tenant(
 
 
 def test_features_yaml_parses_and_has_expected_shape() -> None:
-    """JOS-PM-schema v0 conformance: features.yaml exists at repo root,
-    parses cleanly, has top-level layer/product/features keys, ≥22
-    feature entries, each entry has the 6 required fields, all status
-    values in deployed enum."""
-    assert _FEATURES_YAML.exists(), (
-        f"features.yaml missing at {_FEATURES_YAML}"
-    )
+    assert _FEATURES_YAML.exists(), f"features.yaml missing at {_FEATURES_YAML}"
     data = yaml.safe_load(_FEATURES_YAML.read_text(encoding="utf-8"))
     assert isinstance(data, dict)
     for top_key in ("layer", "product", "features"):
         assert top_key in data, f"missing top-level key {top_key!r}"
-
     features = data["features"]
     assert isinstance(features, list)
-    assert len(features) >= 22, (
-        f"expected ≥22 feature entries, got {len(features)}"
-    )
-
-    required_keys = {
-        "id",
-        "name",
-        "description",
-        "status",
-        "path_to_more",
-        "depends_on",
-    }
-    valid_status = {"available", "partial", "planned", "deprecated"}
+    assert len(features) >= 22, f"expected ≥22 feature entries, got {len(features)}"
+    # JOS-SPEC-010 v1.1 per-entry schema (refactored 2026-05-21 from CIP-local v0)
+    required_keys = {"feature_id", "title", "summary", "status", "maturity", "owner", "domain"}
+    valid_status = {"shipped", "in-progress", "planned", "deprecated"}
     for f in features:
         missing = required_keys - set(f.keys())
-        assert not missing, (
-            f"feature {f.get('id', '?')!r} missing fields: {missing}"
-        )
-        assert f["status"] in valid_status, (
-            f"feature {f['id']!r} has invalid status {f['status']!r}"
-        )
-        assert isinstance(f["depends_on"], list)
+        assert not missing, f"feature {f.get('feature_id','?')!r} missing fields: {missing}"
+        assert f["status"] in valid_status, f"feature {f['feature_id']!r} bad status {f['status']!r}"
+        if "references" in f:
+            assert isinstance(f["references"], list)
+        if "interface_surface" in f:
+            assert isinstance(f["interface_surface"], list)
 
 
 # ── Test 7: cross-tenant isolation through cip_views ───────────────────────

@@ -6,8 +6,8 @@ last_modified: 2026-05-21
 last_reviewed: 2026-05-21
 review_cadence: 90
 domain: meta
+created: 2026-05-21
 ---
-
 # Decision Log — Foundry Client Intelligence Platform (CIP)
 
 > **JOS-canonical entry point for CIP's decision history.**
@@ -82,3 +82,9 @@ The split-repo model (D-146) extracted **code** to foundry-cip while keeping **g
 ---
 
 _This root-level file is a JOS-shaped index. Authoritative log:_ `Foundry-Agent-System/docs/DECISION-LOG.md` _(D-001 through D-182+)._
+
+
+## How to read
+
+_TODO: author this section per the doc-standard._
+

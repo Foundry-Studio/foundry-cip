@@ -1,3 +1,12 @@
+---
+doc_type: changelog
+owner: tim
+status: active
+created: 2026-04-30
+last_modified: 2026-05-14
+last_reviewed: 2026-05-14
+review_cadence: 30
+---
 # Changelog
 
 All notable changes to foundry-cip are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and SemVer.
@@ -73,3 +82,9 @@ QC: 44/44 connector tests pass; mypy --strict clean on 35 source files; ruff cle
 ### Notes
 - Per D-146, foundry-cip is the code repo; the data layer (cip_* tables) continues to live in Foundry's shared Postgres until Phase 8 ("Scale & Extract").
 - Pre-extraction history (commits before 2026-04-20 when CIP code lived under `WORKBENCH/tim/research/client-intelligence-platform/`) is not preserved in foundry-cip. The cip-extraction-point tag in Foundry-Agent-System marks the split point.
+
+
+## Unreleased
+
+_TODO: author this section per the doc-standard._
+

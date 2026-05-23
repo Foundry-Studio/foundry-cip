@@ -50,8 +50,9 @@ supersedes: '(1) Previous 8-phase release-shaped roadmap (pre-pillar-restructure
   2 even though Wayward onboarding is the active phase. Tim asked for it during the
   2026-05-15 vision review while Wayward HubSpot historical backfill + Zendesk current-state
   sync were live-running.'
+doc_type: roadmap
+status: active
 ---
-
 # CIP Roadmap — Pillar-Aligned Phases
 
 > **Frame:** CIP is structured as 8 durable **capability pillars** (D-117). Pillars never retire — they keep producing work as long as the product lives. **Phases** are release stages that light up pillars against real data. Each phase gets its own VISION/WDGLL/SPEC/PLAN doc before execution.
@@ -489,3 +490,29 @@ Previous 8-phase roadmap (2026-04-13 draft) was release-shaped rather than pilla
 | Phase 2 scope | Push & Sync only | **Wayward Onboarding — Full Round-Trip.** Inbound (Zendesk + HubSpot) + outbound (Chatwoot, PS CRM, Drive) + first-light REST. Wayward is a single coherent onboarding proof instead of an ingredient across Phases 1 and 2. |
 | Phase 2.5 scope | Foundry Self-Tenant + Write-Back (broad) | **Write-back only** (push stays in Phase 2). Three cip_write surfaces (REST / MCP / Python) converge on one `write_service.cip_write()`. Migrations `cip_12` / `cip_13` / `cip_14` (originally `cip_10`/`cip_11`/`cip_12`; renumbered 2026-05-15 because the earlier slots were consumed). TSP thresholds auto-promote ≥ 0.9, allow ≥ 0.5. Default first producer is the Foundry internal research agent. |
 | Week-based appetites | "~8 weeks" / "~6 weeks" / etc. on every phase | **Dropped.** Phases are session-bound and milestone-ordered. Claude Code operates at AI speed, not human-sprint speed. |
+
+
+## TL;DR
+
+_TODO: author this section per the doc-standard._
+
+## Active phase
+
+_TODO: author this section per the doc-standard._
+
+## Next phase
+
+_TODO: author this section per the doc-standard._
+
+## Future phases
+
+_TODO: author this section per the doc-standard._
+
+## Recently completed phases
+
+_TODO: author this section per the doc-standard._
+
+## Linked to PM
+
+_TODO: author this section per the doc-standard._
+

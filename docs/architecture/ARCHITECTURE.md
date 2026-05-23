@@ -28,8 +28,9 @@ connects_to:
 - docs/subsystems/graph/CONTRACT.md
 - docs/subsystems/memory/CONTRACT.md
 - docs/subsystems/storage/CONTRACT.md
+doc_type: architecture
+status: active
 ---
-
 # CIP Architecture — Phase 0: Data Model & Tenant Architecture
 
 > **Scope:** This document covers the foundational architecture decisions for the Foundry Client Intelligence Platform. Every subsequent phase (connectors, pipelines, dashboards, chatbot, anomaly detection) builds on top of what is defined here.
@@ -1122,3 +1123,17 @@ Locked in `docs/architecture/principles/DESIGN-PRINCIPLES.md` as **P-21: Multi-L
 | PM System | Project tracking, scope/task management | Internal — all CIP work tracked here |
 
 **NOT consumed:** Memory Service (agent-scoped, wrong semantic fit — see D-119).
+
+
+## System overview
+
+_TODO: author this section per the doc-standard._
+
+## Boundaries
+
+_TODO: author this section per the doc-standard._
+
+## Technology choices
+
+_TODO: author this section per the doc-standard._
+

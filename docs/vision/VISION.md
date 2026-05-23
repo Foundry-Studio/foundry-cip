@@ -50,8 +50,9 @@ open_revision_items:
 - Foundry Chatbot spun out as separate product at `products/foundry-chatbot/` (stubbed,
   blocked by CIP Phase 5). Retrieval stack will be shared; consumer + branding + per-recipient
   scoping are the separation reasons. See `products/foundry-chatbot/README.md`.
+doc_type: vision
+status: active
 ---
-
 # Foundry Client Intelligence Platform — Product Vision
 
 > **One sentence:** A multi-tenant platform that turns any client's scattered external data into a live, queryable, agent-accessible intelligence layer — serving dashboards, reports, chatbots, filtered team views, and white-label partner portals.
@@ -471,3 +472,33 @@ This vision emerged from the Wayward CS Overhaul project (April 2026). Tim built
 3. This is a product, not a script
 
 The industry calls this a Client Intelligence Platform or Customer Data Platform. Nobody combines structured data + unstructured RAG + multi-tenant isolation + agent-native access into one product for venture studios. That's the gap.
+
+
+## North star
+
+_TODO: author this section per the doc-standard._
+
+## Horizon
+
+_TODO: author this section per the doc-standard._
+
+## What "full strength" looks like
+
+_TODO: author this section per the doc-standard._
+
+## What we need to solve for
+
+_TODO: author this section per the doc-standard._
+
+## Locked decisions
+
+_TODO: author this section per the doc-standard._
+
+## Non-goals
+
+_TODO: author this section per the doc-standard._
+
+## Last reviewed
+
+_TODO: author this section per the doc-standard._
+

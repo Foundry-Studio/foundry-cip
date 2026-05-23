@@ -1,3 +1,12 @@
+---
+doc_type: overview
+owner: tim
+status: active
+created: 2026-05-21
+last_modified: 2026-05-21
+last_reviewed: 2026-05-21
+review_cadence: 90
+---
 <!--
 This is an OVERVIEW.md. It exists to answer "what do we have to
 work with here?" — features, capabilities, status, boundaries.

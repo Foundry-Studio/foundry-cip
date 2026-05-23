@@ -18,8 +18,9 @@ supersedes: ../../stages/
 replaced_by:
 - ../../vision/ROADMAP.md
 - ../../vision/PHASE-1-PLAN.md
+doc_type: readme
+status: active
 ---
-
 # Archived: `stages/` Folder (Superseded 2026-04-20)
 
 The original CIP `stages/` folder contained 8 empty scaffold files (`phase-0-data-model.md` through `phase-7-intelligence-layer.md`). Each was a bare template with the same structure (Status / Decisions for Tim / Implementation Plan / Acceptance Criteria / Notes) — all sections empty.

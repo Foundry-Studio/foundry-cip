@@ -6,8 +6,8 @@ last_modified: 2026-05-21
 last_reviewed: 2026-05-21
 review_cadence: 90
 domain: eng
+created: 2026-05-21
 ---
-
 # Architecture — Foundry Client Intelligence Platform (CIP)
 
 > **JOS-canonical entry point for CIP's architecture.**
@@ -121,3 +121,9 @@ Per CIP's own architectural guardrails:
 ---
 
 _This root-level file is a JOS-shaped index. Authoritative architecture detail: [`docs/architecture/ARCHITECTURE.md`](docs/architecture/ARCHITECTURE.md) (1124 lines)._
+
+
+## Boundaries
+
+_TODO: author this section per the doc-standard._
+

@@ -87,3 +87,9 @@ Phase 0 (Data Model & Tenant Architecture) locked the foundation 2026-04-17 (8 a
 ---
 
 _This root-level file is a JOS-shaped index. Authoritative vision: [`docs/vision/VISION.md`](docs/vision/VISION.md)._
+
+
+## Last reviewed
+
+_TODO: author this section per the doc-standard._
+

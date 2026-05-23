@@ -1,3 +1,12 @@
+---
+doc_type: readme
+owner: tim
+status: active
+created: 2026-04-20
+last_modified: 2026-04-30
+last_reviewed: 2026-04-30
+review_cadence: 180
+---
 # Client Intelligence Platform (CIP) — Product
 
 > **Location:** `products/client-intelligence-platform/` (governed — promoted from WORKBENCH 2026-04-17)

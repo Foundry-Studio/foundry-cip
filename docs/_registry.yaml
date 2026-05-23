@@ -394,6 +394,15 @@ objects:
   owner: tim
   path: docs/CROSS-TENANT-ACCESS-PATTERNS.md
   last_reviewed: '2026-05-22'
+- id: CIP-SPEC-012
+  uuid: 4f8d2a1e-9c3b-4e7a-b6d8-7e9f1a2b3c4d
+  title: Project Silk Companion Data Contract
+  type: spec
+  stage_label: adopt
+  domain: meta
+  owner: tim
+  path: docs/PS-COMPANION-DATA-CONTRACT.md
+  last_reviewed: '2026-05-22'
 - id: CIP-BP-911
   uuid: 4b7877c7-d0e5-4320-b0ab-827b5611a2b0
   title: Foundry Knowledge Base — Product Braindump

@@ -8,18 +8,18 @@ solve_for: Auto-generated tenant data directory — tables, sync health, propert
 stage_label: adopt
 domain: dat
 version: '1.0'
-created: '2026-05-22'
-last_modified: '2026-05-22'
-last_reviewed: '2026-05-22'
+created: '2026-05-23'
+last_modified: '2026-05-23'
+last_reviewed: '2026-05-23'
 review_cadence: 90
 tenant_uuid: 078a37d6-6ae2-4e22-869e-cc08f6cb2787
-last_generated_at: 2026-05-22 18:58 UTC
+last_generated_at: 2026-05-23 01:28 UTC
 generator: scripts/generate_tenant_manifest.py (PM scope bfc3d5d0 — Tenant Manifest)
 ---
 
 # Tenant Manifest — `078a37d6-6ae2-4e22-869e-cc08f6cb2787`
 
-Auto-generated 2026-05-22 18:58 UTC. **Do not edit by hand** — re-run `scripts/generate_tenant_manifest.py <tenant_uuid>` after data changes. The editable source-of-truth for property descriptions is `docs/tenants/078a37d6-6ae2-4e22-869e-cc08f6cb2787/GLOSSARY.md`, which `scripts/seed_glossary_into_registry.py` materializes into the registry table that this MANIFEST queries.
+Auto-generated 2026-05-23 01:28 UTC. **Do not edit by hand** — re-run `scripts/generate_tenant_manifest.py <tenant_uuid>` after data changes. The editable source-of-truth for property descriptions is `docs/tenants/078a37d6-6ae2-4e22-869e-cc08f6cb2787/GLOSSARY.md`, which `scripts/seed_glossary_into_registry.py` materializes into the registry table that this MANIFEST queries.
 
 ## Tenant identity
 
@@ -1466,17 +1466,15 @@ Per `CIP-SPEC-010` (CIP Hard Split, D-d83c7e1d): CIP owns its own Pinecone index
 ### Derived knowledge (chunks + embeddings)
 
 - **`cip_knowledge_chunks` rows (Postgres canonical):** 0
-- **CIP-Pinecone vectors:** 0  ·  parity ✓
+- **CIP-Pinecone vectors:** _(skipped — CIP_PINECONE_* env vars not set)_
 
 ### Originals (files)
 
 - **`cip_files` rows:** 0
-- **CIP-R2 (`cip-originals/078a37d6-6ae2-4e22-869e-cc08f6cb2787/`):** 0 files / 0 B
-- **Legacy R2 prefix (`078a37d6-6ae2-4e22-869e-cc08f6cb2787/`):** 15 files / 1.3 MB _(pre-Hard-Split holdovers — see Drift section)_
+- **CIP-R2:** _(skipped — CIP_R2_* env vars not set)_
 
 ### Hard Split drift
 
-⚠ Legacy R2 prefix `078a37d6-6ae2-4e22-869e-cc08f6cb2787/` holds **15 files** (1.3 MB) outside `cip-originals/` — kept as cold backup; migration is optional.
 
 ## Connector sync health
 

@@ -82,19 +82,20 @@ Changelog = "https://github.com/Foundry-Studio/foundry-cip/blob/master/CHANGELOG
 # Top-level migrations/ would not ship in the wheel — `setuptools.package-data`
 # only attaches files inside declared packages. PEP 517 + setuptools >= 70
 # tightened this; MANIFEST.in is sdist-only and wheel-fragile.
-packages = [
-    "cip",
-    "cip.integration_mesh",
-    "cip.integration_mesh.connectors",
-    "cip.integration_mesh.connectors.fixture",
-    "cip.integration_mesh.connectors.zendesk",
-    "cip.integration_mesh.connectors.hubspot",
-    "cip.integration_mesh.connectors.lens_mirror",
-    "cip.integration_mesh.lens_engine",
-    "cip.migrations",
-    "cip.migrations.versions",
-]
 include-package-data = true
+
+# Recurrence-proof package discovery (Phase 2.8 PM 9f51e0b5).
+# The earlier hand-listed `packages = [...]` array omitted three subpackages
+# that already had __init__.py — cip.integration_mesh.knowledge,
+# cip.integration_mesh.clients, cip.integration_mesh.sync — which blocked the
+# MCP semantic-search bridge from importing CIP's retriever stack. Switching
+# to setuptools' find-based discovery so any future `cip.integration_mesh.*`
+# subpackage with an __init__.py auto-ships in the wheel.
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["cip*"]
+# Exclude test directories that may pick up __init__.py at runtime.
+exclude = ["tests*"]
 
 [tool.setuptools.package-data]
 cip = [

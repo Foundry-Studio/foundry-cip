@@ -41,7 +41,7 @@ Two parties write to PS's `cip_*` tables. They write to **different physical col
 
 The structural enforcement is **column-level GRANT UPDATE (companion_data)** on the Twenty role from cip_25 plus the mapper's omission of `companion_data` from emitted fields (the mirror physically cannot write it). Atlas's Q1 verdict was "this is the entire enforcement layer" — no application-side validation needed.
 
-## 2. The 13 companion keys
+## 2. The 18 companion keys
 
 `companion_data` is JSONB. Keys are flat (no nesting) and the contract is **additive only**: future migrations may add keys; never repurpose or remove an existing key without a Tim-gated review.
 
@@ -60,8 +60,13 @@ The structural enforcement is **column-level GRANT UPDATE (companion_data)** on 
 | `ps_lead_owner_email`     | string   | no       | PS-team person responsible for this brand. Email key (matches `cip_owners`).         |
 | `ps_first_onboarded_date` | date     | no       | ISO-8601 date string. The date PS started managing this brand (NOT the EcomLever close date). |
 | `ps_last_reviewed_date`   | date     | no       | ISO-8601 date string. Set when a PS rep does the periodic engagement review.         |
+| `ps_attribution_owner`    | enum     | no       | Whose 10% commission this brand's book is. `PS` = ours (even when a partner referred — we split). A partner value = their book. See §3.4. Drives `lens_ps_china_commission`. |
+| `ps_conditional`          | enum     | no       | `finders_fee` flags Eric/Adina one-time-paid, flippable brands (partner referred but not earning ongoing). Blank otherwise. See §3.5. |
+| `ps_lead_source`          | enum     | no       | Referrer for PS-owned brands — the commission-split key (pairs with `ps_commission_pct`). Same value set as `ps_attribution_owner` minus `unclassified`/`heavy_producer`. See §3.4. |
+| `ps_sales_lead`           | string   | no       | PS staff email — sales owner → sales commission. CRM-filled going forward (users/owners table incoming). |
+| `ps_cs_lead`              | string   | no       | PS staff email — CS owner → CS comp (usually a different person than sales). CRM-filled going forward. |
 
-**Why these 13:** Tim's locked design conversation (2026-05-22). The two ENUMs (`ps_onboarded_status`, `ps_engagement_health`) drive the two filtered lens views; `ps_segment` is the future-proofing slot for adding non-china PS lines. The remaining 10 are the operational fields Twenty's UI binds — financial annotations, alias localization, notes, ownership.
+**Why these 18:** the first 13 are Tim's 2026-05-22 design (onboarding + health + financial annotations + ownership). The five added 2026-05-25 (PM cip_34 / china-commission-audit) are the **attribution layer**: who owns each brand's 10%, the finder's-fee flag, the lead-source split key, and the sales/CS commission owners. They make the China book's partner/staff commission splits computable off CIP (the `lens_ps_china_commission` reporting lens).
 
 ## 3. Enumerations
 
@@ -98,6 +103,29 @@ Future segments are added by Tim-gated review only (not Twenty-editable in the m
 > `red` > `yellow` > `producing` > `green` > `unknown`
 
 That is, a red flag overrides a "producing" label — `producing` is a positive signal, but a red is a more urgent operational signal. The lens views do not implement this priority (they filter on the exact enum value) — it's for downstream consumers that aggregate multiple signals into one cell.
+
+### 3.4 `ps_attribution_owner` + `ps_lead_source`
+
+| Value            | Meaning                                                                          |
+| ---------------- | -------------------------------------------------------------------------------- |
+| `PS`             | Project Silk's own book (incl. Tim's referrals — "Tim" is **not** a value, Tim = `PS`). |
+| `Eric`           | Eric's partner book.                                                             |
+| `Adina`          | Adina's partner book.                                                            |
+| `OpenLight`      | OpenLight's partner book.                                                        |
+| `Oceanwing`      | Oceanwing's partner book.                                                        |
+| `Jeremy Dai`     | Jeremy Dai's partner book.                                                       |
+| `Shallow`        | Shallow's partner book.                                                          |
+| `heavy_producer` | Contractually-excluded heavy-producer brand (Exhibit A category). Attribution-only; not a referral partner. |
+| `unclassified`   | Not yet attributed.                                                              |
+
+`ps_lead_source` uses the same value set **except** `unclassified` and `heavy_producer` (those aren't referral sources). For a PS-owned brand it records who referred it (the split key); for a partner-owned brand `ps_lead_source` equals `ps_attribution_owner`.
+
+### 3.5 `ps_conditional`
+
+| Value         | Meaning                                                                              |
+| ------------- | ------------------------------------------------------------------------------------ |
+| `finders_fee` | A partner referred the brand and was paid a one-time finder's fee — they're not earning ongoing commission, so the brand is "flippable" to PS. |
+| (blank/absent) | Not a finder's-fee arrangement (ongoing partner split, or PS-owned, or contractually excluded). |
 
 ## 4. The CIP ↔ Twenty boundary (Tim's locked answer, 2026-05-22)
 

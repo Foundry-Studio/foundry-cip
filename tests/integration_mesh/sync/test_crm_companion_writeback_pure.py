@@ -223,3 +223,86 @@ def test_payment_terms_with_days_suffix_parsed() -> None:
     crm["payment_terms"] = "45 days"
     managed = build_managed_companion(crm, None, summary=summary)
     assert managed["ps_payment_terms_days"] == 45
+
+
+# ── Attribution layer (cip_34) ──────────────────────────────────────────────
+
+def test_attribution_owner_partner_value_mapped() -> None:
+    summary = RunSummary()
+    crm = _crm_base()
+    crm["metadata"] = {"ps_attribution_owner": "Eric", "ps_lead_source": "Eric"}
+    managed = build_managed_companion(crm, None, summary=summary)
+    assert managed["ps_attribution_owner"] == "Eric"
+    assert managed["ps_lead_source"] == "Eric"
+    assert summary.enum_coerced_skipped == 0
+
+
+def test_attribution_owner_ps_and_multiword_partner() -> None:
+    summary = RunSummary()
+    crm = _crm_base()
+    crm["metadata"] = {"ps_attribution_owner": "PS"}
+    managed = build_managed_companion(crm, None, summary=summary)
+    assert managed["ps_attribution_owner"] == "PS"
+
+    summary2 = RunSummary()
+    crm2 = _crm_base()
+    crm2["metadata"] = {"ps_attribution_owner": "Jeremy Dai"}
+    managed2 = build_managed_companion(crm2, None, summary=summary2)
+    assert managed2["ps_attribution_owner"] == "Jeremy Dai"
+
+
+def test_attribution_owner_case_sensitive_miss_skips() -> None:
+    """'eric' (wrong case) is NOT a valid value — case-sensitive — so the
+    key is skipped, preserving any prior curated value."""
+    summary = RunSummary()
+    crm = _crm_base()
+    crm["metadata"] = {"ps_attribution_owner": "eric"}
+    managed = build_managed_companion(crm, None, summary=summary)
+    assert "ps_attribution_owner" not in managed
+    assert summary.enum_coerced_skipped == 1
+
+
+def test_lead_source_rejects_non_referral_values() -> None:
+    """ps_lead_source excludes 'unclassified' and 'heavy_producer'."""
+    for bad in ("unclassified", "heavy_producer"):
+        summary = RunSummary()
+        crm = _crm_base()
+        crm["metadata"] = {"ps_lead_source": bad}
+        managed = build_managed_companion(crm, None, summary=summary)
+        assert "ps_lead_source" not in managed, bad
+
+
+def test_conditional_finders_fee() -> None:
+    summary = RunSummary()
+    crm = _crm_base()
+    crm["metadata"] = {"ps_conditional": "finders_fee"}
+    managed = build_managed_companion(crm, None, summary=summary)
+    assert managed["ps_conditional"] == "finders_fee"
+
+
+def test_conditional_unknown_skipped() -> None:
+    summary = RunSummary()
+    crm = _crm_base()
+    crm["metadata"] = {"ps_conditional": "something_else"}
+    managed = build_managed_companion(crm, None, summary=summary)
+    assert "ps_conditional" not in managed
+    assert summary.enum_coerced_skipped == 1
+
+
+def test_sales_and_cs_lead_emails_lowercased() -> None:
+    summary = RunSummary()
+    crm = _crm_base()
+    crm["metadata"] = {"ps_sales_lead": "Sales@Silk.COM", "ps_cs_lead": "CS@silk.com"}
+    managed = build_managed_companion(crm, None, summary=summary)
+    assert managed["ps_sales_lead"] == "sales@silk.com"
+    assert managed["ps_cs_lead"] == "cs@silk.com"
+
+
+def test_attribution_fields_absent_when_not_provided() -> None:
+    """A CRM row without attribution metadata emits none of the 5 keys
+    (additive — nothing clobbered)."""
+    summary = RunSummary()
+    managed = build_managed_companion(_crm_base(), None, summary=summary)
+    for k in ("ps_attribution_owner", "ps_lead_source", "ps_conditional",
+              "ps_sales_lead", "ps_cs_lead"):
+        assert k not in managed

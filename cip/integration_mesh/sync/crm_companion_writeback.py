@@ -84,6 +84,16 @@ _PS_ENGAGEMENT_HEALTH_VALUES: frozenset[str] = frozenset(
 _PS_INVOICE_CADENCE_VALUES: frozenset[str] = frozenset(
     {"monthly", "quarterly", "per-shipment"}
 )
+# Attribution layer (CIP-SPEC-012 §3.4/§3.5, added 2026-05-25 / cip_34).
+_PS_ATTRIBUTION_OWNER_VALUES: frozenset[str] = frozenset(
+    {"PS", "unclassified", "Eric", "Adina", "OpenLight", "Oceanwing",
+     "Jeremy Dai", "Shallow", "heavy_producer"}
+)
+# ps_lead_source = same set minus the non-referral values.
+_PS_LEAD_SOURCE_VALUES: frozenset[str] = frozenset(
+    {"PS", "Eric", "Adina", "OpenLight", "Oceanwing", "Jeremy Dai", "Shallow"}
+)
+_PS_CONDITIONAL_VALUES: frozenset[str] = frozenset({"finders_fee"})
 
 # CRM ``companies.onboarding_status`` and ``status`` may use slightly
 # different vocabulary than CIP-SPEC-012's enum. Map known CRM values to
@@ -165,17 +175,22 @@ def _coerce_enum(
     key_name: str,
     summary: RunSummary,
     cip_client_id: str | None,
+    case_sensitive: bool = False,
 ) -> str | None:
     """Normalize + validate. Returns the validated CIP value, or None
     if the input is missing/unknown (key will be SKIPPED — i.e. NOT
     included in the managed dict, so the merge keeps prior curated value).
+
+    ``case_sensitive=True`` skips the lower-casing pass — used for the
+    attribution values whose canonical form is mixed-case (``Eric``,
+    ``Jeremy Dai``, ``PS``); only trim is applied.
     """
     if value is None:
         return None
     s = str(value).strip()
     if not s:
         return None
-    candidate = s.lower()
+    candidate = s if case_sensitive else s.lower()
     if crm_to_cip is not None:
         candidate = crm_to_cip.get(candidate, candidate)
     if candidate in allowed:
@@ -351,6 +366,41 @@ def build_managed_companion(
     lr = metadata.get("last_reviewed")
     if lr is not None:
         managed["ps_last_reviewed_date"] = _to_jsonable(lr)
+
+    # ── Attribution layer (CIP-SPEC-012 §3.4/§3.5, cip_34) ──────────────
+    # CRM carries these as metadata keys (Twenty custom fields). Mixed-case
+    # canonical values (Eric / Jeremy Dai / PS), so case_sensitive=True.
+    attr_owner = _coerce_enum(
+        metadata.get("ps_attribution_owner"), _PS_ATTRIBUTION_OWNER_VALUES,
+        key_name="ps_attribution_owner", summary=summary,
+        cip_client_id=cid_str, case_sensitive=True,
+    )
+    if attr_owner is not None:
+        managed["ps_attribution_owner"] = attr_owner
+
+    lead_source = _coerce_enum(
+        metadata.get("ps_lead_source"), _PS_LEAD_SOURCE_VALUES,
+        key_name="ps_lead_source", summary=summary,
+        cip_client_id=cid_str, case_sensitive=True,
+    )
+    if lead_source is not None:
+        managed["ps_lead_source"] = lead_source
+
+    conditional = _coerce_enum(
+        metadata.get("ps_conditional"), _PS_CONDITIONAL_VALUES,
+        key_name="ps_conditional", summary=summary,
+        cip_client_id=cid_str, case_sensitive=True,
+    )
+    if conditional is not None:
+        managed["ps_conditional"] = conditional
+
+    # ps_sales_lead / ps_cs_lead — free-form PS staff emails (CRM-owned).
+    sales_lead = metadata.get("ps_sales_lead")
+    if isinstance(sales_lead, str) and sales_lead.strip():
+        managed["ps_sales_lead"] = sales_lead.strip().lower()
+    cs_lead = metadata.get("ps_cs_lead")
+    if isinstance(cs_lead, str) and cs_lead.strip():
+        managed["ps_cs_lead"] = cs_lead.strip().lower()
 
     return managed
 

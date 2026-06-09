@@ -4,12 +4,37 @@
 
 declared_thing: foundry-cip-push-and-sync
 parent: foundry-cip
-last_modified: 2026-05-21
-last_reviewed: 2026-05-21
+last_modified: 2026-06-09
+last_reviewed: 2026-06-09
 review_cadence: 90
 generation_mode: file-authored
 
 components:
+
+  - component_id: cip-scheduled-sync
+    type: scheduled-task-host
+    title: Scheduled CIP sync (FAS-hosted)
+    summary: >
+      Three FAS SYSTEM_SCHEDULES (cip_wayward_hubspot, cip_wayward_zendesk,
+      cip_ps_lens_mirror) wire CIP ingestion + EC→PS LensMirror onto an
+      hourly cadence. Wrapper lives in Foundry-Agent-System at
+      src/work_execution/producers/scheduled_tasks/cip_sync.py;
+      CIP-domain orchestration in cip.integration_mesh.run_sync +
+      cip.integration_mesh.sync.ps_lens_mirror. Productizes
+      VISION.md L271 "scheduled-sync worker / push-and-sync pillar".
+    status: shipped
+    maturity: bronze
+    created: 2026-06-09
+    last_modified: 2026-06-09
+    owner: tim
+    domain: eng
+    container:
+      thing_id: foundry-cip-push-and-sync
+    visibility: cross-tenant
+    tags: [scheduler, ingestion, mirror, hourly, fas-hosted]
+    relations:
+      depends_on: [cip-orchestrator, fas-subsystem-scheduler]
+      external_dependencies: [hubspot-api, zendesk-api]
 
   - component_id: cip-chatwoot-push
     type: connector

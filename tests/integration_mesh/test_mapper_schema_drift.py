@@ -93,9 +93,12 @@ _LEGITIMATE_UUID_COLUMNS: frozenset[str] = frozenset({
 # (Atlas-blessed pattern). Future migrations that promote a hot
 # association add the column here.
 _INTENTIONAL_TYPED_PROMOTIONS: frozenset[tuple[str, str]] = frozenset({
-    # Empty for now — no hot promotions yet. cip_24's lens views read
-    # the JSONB directly + the cip_27 expression indexes make those
-    # joins fast enough.
+    # cip_38 (PS China Book v2 §S2): wayward_brand_id is an EXTERNAL identifier
+    # (Wayward issues brand UUIDs — the join key for Jake's reports + Exhibit A),
+    # NOT a CIP-internal cross-entity soft-FK. CIP-FW-004 governs CIP↔CIP
+    # associations; an external system's native UUID id is a different thing and
+    # is correctly typed uuid per the build spec.
+    ("cip_clients", "wayward_brand_id"),
 })
 
 

@@ -419,7 +419,6 @@ class HubSpotConnector(CIPConnectorBase):
         properties = self._discover_properties(hubspot_path)
         page_size = min(batch_size, 100)
         after: str | None = None
-        assoc_param = ",".join(_ENGAGEMENT_ASSOCIATIONS)
 
         while True:
             list_params: dict[str, str | int] = {"limit": page_size}
@@ -466,7 +465,7 @@ class HubSpotConnector(CIPConnectorBase):
 
     def _fetch_associations_batch(
         self, from_path: str, from_ids: list[str]
-    ) -> dict[str, dict[str, dict]]:
+    ) -> dict[str, dict[str, dict[str, Any]]]:
         """Fetch associations for a batch of engagement IDs.
 
         Returns ``{from_id: {target_plural: {results: [{id: ...}, ...]}}}``,
@@ -479,7 +478,7 @@ class HubSpotConnector(CIPConnectorBase):
         if one target type fails, the others still merge.
         """
         assert self._http is not None
-        result: dict[str, dict[str, dict]] = {fid: {} for fid in from_ids}
+        result: dict[str, dict[str, dict[str, Any]]] = {fid: {} for fid in from_ids}
         if not from_ids:
             return result
         body = {"inputs": [{"id": i} for i in from_ids]}
@@ -597,8 +596,14 @@ class HubSpotConnector(CIPConnectorBase):
                     "email_type": e.get("type"),
                     "state": e.get("state"),
                     "published_at": e.get("publishedAt"),
-                    "from_name": e.get("from", {}).get("fromName") if isinstance(e.get("from"), dict) else None,
-                    "from_email": e.get("from", {}).get("email") if isinstance(e.get("from"), dict) else None,
+                    "from_name": (
+                        e.get("from", {}).get("fromName")
+                        if isinstance(e.get("from"), dict) else None
+                    ),
+                    "from_email": (
+                        e.get("from", {}).get("email")
+                        if isinstance(e.get("from"), dict) else None
+                    ),
                     "stats": e.get("stats") or {},
                     "raw": e,  # vendor extras for properties JSONB
                 }
@@ -639,7 +644,10 @@ class HubSpotConnector(CIPConnectorBase):
                     "name": lst.get("name"),
                     "list_type": "dynamic" if lst.get("dynamic") else "static",
                     "processing_type": lst.get("processingType"),
-                    "member_count": lst.get("metaData", {}).get("size") if isinstance(lst.get("metaData"), dict) else None,
+                    "member_count": (
+                        lst.get("metaData", {}).get("size")
+                        if isinstance(lst.get("metaData"), dict) else None
+                    ),
                     "filters": lst.get("filters") or {},
                     "raw": lst,
                 }

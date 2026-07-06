@@ -31,7 +31,6 @@ from collections.abc import Sequence
 
 from alembic import op
 
-
 revision: str = "cip_22_data_plane_safety_net"
 down_revision: str | Sequence[str] | None = "cip_21_project_silk_grant_role"
 branch_labels = None

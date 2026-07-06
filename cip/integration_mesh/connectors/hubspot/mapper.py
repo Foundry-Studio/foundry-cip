@@ -29,6 +29,7 @@ Reference: ``cip/integration_mesh/connectors/fixture/mapper.py``.
 from __future__ import annotations
 
 from collections.abc import Iterable
+from datetime import UTC
 from decimal import Decimal
 from typing import Literal
 
@@ -263,13 +264,13 @@ def _parse_hubspot_datetime(value: object) -> object:
     """
     if value is None:
         return value
-    from datetime import datetime as _dt, timezone as _tz
+    from datetime import datetime as _dt
     if isinstance(value, _dt):
         return value
     if isinstance(value, (int, float)):
         # Unix millis
         try:
-            return _dt.fromtimestamp(int(value) / 1000.0, tz=_tz.utc)
+            return _dt.fromtimestamp(int(value) / 1000.0, tz=UTC)
         except (ValueError, OSError, OverflowError):
             return value
     if isinstance(value, str):
@@ -278,7 +279,7 @@ def _parse_hubspot_datetime(value: object) -> object:
             return None
         if s.isdigit():
             try:
-                return _dt.fromtimestamp(int(s) / 1000.0, tz=_tz.utc)
+                return _dt.fromtimestamp(int(s) / 1000.0, tz=UTC)
             except (ValueError, OSError, OverflowError):
                 return value
         if s.endswith("Z"):
@@ -321,7 +322,10 @@ class HubSpotMapper(CIPMapperBase):
                 continue
             # Engagement association markers (__cip_assoc_<singular>__)
             # → cip_engagements.<singular>_source_ids array columns.
-            if is_engagement and isinstance(k, str) and k.startswith("__cip_assoc_") and k.endswith("__"):
+            if (
+                is_engagement and isinstance(k, str)
+                and k.startswith("__cip_assoc_") and k.endswith("__")
+            ):
                 singular = k[len("__cip_assoc_"):-2]
                 col = f"{singular}_source_ids"
                 if col in domain_keys and isinstance(v, list):

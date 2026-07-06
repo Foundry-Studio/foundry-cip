@@ -160,9 +160,10 @@ class LensMirrorConnector(CIPConnectorBase):
                 d["_source_lens"] = self.source_lens
                 rows.append(d)
         # Source connection closes here (engine.begin() context). Yield
-        # buffered rows back to the orchestrator.
-        for row in rows:
-            yield row
+        # buffered rows back to the orchestrator. `yield from` (not a re-looped
+        # `row`) keeps these dict rows distinct from the RowMapping-typed `row`
+        # above so the generator's dict[str, object] element type holds.
+        yield from rows
 
     def describe_schema(self) -> list[PropertyDescriptor]:
         """Lens-mirror does NOT introduce new properties to the registry.

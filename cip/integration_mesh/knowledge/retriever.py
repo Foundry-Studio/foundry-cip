@@ -30,9 +30,9 @@ Usage:
 """
 from __future__ import annotations
 
-import time
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Sequence
+from typing import Any
 from uuid import UUID
 
 from sqlalchemy import text
@@ -41,9 +41,9 @@ from sqlalchemy.orm import Session
 
 from cip.integration_mesh.clients import (
     EmbeddingClient,
-    RerankerClient,
     PineconeClient,
     PineconeError,
+    RerankerClient,
     namespace_for,
 )
 from cip.integration_mesh.tenant_context import apply_tenant_context
@@ -57,7 +57,7 @@ class RetrievalResult:
     content: str
     similarity: float        # cosine similarity from pgsql
     score: float             # = similarity OR reranker score if reranked
-    metadata: dict
+    metadata: dict[str, Any]
     client_id: str | None
     reranked: bool
 
@@ -236,7 +236,7 @@ class KnowledgeRetriever:
             raise PineconeError("client_id required for Pinecone retrieval (Stage 1)")
         ns = namespace_for(tenant_id, client_id)
         # Build optional filter on source_kind
-        pc_filter: dict | None = None
+        pc_filter: dict[str, Any] | None = None
         if source_kinds:
             pc_filter = {"source_kind": {"$in": list(source_kinds)}}
         matches = self.pinecone.query(

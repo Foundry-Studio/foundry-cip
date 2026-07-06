@@ -159,7 +159,7 @@ def _make_domain_lens_sql(view_name: str, filter_sql: str) -> str:
 
 def upgrade() -> None:
     # ── Domain lens views (7) ─────────────────────────────────────────
-    for view_name, description, filter_sql, _slug in _DOMAIN_LENSES:
+    for view_name, _description, filter_sql, _slug in _DOMAIN_LENSES:
         op.execute(_make_domain_lens_sql(view_name, filter_sql))
 
     # ── Aggregate summary lens ────────────────────────────────────────

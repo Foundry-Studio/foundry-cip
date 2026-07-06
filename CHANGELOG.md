@@ -3,8 +3,8 @@ doc_type: changelog
 owner: tim
 status: active
 created: 2026-04-30
-last_modified: 2026-05-14
-last_reviewed: 2026-05-14
+last_modified: 2026-07-06
+last_reviewed: 2026-07-06
 review_cadence: 30
 ---
 # Changelog
@@ -17,9 +17,54 @@ All notable changes to foundry-cip are documented here. Format follows [Keep a C
 - **MINOR** (e.g., 0.1.0 → 0.2.0): Backward-compatible addition — new optional Protocol method, new migration appended to the chain, new public-API function.
 - **PATCH** (e.g., 0.1.0 → 0.1.1): Backward-compatible bug fix or doc update.
 
+**When the version bumps (Tim, 2026-07-06): on publish/release, not per appended migration.** The
+SemVer *meanings* above are unchanged — a released MINOR is one that added backward-compatible
+surface since the last release — but the number is bumped once, when a batch of work is published,
+not once per migration or PR. Between releases, accumulate changes under `[Unreleased]`; when
+publishing, roll `[Unreleased]` into the new version heading. (Master is live on this repo, so a
+"publish" is a push that a maintainer intends as a release cut.)
+
 Pre-1.0.0 (current): minor versions may include breaking changes per SemVer pre-release rules. Treat 0.x.0 as potentially-breaking; 0.x.y as bugfix-only. Pin to a specific git SHA in production until 1.0.0.
 
 ## [Unreleased]
+
+_Nothing yet. Accumulate post-0.2.0 changes here; roll into the next version heading on publish._
+
+## [0.2.0] - 2026-07-06
+
+First release cut since 0.1.0. Catches up a long unreleased window (Phase 1 close-out through the
+active Phase 2 Wayward live-sync work) and applies the 2026-07-06 QC cleanup. Backward-compatible
+additions to the migration chain, connectors, and knowledge subsystem; no Protocol-contract breaks.
+
+### Migrations added since 0.1.0 (chain now `cip_01` … `cip_37`)
+
+0.1.0 shipped `cip_01`–`cip_08`. Since then the chain grew through Phase 1 close-out
+(`cip_09_metabase_role_views`, `cip_10_history_lens_views`, `cip_11`–`cip_14` write-back/backfill,
+`cip_15`–`cip_28` Wayward + PS lens/role build-out) and the Phase 2 China/PS analytics push. The
+most recent span:
+
+- **`cip_29_deals_history_lens`** — `lens_deals_history` over `cip_deals_history` (ASK 1); GUC-scoped SCD-2 history surface for period-over-period revenue; grants to `cip_metabase_role` + `cip_metabase_project_silk`.
+- **`cip_30_rls_with_check`** — RLS hardening: adds `WITH CHECK` to `cip_tenant_scope` on every entity/history table, closing the INSERT / tenant-rewrite hole (`USING`-only policies didn't re-validate post-write rows).
+- **`cip_31_query_reader_role`** — provisions `cip_query_reader` (NOSUPERUSER NOBYPASSRLS LOGIN), the least-priv RLS-fenced reader for the Path-1 agent SQL bridge (`POST /api/v1/cip/query`); enumerate-and-grant over the entity/history/discovery/lens read surface.
+- **`cip_32_ps_deal_financials_lens`** — `lens_ps_china_deal_financials` (deal-grain financial read surface) + extends `lens_ps_china_brands_financial_summary` with per-brand rollups (Metabase ASK 5).
+- **`cip_33_identity_links`** — `cip_identity_links` table (deterministic cross-connector email match, human-override-safe) + `lens_china_tickets` (Zendesk→HubSpot ticket identity resolution, ASK 2).
+- **`cip_34_ps_china_commission_lens`** — PS China attribution layer + `lens_ps_china_commission`.
+- **`cip_35_china_ticket_join_indexes`** — expression indexes backing the `lens_china_tickets` identity join.
+- **`cip_36_lens_china_deals_history`** — `lens_china_deals_history` (China-subset SCD-2 history, ASK 6).
+- **`cip_37_grant_repair`** — repairs a missed grant: `lens_ps_china_deal_financials` (from `cip_32`) was never granted to `cip_query_reader`, so agent SQL got `permission denied`. Grants it + self-heal sweep restoring the "cip_query_reader reads every `lens_*`" invariant. Fix-forward — does not edit shipped `cip_32`. (QC audit 2026-07-06.)
+
+### Connectors & sync (Phase 2 Wayward)
+
+- **`run_ps_china_mirror` callable extraction** — the PS→lens mirror orchestration is a reusable callable (`cip.integration_mesh.sync.ps_lens_mirror`) invoked by the scheduled-sync wrapper and `scripts/orchestrate_ps_lens_mirror.py`.
+- **`cip-scheduled-sync` component (shipped 2026-06-09, PM 8d47e809)** — hourly FAS-hosted `SYSTEM_SCHEDULES` drive live incremental ingest: `cip_wayward_hubspot` (:17 UTC), `cip_wayward_zendesk` (:47 UTC), `cip_ps_lens_mirror` (:37 UTC). Wrapper: `Foundry-Agent-System/src/work_execution/producers/scheduled_tasks/cip_sync.py` → `cip.integration_mesh.run_sync()`. This is the live-update mechanism for Wayward. See `docs/SYNC-ORCHESTRATOR-GUIDE.md`.
+- **Knowledge subsystem hardening** — `cip/integration_mesh/knowledge/` indexer/retriever/pinecone paths: batch-embed with per-item failure sentinels, namespace-grouped Pinecone upserts, Postgres BM25 + Pinecone hybrid retrieval.
+
+### QC cleanup (2026-07-06)
+
+- **CI green restored** — `ruff check cip/ tests/` was failing (24 errors) and `mypy cip/` was failing (19 errors) at HEAD despite prior "clean" claims. Both now zero. Fixes include a latent `F821`/`name-defined` (`Any` never imported in `knowledge/indexer.py`), removal of dead `assoc_param` in the HubSpot connector, explicit `zip(strict=True)` at the embed/chunk alignment site (a length mismatch would silently misalign embeddings), and `dict`/`Mapping` type-argument completeness.
+- **Migrations exempted from `disallow_untyped_defs`** in mypy config (DDL scripts; parallels the ruff E501 migration exemption) — no shipped migration edited.
+- **Docs truth pass** — `CLAUDE.md` (migration count/path, repo layout, milestone language), `README.md` (Phase 2 current-state banner + `cip_09` correction), retired the misleading `_RESERVED.md` (numbering protocol moved into `CLAUDE.md`).
+- **Hygiene** — removed stray root `uv.lock` (+ `.gitignore`); coverage `fail_under` ratcheted to the measured floor (target remains 90); `cip/db.py` schema-mismatch hint updated off the retired `foundry-cip-migrate` wrapper.
 
 ### Connector bug-bash (2026-05-14) — 4 fixes + 4 regression tests
 
@@ -82,9 +127,4 @@ QC: 44/44 connector tests pass; mypy --strict clean on 35 source files; ruff cle
 ### Notes
 - Per D-146, foundry-cip is the code repo; the data layer (cip_* tables) continues to live in Foundry's shared Postgres until Phase 8 ("Scale & Extract").
 - Pre-extraction history (commits before 2026-04-20 when CIP code lived under `WORKBENCH/tim/research/client-intelligence-platform/`) is not preserved in foundry-cip. The cip-extraction-point tag in Foundry-Agent-System marks the split point.
-
-
-## Unreleased
-
-_TODO: author this section per the doc-standard._
 

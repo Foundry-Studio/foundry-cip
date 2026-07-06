@@ -141,7 +141,11 @@ branch = true
 omit = ["cip/integration_mesh/__init__.py"]
 
 [tool.coverage.report]
-fail_under = 0  # raise to 90 once M2 framework code lands
+# Ratchet floor, not the target. Measured 60% at 2026-07-06 (500 tests); floor
+# set to 55 (measured minus a small buffer, rounded down to nearest 5) so a
+# minor coverage dip doesn't red CI, while a real regression still trips it.
+# Raise the floor as coverage climbs. Target remains 90.
+fail_under = 55
 show_missing = true
 skip_covered = true
 exclude_lines = [

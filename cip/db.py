@@ -48,8 +48,12 @@ class SchemaMismatchError(RuntimeError):
     def __init__(self, db_revision: str | None, package_head: str):
         self.db_revision = db_revision
         self.package_head = package_head
+        # Alembic directly is the supported upgrade path (the foundry-cip-migrate
+        # console script was retired; see CLAUDE.md "Commands"). `python -m cip.db
+        # check` only verifies — it does not fix — so the remediation hint points
+        # at the actual upgrade command.
         self.fix_command = (
-            "DATABASE_URL=<your-url> foundry-cip-migrate upgrade head"
+            "DATABASE_URL=<your-url> alembic upgrade head"
         )
         super().__init__(
             f"foundry-cip schema mismatch:\n"

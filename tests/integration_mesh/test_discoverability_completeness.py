@@ -355,7 +355,9 @@ def test_features_yaml_parses_and_has_expected_shape() -> None:
     for f in features:
         missing = required_keys - set(f.keys())
         assert not missing, f"feature {f.get('feature_id','?')!r} missing fields: {missing}"
-        assert f["status"] in valid_status, f"feature {f['feature_id']!r} bad status {f['status']!r}"
+        assert f["status"] in valid_status, (
+            f"feature {f['feature_id']!r} bad status {f['status']!r}"
+        )
         if "references" in f:
             assert isinstance(f["references"], list)
         if "interface_surface" in f:

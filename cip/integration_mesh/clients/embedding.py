@@ -35,7 +35,6 @@ from __future__ import annotations
 import concurrent.futures
 import os
 import time
-from typing import Any
 
 import httpx
 
@@ -145,10 +144,7 @@ class EmbeddingClient:
         immediately so callers know to investigate before they've queued
         an hour of work behind the bad URL.
         """
-        if self.protocol == "openai":
-            probe_path = "/v1/models"
-        else:
-            probe_path = "/api/tags"
+        probe_path = "/v1/models" if self.protocol == "openai" else "/api/tags"
         url = f"{self.primary_url}{probe_path}"
         headers = {}
         if self.protocol == "openai" and self.primary_api_key:

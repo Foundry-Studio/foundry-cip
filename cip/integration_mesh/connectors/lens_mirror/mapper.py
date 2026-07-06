@@ -36,7 +36,7 @@ Atlas-locked design notes:
 """
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from typing import Literal
 from uuid import UUID
 
@@ -119,7 +119,7 @@ class _LensMirrorMapperBase(CIPMapperBase):
         self,
         *,
         client_id_lookup: dict[str, UUID],
-        lookup_key_extractor=None,
+        lookup_key_extractor: Callable[[dict[str, object]], str | None] | None = None,
     ) -> None:
         """
         Args:

@@ -15,13 +15,13 @@ For v1, vectors are stored in Postgres (cip_knowledge_chunks table,
 double precision[] column). pgvector / Pinecone are deferred upgrades.
 """
 from cip.integration_mesh.clients.embedding import EmbeddingClient, EmbeddingError
-from cip.integration_mesh.clients.reranker import RerankerClient, RerankerError
 from cip.integration_mesh.clients.pinecone import (
     PineconeClient,
     PineconeError,
     VectorUpsert,
     namespace_for,
 )
+from cip.integration_mesh.clients.reranker import RerankerClient, RerankerError
 
 __all__ = [
     "EmbeddingClient", "EmbeddingError",

@@ -24,8 +24,9 @@ from __future__ import annotations
 
 import hashlib
 import time
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
-from typing import Iterable, Mapping
+from typing import Any
 from uuid import UUID
 
 from sqlalchemy import text
@@ -39,9 +40,8 @@ from cip.integration_mesh.clients import (
     VectorUpsert,
     namespace_for,
 )
-from cip.integration_mesh.knowledge.chunker import chunk_text, ChunkSpec
+from cip.integration_mesh.knowledge.chunker import ChunkSpec, chunk_text
 from cip.integration_mesh.tenant_context import apply_tenant_context
-
 
 # Pinecone metadata cap (40 KB per value; we cap content at 30 KB for safety).
 _PINECONE_CONTENT_CAP = 30_000
@@ -178,9 +178,17 @@ class KnowledgeIndexer:
                 # Try parallel embed first; on batch-level failure (e.g.
                 # network blip, single-text triggering server error), fall
                 # back to per-item embed so the rest of the batch still lands.
+                # ``None`` is the per-item failure sentinel in the fallback
+                # path (skipped at the zip below), so vecs is a union list.
+                # Declared up front + .extend() on success (Iterable is
+                # covariant, so list[list[float]] extends cleanly — a bare
+                # assignment wouldn't, list being invariant).
+                vecs: list[list[float] | None] = []
                 try:
-                    vecs = self.client.embed_batch_concurrent(
-                        texts, max_workers=self.embed_concurrency
+                    vecs.extend(
+                        self.client.embed_batch_concurrent(
+                            texts, max_workers=self.embed_concurrency
+                        )
                     )
                 except Exception:  # noqa: BLE001
                     vecs = []
@@ -200,7 +208,12 @@ class KnowledgeIndexer:
                 # namespace per call.
                 pinecone_pending: dict[str, list[VectorUpsert]] = {}
 
-                for item, emb in zip(batch, vecs):
+                # strict=True: batch and vecs are equal-length by construction
+                # (texts is 1:1 with batch; embed_batch_concurrent returns one
+                # vector per text in order, and the fallback appends one entry
+                # per text). A length mismatch would silently misalign
+                # embeddings to the wrong chunk — fail loud instead.
+                for item, emb in zip(batch, vecs, strict=True):
                     if emb is None:
                         continue
                     try:
@@ -236,7 +249,10 @@ class KnowledgeIndexer:
                                 values=[float(x) for x in emb],
                                 metadata={
                                     "tenant_id": str(self.tenant_id),
-                                    "client_id": str(item["client_id"]) if item["client_id"] else "",
+                                    "client_id": (
+                                        str(item["client_id"])
+                                        if item["client_id"] else ""
+                                    ),
                                     "source_kind": source_kind,
                                     "source_id": item["src_id"],
                                     "chunk_index": int(item["chunk_index"]),
@@ -255,7 +271,8 @@ class KnowledgeIndexer:
                         result.errors += 1
                         if len(result.first_errors) < 5:
                             result.first_errors.append(
-                                f"db-write {item['src_id']}#{item['chunk_index']}: {type(e).__name__}: {str(e)[:200]}"
+                                f"db-write {item['src_id']}#{item['chunk_index']}: "
+                                f"{type(e).__name__}: {str(e)[:200]}"
                             )
                         db.rollback()
                         apply_tenant_context(db, self.tenant_id)
@@ -336,9 +353,10 @@ class KnowledgeIndexer:
         return result
 
 
-def _to_json(d: Mapping) -> str:
+def _to_json(d: Mapping[str, Any]) -> str:
     import json
-    def _default(o):
+
+    def _default(o: object) -> object:
         if hasattr(o, "isoformat"):
             return o.isoformat()
         return str(o)

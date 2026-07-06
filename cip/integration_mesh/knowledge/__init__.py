@@ -11,10 +11,10 @@ double precision[] columns. Cosine similarity via cip_cosine_similarity
 SQL function (also defined in cip_19). pgvector / Pinecone are
 deferred upgrades.
 """
-from cip.integration_mesh.knowledge.chunker import chunk_text, ChunkSpec
+from cip.integration_mesh.knowledge.chunker import ChunkSpec, chunk_text
 from cip.integration_mesh.knowledge.indexer import (
-    KnowledgeIndexer,
     IndexResult,
+    KnowledgeIndexer,
 )
 from cip.integration_mesh.knowledge.retriever import (
     KnowledgeRetriever,

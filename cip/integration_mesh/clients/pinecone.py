@@ -111,7 +111,8 @@ class PineconeClient:
             raise PineconeError(
                 f"upsert failed: {type(exc).__name__}: {str(exc)[:300]}"
             ) from exc
-        return r.json()
+        result: dict[str, Any] = r.json()
+        return result
 
     def query(
         self,
@@ -146,7 +147,8 @@ class PineconeClient:
             raise PineconeError(
                 f"query failed: {type(exc).__name__}: {str(exc)[:300]}"
             ) from exc
-        return r.json().get("matches", [])
+        matches: list[dict[str, Any]] = r.json().get("matches", [])
+        return matches
 
     def delete_namespace(self, namespace: str) -> dict[str, Any]:
         """Delete all vectors in a namespace (tenant offboarding)."""
@@ -163,7 +165,8 @@ class PineconeClient:
             raise PineconeError(
                 f"delete_namespace failed: {type(exc).__name__}: {str(exc)[:300]}"
             ) from exc
-        return r.json()
+        result: dict[str, Any] = r.json()
+        return result
 
     def delete(self, *, namespace: str, ids: list[str]) -> dict[str, Any]:
         """Delete specific vector ids in a namespace.
@@ -214,4 +217,5 @@ class PineconeClient:
             raise PineconeError(
                 f"describe_index_stats failed: {type(exc).__name__}: {str(exc)[:300]}"
             ) from exc
-        return r.json()
+        stats: dict[str, Any] = r.json()
+        return stats

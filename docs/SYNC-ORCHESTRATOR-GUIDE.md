@@ -396,6 +396,46 @@ When a fallback DOES fire, the warning log line names the offending error type a
 
 ---
 
+### 12. Scheduled deployment — how sync actually runs in production (Wayward)
+
+The orchestrator (`cip.integration_mesh.run_sync` / `run_backfill`) is a **callable**; something has
+to invoke it on a cadence. In production that is the **`cip-scheduled-sync`** component (Push & Sync
+pillar — shipped 2026-06-09, PM 8d47e809), hosted in Foundry-Agent-System (this repo is a library and
+runs no service of its own — D-146).
+
+**Live cadence.** Three hourly FAS `SYSTEM_SCHEDULES` drive the Wayward/EcomLever tenant:
+
+| Schedule | Cadence (UTC) | Invokes |
+|---|---|---|
+| `cip_wayward_hubspot` | hourly at :17 | `run_sync(HubSpotConnector, …)` — current-state incremental |
+| `cip_wayward_zendesk` | hourly at :47 | `run_sync(ZendeskConnector, …)` — current-state incremental |
+| `cip_ps_lens_mirror`  | hourly at :37 | `run_ps_china_mirror` — PS→lens mirror |
+
+The thin scheduler wrapper lives in Foundry-Agent-System at
+`src/work_execution/producers/scheduled_tasks/cip_sync.py`; it constructs the connector, resolves the
+tenant, and calls into `cip.integration_mesh`. Each run writes a `cip_sync_runs` row (§4) with
+`sync_mode='incremental'`; the cursor in `cursor_state` (§5) makes each hourly run pick up only what
+changed since the last successful run.
+
+**`run_ps_china_mirror` (`cip.integration_mesh.sync.ps_lens_mirror`).** Extracted as a standalone
+callable so both the scheduled component and `scripts/orchestrate_ps_lens_mirror.py` invoke the same
+code path. It mirrors the EcomLever-side China lens data into the Project-Silk tenant's mirrored
+`cip_deals` (the source behind the PS-owned `lens_ps_china_*` views — see
+[LENS-INVENTORY.md](LENS-INVENTORY.md)).
+
+**Backfill vs current-state.** The hourly schedules run *current-state* incremental sync. Historical
+backfill (SCD-2 `_history` rows via `propertiesWithHistory` / Zendesk audit replay) is a separate
+concern driven by `scripts/orchestrate_wayward_backfill.py`, a launch-and-leave orchestrator that
+polls `cip_sync_runs` every `ORCHESTRATOR_POLL_SECONDS` (default 900s) and triggers `run_backfill`
+once a connector's current-state sync has completed. See §11 for the backfill flush mechanics.
+
+> **Verifying live health:** query the most recent `cip_sync_runs` rows for the tenant (ordered by
+> `started_at`) — a healthy pipeline shows an hourly `incremental` row per connector with
+> `status='success'`. A stale newest-row timestamp means the FAS schedule isn't firing (check the
+> scheduler side, not the connector).
+
+---
+
 ## v5.4 plan-hygiene TODOs surfaced by this guide
 
 Captured for the next plan-hygiene pass:

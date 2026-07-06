@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "foundry-cip"
-version = "0.1.0"
+version = "0.2.0"
 description = "Foundry Client Intelligence Platform — generic connector framework + tenant-partitioned data layer."
 readme = "README.md"
 requires-python = ">=3.11"  # v4: drop upper bound per PyPA anti-pattern guidance (Senior CONC-10)
@@ -103,7 +103,7 @@ cip = [
     "migrations/env.py",
     "migrations/script.py.mako",
     "migrations/versions/*.py",
-    "migrations/versions/*.md",     # _RESERVED.md placeholder
+    "migrations/versions/*.md",     # any docs colocated with migrations (none at present)
 ]
 
 [tool.mypy]

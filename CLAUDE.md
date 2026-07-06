@@ -92,7 +92,7 @@ This is the standalone repo for **CIP**, Foundry's tenant-partitioned client int
 ## What this repo is
 
 - A Python library: `from cip.integration_mesh import CIPConnector, CIPMapper, run_sync`.
-- A schema definition: 8 Alembic migrations creating the `cip_*` tables and SCD-type-2 history tables.
+- A schema definition: the Alembic migration chain (`cip/migrations/versions/` — see that directory for the current head, do not hardcode a count here) creating the `cip_*` tables and SCD-type-2 history tables.
 - A documentation set: vision, architecture, runbooks (TENANT-ONBOARDING-CHECKLIST, CONNECTOR-AUTHORING-GUIDE, etc.).
 
 ## What this repo is not
@@ -115,7 +115,7 @@ This is the standalone repo for **CIP**, Foundry's tenant-partitioned client int
 
 - All timestamps UTC. All UUIDs v4.
 - Every database query MUST include tenant_id scoping (D-026).
-- All LLM calls go through the LLM Roster (D-018/D-031/D-077). M2 ships no LLM calls; M5 wires the Roster.
+- No direct LLM SDK calls in this package. Embedding/reranking go through the configured client abstractions (`cip/integration_mesh/clients/`); any LLM use by a consumer goes through the Foundry LLM Roster (D-018/D-031/D-077). This rule stands regardless of milestone.
 - Master branch only. No branches, no PRs (Foundry convention).
 - Tests run against `postgres:16-alpine` via `testcontainers-python`. RLS tests require real Postgres; SQLite is not supported.
 
@@ -130,36 +130,27 @@ foundry-cip/
 ├── cip/                          # The Python package (importable as `cip`)
 │   ├── __init__.py
 │   ├── py.typed                  # PEP 561 marker
-│   └── integration_mesh/         # M2 framework — Protocol + orchestrator + persister + ...
-├── docs/
-│   ├── vision/                   # VISION, ROADMAP, PHASE-1-PLAN, PHASE-1-PLAIN-SPEC, PHASE-2.5-PLAN
+│   ├── db.py                     # schema-compat check (`python -m cip.db check`)
+│   ├── migrations/               # Alembic env + the cip_* migration chain
+│   │   ├── env.py                # version_table=alembic_version_cip (D-146) + cross-pollution guard
+│   │   └── versions/             # cip_01 … (current head in this dir; _RESERVED.md retired)
+│   └── integration_mesh/         # Framework — Protocol + orchestrator + persister + connectors + clients + knowledge
+├── docs/                          # Large doc suite — see docs/_registry.yaml for the authoritative index.
+│   ├── vision/                   # VISION, ROADMAP, PHASE-* plans/specs, retrospective
 │   ├── architecture/             # ARCHITECTURE.md (Phase 0 data model, scaling, extraction story)
-│   ├── notes/                    # Initial braindump, vision-discussion log
-│   ├── research/                 # industry-landscape.md
-│   ├── archive/                  # Superseded stage docs from monorepo era
-│   ├── CONNECTOR-AUTHORING-GUIDE.md
-│   ├── LENS-AUTHORING-GUIDE.md
-│   ├── MIGRATION-RUNBOOK.md
-│   ├── RLS-SET-LOCAL-OPERATOR-GUIDE.md
-│   ├── SYNC-ORCHESTRATOR-GUIDE.md
-│   ├── FOUR-ACCESS-PATHS.md
-│   ├── FIXTURE-TENANT-HANDBOOK.md
-│   ├── CSS-CLASSIFICATION-CONTRACT.md
-│   ├── PHASE-1-TO-PHASE-2-HANDOFF.md
-│   ├── TENANT-ONBOARDING-CHECKLIST.md
-│   ├── _TEMPLATE.md
-│   ├── DEPLOYING-FOUNDRY-CIP-FOR-A-NEW-VENTURE.md
-│   ├── EXPORTING-VENTURE-CONNECTORS.md
-│   ├── STANDALONE-INTEGRATION-GUIDE.md
-│   └── TROUBLESHOOTING-AND-INCIDENT-RESPONSE.md
-├── migrations/
-│   └── versions/                 # 8 Alembic migrations: cip_01..cip_08 + _RESERVED.md
+│   ├── pillars/                  # Per-pillar component status docs
+│   ├── notes/  research/  archive/  tenants/  capabilities/  features/  catalogue/
+│   └── *.md                      # Authoring guides + operator runbooks + connector/companion contracts
+│                                 #   (CONNECTOR/LENS/HUBSPOT/ZENDESK guides, MIGRATION-RUNBOOK,
+│                                 #    SYNC-ORCHESTRATOR-GUIDE, CRM-COMPANION-SYNC, PS-COMPANION-DATA-CONTRACT,
+│                                 #    RLS-SET-LOCAL-OPERATOR-GUIDE, FOUR-ACCESS-PATHS, TROUBLESHOOTING, …)
 ├── tests/
 │   ├── __init__.py
 │   ├── conftest.py
-│   ├── integration_mesh/         # Unit tests for framework (M2 fills)
-│   ├── fixtures/                 # Conformance harness fixtures (M2 fills)
-│   └── migrations/               # 9 RLS smoke tests + their conftest.py
+│   ├── integration_mesh/         # Framework + lens-engine tests (testcontainers Postgres)
+│   ├── fixtures/                 # Conformance harness fixtures
+│   ├── connectors/               # HubSpot/Zendesk connector + mapper tests
+│   └── migrations/               # RLS smoke tests + their conftest.py
 ├── alembic.ini
 ├── pyproject.toml
 ├── LICENSE                       # Apache 2.0
@@ -210,6 +201,31 @@ console_scripts entry point. Matches `python -m pip`, `python -m uv` —
 industry pattern, zero entry-point maintenance burden.
 
 The previous `foundry-cip-migrate` console script (v4) is retired.
+
+## Migration numbering & authoring
+
+Migrations are a strict linear chain (`cip_01` … head) under `cip/migrations/versions/`.
+Before authoring a new migration:
+
+1. **Find the current head** — don't assume the next number from what you see locally:
+   ```bash
+   git log --oneline -3 -- cip/migrations/versions/
+   ```
+   Set the new migration's `down_revision` to that head's `revision` id, and use the next free number.
+2. **Coordinate with any parallel session.** Two sessions that both grab the "next" number
+   collide. This has happened: `cip_33` and `cip_34` were authored concurrently and had to be
+   reconciled. If another agent/session may be authoring migrations, agree the number first.
+3. **Never edit a shipped migration.** Migrations are immutable once merged (they may already be
+   applied to prod). Fix-forward with a new migration instead (see `cip_37_grant_repair` — it
+   repaired a missed grant from `cip_32` without touching `cip_32`).
+4. **Header + verification.** Start the file with `# foundry: kind=migration domain=client-intelligence-platform`
+   and a docstring (purpose, `Revision ID`, `Revises`). Verify per FND-S14 Tier C
+   (`alembic upgrade head` + `alembic downgrade -1` + `alembic upgrade head` against local `postgres:16-alpine`).
+
+> There is no reserved-slots file. An earlier `_RESERVED.md` pre-allocated `cip_09`/`cip_10` for
+> Phase-3 work that never used those slots (they shipped as `cip_09_metabase_role_views` and
+> `cip_10_history_lens_views`); it actively misled readers and was retired. If a genuine future
+> reservation is ever needed, recreate it accurately at that time.
 
 ## FND-S13 — Dependency Pinning (library-shape pattern)
 

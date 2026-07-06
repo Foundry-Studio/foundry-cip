@@ -3,18 +3,28 @@ doc_type: readme
 owner: tim
 status: active
 created: 2026-04-20
-last_modified: 2026-04-30
-last_reviewed: 2026-04-30
+last_modified: 2026-07-06
+last_reviewed: 2026-07-06
 review_cadence: 180
 ---
 # Client Intelligence Platform (CIP) — Product
 
-> **Location:** `products/client-intelligence-platform/` (governed — promoted from WORKBENCH 2026-04-17)
 > **PM Project:** CIP (596825db-61bc-4899-bc6c-e207489ca35d)
 > **Product #:** 6 in `FOUNDRY-TAXONOMY.md`
-> **Status:** Planning — Phase 0 COMPLETE, Phase 1 LOCKED (Plain-Jane reshape), PHASE-1-PLAN.md + PHASE-1-PLAIN-SPEC.md + PHASE-2.5-PLAN.md authored
 > **Owner:** Tim
-> **Last Updated:** 2026-04-20 (Plain-Jane reshape: Phase 1 rewired to fixture-tenant-only + 10 doc artifacts; Wayward onboarding pulled into Phase 2; Phase 2.5 trimmed to write-back only; cip_09 moved to Phase 3; week-based appetites dropped)
+
+> ### Current state (2026-07)
+> **Phase 1 closed 2026-05-16. Phase 2 (Wayward live sync) is the active phase** — HubSpot +
+> Zendesk connectors are live for the Wayward/EcomLever tenant, with SCD-2 history backfill and a
+> growing set of `lens_*` views (China attribution, deal financials, ticket identity-resolution).
+> The Alembic chain has advanced well past Phase 1's `cip_01…cip_08` (see
+> `cip/migrations/versions/` for the current head).
+>
+> **The planning sections below are the original 2026-04-20 Phase-0/Phase-1 planning snapshot,
+> retained for history.** Where they describe future phases or reserved migration slots, read them
+> as *plan-of-record at the time*, not current reality — notably, `cip_09` shipped as
+> `cip_09_metabase_role_views` (Metabase lens views), **not** the `cross_tenant_grants` table the
+> plan reserved that slot for; cross-tenant grants remain future work.
 
 ## What's Here
 
@@ -157,7 +167,7 @@ Pillar-aligned. Each phase lights up a pillar's abstraction against real data; o
 |-------|-------|------------------|
 | **Phase 2** — Wayward Onboarding (Full Round-Trip) | Zendesk + HubSpot connectors (HubSpot history capture begins at Phase 2 kickoff) · Wayward as primary tenant in EcomLever · Two lenses on Wayward data · Push to Chatwoot · Push to PS Twenty CRM · Push to client Google Drive · First-light REST API | **Ingestion & Connectors** (Zendesk + HubSpot) · **Push & Sync** (first light) · **Consumption Surfaces** (REST added) |
 | **Phase 2.5** — Foundry Self-Tenant + Write-Back | Foundry provisioned as a peer tenant · `cip_10`/`cip_11`/`cip_12` migrations · `cip_write` API on three surfaces (REST / MCP / Python) converging on one `write_service.cip_write()` · Authority model live (`agent_discovered` / `ingested` / `validated` with TSP thresholds) · Minimal CLI promotion queue · First producer: Foundry internal research agent | **Access & Operations** · **Ingestion & Connectors** (producer side) |
-| **Phase 3** — Rocky Ridge + Multi-Tenant + Grants Runtime | `cip_09` cross_tenant_grants migration + runtime together · Rocky Ridge onboards as tenant #2 · PS grant-in to Wayward goes live · Cross-tenant lens validation · Access-layer observability | **Access & Operations** (dual-tenant proof + grant runtime) |
+| **Phase 3** — Rocky Ridge + Multi-Tenant + Grants Runtime | cross_tenant_grants migration + runtime together (a **new slot at the chain head** — the original `cip_09` reservation shipped instead as `cip_09_metabase_role_views`) · Rocky Ridge onboards as tenant #2 · PS grant-in to Wayward goes live · Cross-tenant lens validation · Access-layer observability | **Access & Operations** (dual-tenant proof + grant runtime) |
 | **Phase 4** — Agent Access Surfaces (MCP + REST) | `foundry_mcp_cip_query` · `foundry_mcp_cip_search` · `foundry_mcp_cip_files` · REST parallel at `/cip/query`, `/cip/search`, `/cip/files` · Discoverability endpoints (`/cip/registries/*`) · **Chatbot explicitly excluded** | **Consumption Surfaces** (agents-as-first-class-consumer) |
 | **Phase 5** — Chatbot Capability (Internal) | **5A** `vision/CHATBOT-VISION.md` · **5B** `architecture/CHATBOT-ARCHITECTURE.md` · **5C** Implementation against Rocky Ridge first, then Wayward. Grounded, lens-aware, grant-aware, read-only, citations mandatory | **Consumption Surfaces** (conversational light) |
 | **Phase 6** — Intelligence & Alerts | Anomaly detection (ticket spikes, overdue payments, freshness crossings) · Slack alert channel · Freshness signals in Metabase · Scheduled analytical reports | **Intelligence & Alerts** (first light — 7 of 8 pillars active) |

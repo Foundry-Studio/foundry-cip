@@ -1,15 +1,120 @@
 {
   "schema_version": "1.0",
-  "generated_at": "2026-05-17T18:54:36.518349Z",
-  "source_count": 53,
-  "edge_count": 14,
+  "generated_at": "2026-05-18T01:07:55.798880Z",
+  "source_count": 59,
+  "edge_count": 73,
   "broken_refs": [],
   "back_refs": {
+    "JOS-D0005": [
+      {
+        "source_id": "JOS-SOP-006",
+        "source_type": "sop",
+        "via_field": "implements.decisions"
+      }
+    ],
+    "JOS-D0006": [
+      {
+        "source_id": "JOS-PB-001",
+        "source_type": "playbook",
+        "via_field": "operationalizes.decisions"
+      }
+    ],
+    "JOS-D0007": [
+      {
+        "source_id": "JOS-PB-002",
+        "source_type": "playbook",
+        "via_field": "operationalizes.decisions"
+      }
+    ],
+    "JOS-D0013": [
+      {
+        "source_id": "JOS-PB-003",
+        "source_type": "playbook",
+        "via_field": "operationalizes.decisions"
+      }
+    ],
+    "JOS-D0014": [
+      {
+        "source_id": "JOS-PB-004",
+        "source_type": "playbook",
+        "via_field": "operationalizes.decisions"
+      }
+    ],
+    "JOS-D0030": [
+      {
+        "source_id": "JOS-PB-005",
+        "source_type": "playbook",
+        "via_field": "operationalizes.decisions"
+      }
+    ],
+    "JOS-D0031": [
+      {
+        "source_id": "JOS-PB-006",
+        "source_type": "playbook",
+        "via_field": "operationalizes.decisions"
+      }
+    ],
     "JOS-D0040": [
       {
         "source_id": "JOS-MON-004",
         "source_type": "monitor",
         "via_field": "observes.decisions"
+      }
+    ],
+    "JOS-D0043": [
+      {
+        "source_id": "JOS-SOP-005",
+        "source_type": "sop",
+        "via_field": "implements.decisions"
+      }
+    ],
+    "JOS-D0044": [
+      {
+        "source_id": "JOS-PB-007",
+        "source_type": "playbook",
+        "via_field": "operationalizes.decisions"
+      }
+    ],
+    "JOS-D0045": [
+      {
+        "source_id": "JOS-PB-007",
+        "source_type": "playbook",
+        "via_field": "operationalizes.decisions"
+      }
+    ],
+    "JOS-D0046": [
+      {
+        "source_id": "JOS-SOP-006",
+        "source_type": "sop",
+        "via_field": "implements.decisions"
+      }
+    ],
+    "JOS-D0058": [
+      {
+        "source_id": "JOS-GATE-010",
+        "source_type": "gate",
+        "via_field": "enforces.decisions"
+      }
+    ],
+    "JOS-D0063": [
+      {
+        "source_id": "JOS-SOP-016",
+        "source_type": "sop",
+        "via_field": "implements.decisions"
+      }
+    ],
+    "JOS-D0065": [
+      {
+        "source_id": "JOS-SOP-015",
+        "source_type": "sop",
+        "via_field": "implements.decisions"
+      }
+    ],
+    "JOS-D0066": [
+      {
+        "source_id": "JOS-GATE-012",
+        "source_type": "gate",
+        "via_field": "enforces.decisions"
       }
     ],
     "JOS-FW-001": [
@@ -50,6 +155,46 @@
         "source_id": "JOS-GATE-007",
         "source_type": "gate",
         "via_field": "enforces.contracts"
+      },
+      {
+        "source_id": "JOS-SOP-012",
+        "source_type": "sop",
+        "via_field": "implements.contracts"
+      }
+    ],
+    "JOS-P08": [
+      {
+        "source_id": "JOS-SOP-007",
+        "source_type": "sop",
+        "via_field": "implements.principles"
+      }
+    ],
+    "JOS-P10": [
+      {
+        "source_id": "JOS-SOP-001",
+        "source_type": "sop",
+        "via_field": "implements.principles"
+      }
+    ],
+    "JOS-P23": [
+      {
+        "source_id": "JOS-SOP-005",
+        "source_type": "sop",
+        "via_field": "implements.principles"
+      }
+    ],
+    "JOS-P24": [
+      {
+        "source_id": "JOS-GATE-012",
+        "source_type": "gate",
+        "via_field": "enforces.principles"
+      }
+    ],
+    "JOS-PB-007": [
+      {
+        "source_id": "JOS-SOP-009",
+        "source_type": "sop",
+        "via_field": "implements.playbooks"
       }
     ],
     "JOS-R01": [
@@ -80,6 +225,13 @@
         "via_field": "enforces.rules"
       }
     ],
+    "JOS-R13": [
+      {
+        "source_id": "JOS-SOP-014",
+        "source_type": "sop",
+        "via_field": "implements.rules"
+      }
+    ],
     "JOS-R17": [
       {
         "source_id": "JOS-GATE-008",
@@ -94,11 +246,260 @@
         "via_field": "enforces.rules"
       }
     ],
+    "JOS-R19": [
+      {
+        "source_id": "JOS-GATE-011",
+        "source_type": "gate",
+        "via_field": "enforces.rules"
+      },
+      {
+        "source_id": "JOS-SOP-014",
+        "source_type": "sop",
+        "via_field": "implements.rules"
+      }
+    ],
+    "JOS-S02": [
+      {
+        "source_id": "JOS-SOP-001",
+        "source_type": "sop",
+        "via_field": "implements.standards"
+      }
+    ],
+    "JOS-S03": [
+      {
+        "source_id": "JOS-SOP-002",
+        "source_type": "sop",
+        "via_field": "implements.standards"
+      }
+    ],
+    "JOS-S05": [
+      {
+        "source_id": "JOS-SOP-003",
+        "source_type": "sop",
+        "via_field": "implements.standards"
+      },
+      {
+        "source_id": "JOS-SOP-005",
+        "source_type": "sop",
+        "via_field": "implements.standards"
+      }
+    ],
+    "JOS-S06": [
+      {
+        "source_id": "JOS-SOP-007",
+        "source_type": "sop",
+        "via_field": "implements.standards"
+      }
+    ],
+    "JOS-S19": [
+      {
+        "source_id": "JOS-GATE-012",
+        "source_type": "gate",
+        "via_field": "enforces.standards"
+      }
+    ],
+    "JOS-S20": [
+      {
+        "source_id": "JOS-GATE-012",
+        "source_type": "gate",
+        "via_field": "enforces.standards"
+      }
+    ],
+    "JOS-S21": [
+      {
+        "source_id": "JOS-GATE-012",
+        "source_type": "gate",
+        "via_field": "enforces.standards"
+      }
+    ],
+    "JOS-S22": [
+      {
+        "source_id": "JOS-GATE-012",
+        "source_type": "gate",
+        "via_field": "enforces.standards"
+      }
+    ],
+    "JOS-S23": [
+      {
+        "source_id": "JOS-GATE-012",
+        "source_type": "gate",
+        "via_field": "enforces.standards"
+      }
+    ],
+    "JOS-S24": [
+      {
+        "source_id": "JOS-GATE-012",
+        "source_type": "gate",
+        "via_field": "enforces.standards"
+      }
+    ],
+    "JOS-S25": [
+      {
+        "source_id": "JOS-GATE-012",
+        "source_type": "gate",
+        "via_field": "enforces.standards"
+      }
+    ],
+    "JOS-S26": [
+      {
+        "source_id": "JOS-GATE-012",
+        "source_type": "gate",
+        "via_field": "enforces.standards"
+      }
+    ],
+    "JOS-S27": [
+      {
+        "source_id": "JOS-GATE-012",
+        "source_type": "gate",
+        "via_field": "enforces.standards"
+      }
+    ],
+    "JOS-S28": [
+      {
+        "source_id": "JOS-GATE-012",
+        "source_type": "gate",
+        "via_field": "enforces.standards"
+      }
+    ],
+    "JOS-S29": [
+      {
+        "source_id": "JOS-GATE-012",
+        "source_type": "gate",
+        "via_field": "enforces.standards"
+      }
+    ],
+    "JOS-S30": [
+      {
+        "source_id": "JOS-GATE-012",
+        "source_type": "gate",
+        "via_field": "enforces.standards"
+      }
+    ],
+    "JOS-S31": [
+      {
+        "source_id": "JOS-GATE-011",
+        "source_type": "gate",
+        "via_field": "enforces.standards"
+      },
+      {
+        "source_id": "JOS-SOP-014",
+        "source_type": "sop",
+        "via_field": "implements.standards"
+      }
+    ],
     "JOS-SO-005": [
       {
         "source_id": "JOS-GATE-002",
         "source_type": "gate",
         "via_field": "enforces.standing_orders"
+      }
+    ],
+    "JOS-SO-009": [
+      {
+        "source_id": "JOS-SOP-001",
+        "source_type": "sop",
+        "via_field": "implements.standing_orders"
+      }
+    ],
+    "JOS-SO-010": [
+      {
+        "source_id": "JOS-SOP-004",
+        "source_type": "sop",
+        "via_field": "implements.standing_orders"
+      }
+    ],
+    "JOS-SO-011": [
+      {
+        "source_id": "JOS-PB-006",
+        "source_type": "playbook",
+        "via_field": "operationalizes.standing_orders"
+      }
+    ],
+    "JOS-SO-012": [
+      {
+        "source_id": "JOS-SOP-002",
+        "source_type": "sop",
+        "via_field": "implements.standing_orders"
+      }
+    ],
+    "JOS-SO-013": [
+      {
+        "source_id": "JOS-SOP-006",
+        "source_type": "sop",
+        "via_field": "implements.standing_orders"
+      }
+    ],
+    "JOS-SO-014": [
+      {
+        "source_id": "JOS-SOP-001",
+        "source_type": "sop",
+        "via_field": "implements.standing_orders"
+      }
+    ],
+    "JOS-SOP-014": [
+      {
+        "source_id": "JOS-SOP-017",
+        "source_type": "sop",
+        "via_field": "implements.sops"
+      }
+    ],
+    "JOS-SPEC-001": [
+      {
+        "source_id": "JOS-PB-007",
+        "source_type": "playbook",
+        "via_field": "operationalizes.specs"
+      },
+      {
+        "source_id": "JOS-SOP-008",
+        "source_type": "sop",
+        "via_field": "implements.specs"
+      },
+      {
+        "source_id": "JOS-SOP-012",
+        "source_type": "sop",
+        "via_field": "implements.specs"
+      }
+    ],
+    "JOS-SPEC-005": [
+      {
+        "source_id": "JOS-PB-007",
+        "source_type": "playbook",
+        "via_field": "operationalizes.specs"
+      }
+    ],
+    "JOS-SPEC-008": [
+      {
+        "source_id": "JOS-SOP-007",
+        "source_type": "sop",
+        "via_field": "implements.specs"
+      }
+    ],
+    "JOS-SPEC-009": [
+      {
+        "source_id": "JOS-GATE-012",
+        "source_type": "gate",
+        "via_field": "enforces.specs"
+      }
+    ],
+    "JOS-SPEC-016": [
+      {
+        "source_id": "JOS-SOP-016",
+        "source_type": "sop",
+        "via_field": "implements.specs"
+      }
+    ],
+    "JOS-SPEC-017": [
+      {
+        "source_id": "JOS-GATE-010",
+        "source_type": "gate",
+        "via_field": "enforces.specs"
+      }
+    ],
+    "JOS-SPEC-018": [
+      {
+        "source_id": "JOS-SOP-015",
+        "source_type": "sop",
+        "via_field": "implements.specs"
       }
     ]
   }

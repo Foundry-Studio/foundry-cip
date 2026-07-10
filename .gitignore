@@ -61,3 +61,6 @@ evidence/
 # uv.lock: foundry-cip is a published library, not a Railway app — requirements-dev.txt
 # is the single committed lockfile (FND-S13 library-shape). Do not commit uv.lock.
 uv.lock
+
+# Agent scratch zone (JOS-R20) - never commit
+.scratchpad/

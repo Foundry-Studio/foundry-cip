@@ -78,6 +78,75 @@ scripts/jos list rules    # list governance objects of a type
 Exit codes: `0` PASS, `1` validation failure, `2` configuration error,
 `3` infrastructure error.
 
+## Guidance Consultation (JOS-R18 v1.1 — per JOS-D0057)
+
+Governance tells you what you MUST do; Guidance tells you what you'd
+be wiser to do. Both ship projected to this venture's `.jos/`. Before
+starting any non-trivial work, consult the guidance index for what
+applies to your situation:
+
+```
+.jos/guidance/                 # federated guidance index
+  awareness-index.yaml          # ← read this for portfolio context
+                                  (you may need to check what other
+                                  ventures offer or need before
+                                  building parallel work)
+  core.yaml                     # cross-domain guidance
+  domains/<domain>.yaml         # per-domain guidance (load the
+                                  domain matching your work)
+.jos/awareness/                # cross-venture awareness (D-0065)
+  awareness-index.yaml          # who offers what + who needs what
+.jos/back-refs.json             # what enforces / observes / explains
+                                  each instrument (D-0058 typed-comp)
+.jos/principles/               # JOS-canonical principles by domain
+.jos/concepts/                 # JOS-canonical concepts by domain
+.jos/standards/                # JOS-canonical standards by domain
+.jos/portfolio/                # portfolio substrate summary (G70)
+  substrate-summary.yaml         siblings working on similar substrate
+```
+
+The asymmetry to close: you already ask "do I need a compliance
+check?" — also ask "what guidance applies to my work right now?"
+and "is another venture in the portfolio already solving this?"
+
+## Substrate Authoring (JOS-S33 — Outbox Discipline, MANDATORY)
+
+When you have a substrate candidate — a new principle, concept,
+standard, rule, capability, or decision-input — route it through
+this venture's `.jos/outbox/`, NEVER directly into the canonical
+`.jos/principles/`, `.jos/concepts/`, `.jos/standards/`, etc.
+(Those are read-only projections of JOS canon; direct edits are
+overwritten on the next sync.)
+
+```
+.jos/outbox/                   # substrate candidate channel
+  README.md                    # the 9 message kinds + when to use
+  principle-candidate/         # new JOS-P## proposals
+  concept-candidate/           # new JOS-C## proposals
+  standard-proposal/           # new JOS-S## proposals
+  rule-proposal/               # new JOS-R## (binary) proposals
+  rule-exception/              # log a justified exception
+  capability-proposal/         # declare a new capability
+  decision-input/              # surface choice options
+  agent-observation/           # general pattern worth surfacing
+  dropped-note/                # catch-all
+```
+
+Each file is `<message_id>.yaml` (UUID v4) per JOS-SPEC-019.
+
+**Authoring methods:**
+- Principle candidate → JOS-METHOD-DRAFT-A-PRINCIPLE-CANDIDATE
+- Concept / Standard candidate → JOS-METHOD-DRAFT-A-CONCEPT-OR-STANDARD-CANDIDATE
+- Other kinds → JOS-METHOD-AUTHOR-A-SUBSTRATE-ARTIFACT (Path B)
+
+JOS-side triage runs monthly via JOS-METHOD-SWEEP-OUTBOXES.
+Status flips (`open` → `triaged | accepted | rejected | duplicate`)
+are JOS-side only — never edit `status:` yourself. One concept
+per message; don't bundle.
+
+Enforced by **JOS-GATE-017** (outbox-discipline; warn-mode
+through 2026-08-19, then blocking).
+
 ## Enforcement
 
 - **JOS-R18** requires this file to exist with the managed block intact.

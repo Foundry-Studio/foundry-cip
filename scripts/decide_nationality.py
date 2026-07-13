@@ -73,49 +73,51 @@ def classify(ev: dict[str, set[str]]) -> tuple[str, str, str]:
     ]
     corroborating = [c for c in corroborating if c]
 
-    # Sources disagree about the country itself -> a human decides. Never auto-resolve.
-    if len(countries) > 1:
-        return (
-            "unknown", "escalated",
-            f"CONFLICT: sources disagree on country {sorted(countries)}. "
-            f"Not auto-resolved — a determination here would be a guess. "
-            f"Corroborating signals: {corroborating or 'none'}.",
+    # ── CHINA WINS (Tim, 2026-07-13) ────────────────────────────────────────
+    # Wayward's country field is FREQUENTLY WRONG. A "US" flag usually means a
+    # US-registered shell operated from China — the Tiny Land precedent (US-registered,
+    # Shanghai Tailan operator) is already in our own docs.
+    #
+    # So: if ANY source says China, we LOCK it. A "US" from another source does NOT
+    # override it and does NOT create a conflict. The previous version escalated these to
+    # a human queue (39 brands) — that was too timid, and it was leaving our own book on
+    # the table. "US" is never, by itself, proof a brand is not Chinese.
+    if "CN" in countries:
+        others = sorted(countries - {"CN"})
+        note = (
+            f" (Another source says {others[0]} — that does NOT override it; a "
+            f"US-registered entity operated from China is still a Chinese brand.)"
+            if others else ""
         )
-
-    if countries == {"CN"}:
         extra = f" Corroborated by: {', '.join(corroborating)}." if corroborating else ""
         return (
             "chinese_confirmed", "confirmed",
-            f"Wayward's own onboarding country = CN (slack:amazon-brand-connections)."
-            f"{extra}",
+            f"A Wayward source reports country = CN. CHINA WINS.{note}{extra}",
         )
 
-    if countries and "CN" not in countries:
-        c = sorted(countries)[0]
-        if corroborating:
-            return (
-                "unknown", "escalated",
-                f"CONFLICT: Wayward's country says {c}, but {len(corroborating)} China "
-                f"signal(s) disagree ({'; '.join(corroborating)}). A China-referred brand "
-                f"declaring {c} needs a human, not a rule.",
-            )
-        return (
-            "non_chinese", "confirmed",
-            f"Wayward's own onboarding country = {c}, and no China signal contradicts it.",
-        )
-
-    # No country field at all — fall back to corroboration only.
+    # No source says China. Keep looking — the country field alone is not enough to
+    # rule a brand OUT.
     if len(corroborating) >= 2:
         return (
-            "chinese_suspected", "pending",
-            f"No country on file. {len(corroborating)} independent China signals agree: "
-            f"{'; '.join(corroborating)}. SUSPECTED, not confirmed — needs review.",
+            "chinese_confirmed", "probable",
+            f"No source reports CN, but {len(corroborating)} independent China signals "
+            f"agree: {'; '.join(corroborating)}. Treated as Chinese; flagged PROBABLE for "
+            f"confirmation.",
         )
     if corroborating:
         return (
-            "unknown", "pending",
-            f"No country on file. Only one weak China signal ({corroborating[0]}) — "
-            f"insufficient to determine. Left unknown deliberately.",
+            "chinese_suspected", "probable",
+            f"No source reports CN, but one China signal is present "
+            f"({corroborating[0]}). SUSPECTED — needs a look, not a guess.",
+        )
+
+    if countries:
+        c = sorted(countries)[0]
+        return (
+            "non_chinese", "probable",
+            f"Country = {c} and NO China signal of any kind (no CN flag, no China-only "
+            f"email domain, no CJK name, no China Referral). Probable, not certain — an "
+            f"LLM review pass may still surface Chinese brands here.",
         )
     return ("unknown", "pending", "No nationality evidence of any kind on file.")
 

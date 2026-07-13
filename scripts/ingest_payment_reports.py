@@ -74,7 +74,12 @@ _ALIASES: dict[str, tuple[str, ...]] = {
     "rev_share_start_date": ("revsharestartdate",),
     "days_since_start": (
         "dayssincerevsharestart",
-        "monthsfromsignuptopayment1",  # June's drifted header sits in this slot
+        "daysfromsignuptopayment",
+        # The SAME slot, three names across three months. June's Google export
+        # auto-suffixed the duplicate header; January's raw file just repeats it
+        # verbatim (we suffix it ourselves in _dedupe). Values are days (e.g. 366),
+        # not months — the header name lies.
+        "monthsfromsignuptopayment1",
     ),
 }
 
@@ -126,17 +131,35 @@ def _ts(v):
         return datetime(d.year, d.month, d.day, tzinfo=UTC) if d else None
 
 
+def _dedupe(headers: list[str]) -> list[str]:
+    """Jake's raw January file emits MONTHS_FROM_SIGNUP_TO_PAYMENT TWICE — the second
+    is actually DAYS. dict(zip(headers, row)) would silently let days overwrite months.
+    Suffix repeats so each column keeps its own value (Google's own CSV export does the
+    same, producing ..._1)."""
+    seen: dict[str, int] = {}
+    out = []
+    for h in headers:
+        key = (h or "").strip()
+        if key in seen:
+            seen[key] += 1
+            out.append(f"{key}_{seen[key]}")
+        else:
+            seen[key] = 0
+            out.append(key)
+    return out
+
+
 def _rows_from(path: Path) -> tuple[list[str], list[dict]]:
     if path.suffix.lower() == ".csv":
         with path.open(encoding="utf-8-sig", newline="") as f:
             r = csv.reader(f)
-            headers = next(r)
+            headers = _dedupe(next(r))
             return headers, [dict(zip(headers, row, strict=False)) for row in r]
     import openpyxl
     wb = openpyxl.load_workbook(path, data_only=True)
     ws = wb[wb.sheetnames[0]]
     it = ws.iter_rows(values_only=True)
-    headers = [str(h) if h is not None else "" for h in next(it)]
+    headers = _dedupe([str(h) if h is not None else "" for h in next(it)])
     out = []
     for row in it:
         out.append(dict(zip(headers, row, strict=False)))
@@ -158,9 +181,12 @@ def _build_map(headers: list[str]) -> tuple[dict[str, str], list[str]]:
                 field_map[field] = norm_to_actual[a]
                 claimed.add(a)
                 break
+    # Blank trailing columns (and the _1/_2 suffixes _dedupe gives them) are not drift.
+    # A drift alarm that cries wolf gets ignored, which defeats the point of having one.
     unknown = [
         h for h in headers
-        if h and _norm_header(h) not in claimed and _norm_header(h)
+        if _norm_header(h) and _norm_header(h) not in claimed
+        and not re.fullmatch(r"_?\d+", _norm_header(h))
     ]
     return field_map, unknown
 

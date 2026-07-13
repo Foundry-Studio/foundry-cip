@@ -43,6 +43,7 @@ CHANNEL_ID = "C092AMXQD9V"          # #amazon-brand-connections
 SOURCE_SYSTEM = "slack:amazon-brand-connections"
 
 _SLACK = "https://slack.com/api/"
+_BATCH = 1000   # rows per executemany
 
 # label in the message  ->  observation field name
 _FIELDS = {
@@ -177,6 +178,7 @@ def run(engine, token: str, *, full: bool, dry_run: bool) -> dict:
         parsed = 0
         obs = 0
         matched = 0
+        pending: list[dict] = []
         while True:
             params = {"channel": CHANNEL_ID, "limit": 200}
             if cursor:
@@ -203,29 +205,43 @@ def run(engine, token: str, *, full: bool, dry_run: bool) -> dict:
                 # the Brand ID itself is also a fact worth recording
                 fields["wayward_brand_id"] = wbid
                 for field, value in fields.items():
-                    if dry_run:
-                        obs += 1
-                        continue
-                    r = conn.execute(
-                        _INSERT,
-                        {
-                            "t": PS_TENANT, "wbid": wbid, "cid": cid,
-                            "field": field, "value": value,
-                            "norm": value.strip().lower(),
-                            "src": SOURCE_SYSTEM, "ref": ref, "obs_at": observed,
-                        },
-                    )
-                    obs += r.rowcount or 0
+                    pending.append({
+                        "t": PS_TENANT, "wbid": wbid, "cid": cid,
+                        "field": field, "value": value,
+                        "norm": value.strip().lower(),
+                        "src": SOURCE_SYSTEM, "ref": ref, "obs_at": observed,
+                    })
+                # Batch: one executemany per BATCH rows, not one round-trip per
+                # row. (Row-at-a-time over a remote DB made the 18k-row backfill
+                # take 40+ minutes in a single open transaction.)
+                if not dry_run and len(pending) >= _BATCH:
+                    conn.execute(_INSERT, pending)
+                    obs += len(pending)
+                    pending.clear()
             cursor = (page.get("response_metadata") or {}).get("next_cursor", "")
             if not cursor:
                 break
-        if dry_run:
+        if pending and not dry_run:
+            conn.execute(_INSERT, pending)
+            obs += len(pending)
+            pending.clear()
+        elif dry_run:
+            obs += len(pending)
             conn.execute(text("ROLLBACK"))
+        # obs counts rows SENT; report what actually landed.
+        written = conn.execute(
+            text(
+                "SELECT count(*) FROM ps_brand_observations "
+                "WHERE tenant_id=:t AND source_system=:s"
+            ),
+            {"t": PS_TENANT, "s": SOURCE_SYSTEM},
+        ).scalar() if not dry_run else 0
 
     return {
         "messages_scanned": msgs,
         "brand_events_parsed": parsed,
-        "observations_written": obs,
+        "observations_sent": obs,
+        "observations_in_db": written,
         "brands_matched_to_cip_clients": matched,
         "mode": "full" if full else "incremental",
         "dry_run": dry_run,

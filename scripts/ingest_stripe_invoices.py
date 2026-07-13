@@ -100,7 +100,12 @@ def classify(description: str) -> dict:
     elif "wayward connect" in low:
         channel = "wayward_connect"
     else:
-        channel = "other"
+        # Most lines name the BRAND, not the channel:
+        #   "October 2025 - Roborock - Associates Usage Fee"
+        #   "November 2025 - ALL BRANDS - Attribution Usage Fee"
+        # An earlier version filed these as channel='other' with NO product, which silently
+        # dropped $2.07M of usage fees — 71% of PS's own base — out of the per-product split.
+        channel = "brand_direct"
 
     recon = "reconciliation" in low
     if "processing fee" in low:
@@ -114,13 +119,15 @@ def classify(description: str) -> dict:
     else:
         fee_type = "other"
 
-    product = (
-        "boosted" if channel == "amazon_boosted"
-        else "connect" if channel in ("wayward_connect", "amazon_connect")
-        else None
-    )
-    # PS's base is USAGE ONLY. Commission is creator pass-through — never the base.
-    is_ps_base = fee_type in ("usage", "reconciliation_usage")
+    # PRODUCT: Boost is ALWAYS explicitly labelled "Boosted" in Wayward's billing — verified
+    # across all 75,658 lines: no usage line says "boosted" without saying so plainly.
+    # Therefore: no "boosted" in the text => it is CONNECT. This is what lets the
+    # brand-named lines ("Roborock - Associates Usage Fee") be priced at all.
+    is_usage = fee_type in ("usage", "reconciliation_usage")
+    is_fee = is_usage or fee_type in ("commission", "reconciliation_commission")
+    product = ("boosted" if "boosted" in low else "connect") if is_fee else None
+
+    is_ps_base = is_usage
     return {
         "billing_month": billing_month, "channel": channel,
         "fee_type": fee_type, "product_id": product, "is_ps_base": is_ps_base,
@@ -181,13 +188,32 @@ def run(conn, key: str, *, since: date | None, dry_run: bool) -> dict:
         ).fetchall()
     }
 
-    # customer -> brandId. Cached; Stripe stores it on the CUSTOMER, not the invoice.
+    # customer -> brandId. Stripe stores brandId on the CUSTOMER, not the invoice.
+    # PREFETCH ALL customers in pages of 100. Fetching them one-by-one on demand is ~1 API
+    # call per customer (thousands of sequential round-trips); the list endpoint gets 100
+    # at a time. Same lesson as the Slack backfill: never do per-row round-trips to a
+    # remote API when a bulk endpoint exists.
     cust_brand: dict[str, str | None] = {}
+    after = None
+    while True:
+        p = {"limit": PAGE}
+        if after:
+            p["starting_after"] = after
+        page = _api("customers", key, **p)
+        rows = page.get("data", [])
+        if not rows:
+            break
+        for cu in rows:
+            b = (cu.get("metadata") or {}).get("brandId")
+            cust_brand[cu["id"]] = b if b and _UUID.match(b) else None
+        if not page.get("has_more"):
+            break
+        after = rows[-1]["id"]
 
     def brand_of(cust_id: str | None) -> str | None:
         if not cust_id:
             return None
-        if cust_id not in cust_brand:
+        if cust_id not in cust_brand:      # customer created after our prefetch
             try:
                 c = _api(f"customers/{cust_id}", key)
                 b = (c.get("metadata") or {}).get("brandId")

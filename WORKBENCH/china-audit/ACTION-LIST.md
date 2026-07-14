@@ -54,54 +54,58 @@ no shipping info helps."*
 
 ---
 
-# THE LIST
+# THE PLAN OF RECORD (Tim, 2026-07-14)
+
+**PHASE 1 — FOUNDATION (now): several small consolidation waves. NOT the 549 seller records.**
+**PHASE 2 — self-maintaining: ingestion correctness, deterministic recompute, LLM check-ins (design together).**
+**PHASE 3 — Tim's spreadsheets: coverage check, new fields if needed, blast radius.**
+**PHASE 4 — what else is missing, then Metabase / reporting.**
+
+**THE VERDICT SEMANTICS (Tim's rule, verbatim intent):**
+> "If we Are SURE they are chinese based on the indicators, any of them, they are confirmed.
+> EVERYTHING else is unknown or probable. We will then do checks on all of those… KNOWN american
+> and large brands, which we will flip to USA. or other countries, we flip to not china."
+
+- **confirmed china** ← ANY approved indicator (lists, Wayward CN, Chinese mailbox, +86, CJK, QQ
+  handle, shared owner mailbox, Amazon seller entity, USPTO owner, HK) or a human pin
+- **probable** ← channel/name evidence only (`chinese_partner`, pinyin) → **Tim's check queue**
+- **not_china** ← a human ruling or a LEGAL RECORD only. **NEVER Wayward's country flag** ("DONT
+  ASSUME THAT WAYWARD DATA IS CORRECT")
+- **unknown** ← nothing
+
+# THE WAVES — full specs live in FOUNDATION-PLAN.md. Read the spec, run the protocol, STOP after each.
 
 Legend: `[ ]` todo · `[~]` in progress · `[x]` done · `[T]` **blocked on Tim — do not touch**
 
-## A. Finish the determination — the actual job
+- [ ] **W0 — BASELINE.** Snapshot every count into `BASELINE.md`. No changes.
+- [ ] **W1 — HONEST LABELS.** The 131 tier1 rubber-stamp `manual_review` rows → `tim_batch_approval`;
+      research-agent `manual_review` rows → deleted (their legal signals carry the verdict).
+      **Verdicts must not move. Verify identical.**
+- [ ] **W2 — THE 4-STATE VERDICT.** china / probable / not_china(human-or-legal-only) / unknown.
+      Predicted: ~380 real not_china→unknown (Wayward's flag stops deciding); ~3 china→probable
+      (the A4 three land at the top of Tim's probable queue). +invariant
+      `not_china_requires_human_or_legal`.
+- [ ] **W3 — ONE HOME FOR `is_chinese`.** Spine derives from the verdict; data + writer in the same
+      wave. +invariant `spine_is_chinese_matches_verdict`.
+- [ ] **W4 — THE RATE CLOCK.** `+365+183` GENERATED columns → calendar months. +invariant.
+- [ ] **W5 — ALIAS TRUTH.** Passthrough columns + `lens_ps_china_companies` rollup for headlines.
+      Money lenses untouched (frozen).
+- [ ] **W6 — SCRIPTS FULL CLEAN.** Harvest rewritten (all 24 signal/source pairs, agency guard, NO
+      pinyin regexes); ingest stops writing `manual_review`; everything else → `scripts/attic/`.
+- [ ] **W7 — SCHEMA CONSISTENCY BATCH.** FKs, CHECKs, pinned/superseded fix, units + comment lies.
+- [ ] **W8 — SHRINK THE UNKNOWNS.** `lens_ps_china_evidence_grid` + ranked candidate report →
+      **Tim flips**, nothing auto-flips.
 
-- [~] **A1.** Research platform works `RESEARCH-LIST.csv` (430 brands) → JSON to `findings/` →
-      `python scripts/ingest_research_findings.py --apply`
-- [ ] **A2.** Same for `RESEARCH-LIST-BATCH-2.csv` (124 brands — 115 of them my crawl wrongly
-      cleared on a US LLC in a footer)
-- [ ] **A3.** Everything returning `UNRESOLVED` **with an entity attached** → one review page → Tim rules
-- [T] **A4.** Tim inspects the 3 `chinese_partner`-only brands. **RESTORED. Do not touch again.**
-      SZEE (`marketing@szeepet.com`, adina) · Lille Home (`yilin2008@gmail.com` — Yi Lin, a Chinese
-      name — kerry) · Yoleo (a known Chinese rowing-machine brand, openlight)
+## PHASE 2 (queued, do not start): D2 dead CIP tables · D3 freshness monitor rewrite ·
+## deterministic recompute chain on the FAS rails · LLM check-in design — WITH TIM.
 
-## B. Verify what we already claim — NOTHING REMOVED WITHOUT TIM
-
-- [T] **B1.** `marketing@service908.com` — 10 brands, 4 of them billing. Owner, or shared service?
-- [T] **B2.** `zhou_yintong@163.com` — 18 brands. `cip_72` calls it **"an agency"**; `cip_80` calls
-      it **"an owner"**. My own migrations contradict each other.
-- [T] **B3.** RobKushner ($328.69, billing). I flagged it myself: *"weakest call in the set, do not
-      invoice without asking Jake."* Then left it in the book at top strength.
-- [ ] **B4.** 131 of the 170 `tim:tier1_approval` `manual_review` rows just RESTATE the
-      shared-mailbox rule. A machine guess is wearing a human's authority and is therefore immune to
-      counter-evidence. **Re-label the source honestly. CHANGE NO VERDICTS.**
-
-## C. Fix the wrong numbers — NO VERDICT CHANGES
-
-- [ ] **C1.** `ps_monthly_earnings.is_chinese` contradicts `lens_ps_china_verdict` on **498 brands /
-      $48,764**. Six HARD-contradict (`is_chinese = false` while the verdict says china): COOLIFE,
-      Gelrova, MOSDART, Jarkyfine, Neathova, Heyvalue. Two authoritative-looking answers to the same
-      question, on the money table itself.
-- [ ] **C2.** 852 alias rows are double-counted in every lens except the chase list.
-      `canonical_brand_id` is consumed by exactly ONE view — and that view is PARKED.
-- [ ] **C3.** `ps_product_subscriptions.rate_6_expires` is still `GENERATED AS (productive_date +
-      365 + 183)` — the `+365+183` bug. Wrong on **2,371 of 2,829** deals. The script was fixed; the
-      schema never was. 0 deals mis-rated today; each fires on the day it crosses month 19.
-- [x] ~~**C4.** Metabase views~~ — **Tim: "dont worry about metabase now, we will fix that later."**
-
-## D. Stop the rot
-
-- [ ] **D1.** The harvest can regenerate only **8 of its 24** `(signal, source)` pairs. A brand
-      syncing in tomorrow gets a third of the evidence it deserves. Missing: HubSpot company/contact
-      country (836 + 758 brands), Stripe `.cn` domains (759), `+86` phones, everything from today.
-- [ ] **D2.** Three CIP tables dead 50–58 days. `cip_identity_links` is a **manual script**, not an
-      hourly feed — my memory said otherwise and my memory was wrong.
-- [ ] **D3.** `lens_ps_source_freshness` monitors **connector runs**, not **table contents**. It
-      would stay green if the Stripe customer feed died.
+## Parked until Phase 1 done
+- **A-track.** The 549 Amazon seller records (list + brief are ready; ingest exists and is tested).
+- [T] **A4.** SZEE · Lille Home · Yoleo — Tim checks personally (now = the probable queue).
+- [T] **B1.** `marketing@service908.com` — owner or shared service?
+- [T] **B2.** `zhou_yintong@163.com` — agency or owner?
+- [T] **B3.** RobKushner — ask Jake.
+- [x] ~~Metabase~~ — Tim: later.
 
 ---
 

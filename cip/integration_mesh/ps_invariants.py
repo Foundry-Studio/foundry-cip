@@ -212,20 +212,23 @@ INVARIANTS: tuple[Invariant, ...] = (
                                            'chinese_email_domain','cjk_in_name','phone_+86',
                                            'qq_handle','cn_mobile_handle','cn_company_name_pinyin',
                                            'shared_owner_mailbox','amazon_seller_entity',
-                                           'uspto_trademark_owner','tim_batch_approval'))
+                                           'uspto_trademark_owner','tim_batch_approval',
+                                           'chinese_partner'))
                  AND NOT EXISTS (
                        SELECT 1 FROM ps_nationality_signals s
                         WHERE s.wayward_brand_id = v.wayward_brand_id
                           AND s.signal = 'manual_review' AND s.points_to = 'china')""",
-        why="Tim's rule (cip_88): a brand is CONFIRMED Chinese on ANY approved indicator, or on "
-            "a named human. Nothing else. This catches a channel or a NAME being promoted to a "
-            "verdict — `chinese_partner` is BruMate's exact structure (American, referred by a "
-            "Chinese partner) and a Chinese NAME is not a Chinese COMPANY (Bob and Brad is "
-            "Chinese; Lifepro is Los Angeles). Those belong in `probable`, which is a queue for a "
-            "human, not an answer. The old view had no strength floor at all: an ingest wrote "
-            "UNRESOLVED "
-            "research findings as weak china signals and 'Aiming Fluid Golf' — a Chico, California "
-            "business — came out Chinese.",
+        why="Tim's rule: a brand is CONFIRMED Chinese on ANY approved indicator, or on a named "
+            "human. Nothing else. This catches a NAME being promoted to a verdict — a Chinese NAME "
+            "is not a Chinese COMPANY (Bob and Brad is Chinese; Lifepro is Los Angeles). Names "
+            "belong in `probable`, which is a queue for a human, not an answer. The old view had no "
+            "strength floor at all: an ingest wrote UNRESOLVED research findings as weak china "
+            "signals and 'Aiming Fluid Golf' — a Chico, California business — came out Chinese. "
+            "NOTE `chinese_partner` IS on this list (cip_89). Tim: 'if they were refered by "
+            "tsoe chinese partners, yes they are chinese.' Our China partners source Chinese "
+            "brands — "
+            "that is the job. BruMate is the exception that proves the rule, and she is protected "
+            "structurally: a human's not_china is read FIRST and no rule change can overturn it.",
     ),
     Invariant(
         key="not_china_requires_a_human_or_a_legal_record",

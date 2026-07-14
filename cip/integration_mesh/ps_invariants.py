@@ -176,8 +176,9 @@ INVARIANTS: tuple[Invariant, ...] = (
                                 AND (e.usage_collected > 0 OR e.usage_billed > 0))""",
         why="cip_83 graded a brand JUNK if its Stripe mailbox was @wayward.com — and GCI Outdoors, "
             "a real American company with $23,345.23 collected, was junked because a Wayward "
-            "EMPLOYEE set its Stripe account up on its behalf. EMAIL IS NEVER A KEY. A paid invoice "
-            "is the strongest evidence of existence there is; if a JUNK row has money, the grader "
+            "EMPLOYEE set its Stripe account up on its behalf. EMAIL IS NEVER A KEY. A paid "
+            "invoice is the strongest evidence of existence there is; if a JUNK row has money, "
+            "the grader "
             "is wrong, not the money. Catches it in both directions.",
     ),
     Invariant(
@@ -194,8 +195,8 @@ INVARIANTS: tuple[Invariant, ...] = (
             "maintained since. By 2026-07-14 seen_in_exclusion_list was FALSE on 26 brands that "
             "were on the frozen list — $41,743.82 collected, including CrownShade (bucket "
             "'Shallow', where another partner is still being paid). "
-            "`WHERE NOT seen_in_exclusion_list` is the natural way to ask 'who does nobody else have "
-            "a claim on?' and it returned brands somebody else earns on. "
+            "`WHERE NOT seen_in_exclusion_list` is the natural way to ask 'who does nobody "
+            "else have a claim on?' and it returned brands somebody else earns on. "
             "seen_in_eric_sheets is worse: harvest_nationality_signals.py reads it to emit a "
             "DEFINITIONAL china signal, so drift there corrupts the nationality verdict itself.",
     ),
@@ -203,9 +204,10 @@ INVARIANTS: tuple[Invariant, ...] = (
         key="china_verdict_on_a_name_guess",
         sql="""SELECT count(*) FROM lens_ps_china_verdict
                WHERE verdict = 'china' AND verdict_strength IN ('weak', 'moderate')""",
-        why="The verdict computes a strength ladder (definitional > confirmed > strong > moderate > "
-            "weak) and then IGNORES it: `WHEN china_signals > 0 THEN 'china'` promotes ANY signal at "
-            "ANY strength to a hard verdict. A pinyin guess off an email handle would become "
+        why="The verdict computes a strength ladder (definitional > confirmed > strong > "
+            "moderate > weak) and then IGNORES it: `WHEN china_signals > 0 THEN 'china'` promotes "
+            "ANY signal at ANY strength to a hard verdict. A pinyin guess off an email handle "
+            "would become "
             "indistinguishable from a frozen-exclusion-list entry. It already happened: an ingest "
             "wrote UNRESOLVED research findings as weak china signals and 'Aiming Fluid Golf' — a "
             "Chico, California business — came out Chinese. A NAME IS NOT A NATIONALITY: Bob and "
@@ -219,9 +221,10 @@ INVARIANTS: tuple[Invariant, ...] = (
                  GROUP BY wayward_brand_id
                  HAVING count(*) FILTER (WHERE points_to = 'china') > 0
                     AND count(*) FILTER (WHERE points_to = 'not_china') > 0) d""",
-        why="lens_ps_china_verdict checks `manual_not_china` FIRST, with no recency and no authority "
-            "ordering — and the unique key is (tenant, brand, signal, source_system), so an old "
-            "machine review and Tim's ruling can COEXIST on one brand. If both ever land, the older "
+        why="lens_ps_china_verdict checks `manual_not_china` FIRST, with no recency and no "
+            "authority ordering — and the unique key is (tenant, brand, signal, source_system), "
+            "so an old machine review and Tim's ruling can COEXIST on one brand. If both ever "
+            "land, the older "
             "one silently wins and a brand Tim personally ruled Chinese renders as not_china, "
             "dropping out of the book. Zero today is luck; nothing prevents it.",
     ),

@@ -47,9 +47,14 @@ DECIDER = "rule:partner_economics_v1"
 
 UPDATE = text("""
     WITH clock AS (
-        SELECT client_id, product_id, productive_date
+        -- Keyed on wayward_brand_id, NOT client_id. Joining the clock on the cip_clients
+        -- surrogate (65% coverage) left 1,722 credit rows with a rate but NO 12-month window,
+        -- so partners silently earned nothing on them. Same identity bug, one more place.
+        SELECT wayward_brand_id, product_id, productive_date
         FROM ps_product_subscriptions
-        WHERE tenant_id = :t AND productive_date IS NOT NULL
+        WHERE tenant_id = :t
+          AND productive_date IS NOT NULL
+          AND wayward_brand_id IS NOT NULL
     ),
     terms AS (
         -- Partner-specific rate if one exists, else the '_default' row (5%).
@@ -96,7 +101,7 @@ UPDATE = text("""
             END
     FROM clock c
     WHERE pc.tenant_id = :t
-      AND c.client_id = pc.client_id
+      AND c.wayward_brand_id = pc.wayward_brand_id
       AND c.product_id = pc.product_id
 """)
 

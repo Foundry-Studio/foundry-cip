@@ -255,6 +255,25 @@ INVARIANTS: tuple[Invariant, ...] = (
             "Delaware and Wyoming shells by the thousand.",
     ),
     Invariant(
+        key="spine_is_chinese_matches_verdict",
+        sql="""SELECT count(*) FROM ps_monthly_earnings m
+               LEFT JOIN lens_ps_china_verdict v USING (wayward_brand_id)
+               WHERE m.is_chinese IS DISTINCT FROM CASE v.verdict
+                                                       WHEN 'china'     THEN true
+                                                       WHEN 'not_china' THEN false
+                                                       ELSE NULL
+                                                   END""",
+        why="is_chinese has ONE home — lens_ps_china_verdict — and the money spine must agree with "
+            "it. It used to be written from lens_ps_eligibility's LEGACY nationality signal, and "
+            "the two disagreed on 498 brands / $48,652.77 of gross owed. SIX of them said FALSE "
+            "while the verdict said CHINA (COOLIFE, Heyvalue, Gelrova, Neathova, Jarkyfine, "
+            "MOSDART) — each carrying a +86 phone or sitting on the frozen exclusion list. Two "
+            "authoritative-looking answers to the same question, on the money table itself. "
+            "NULL is not FALSE: probable and unknown propagate as NULL, because 'we have not "
+            "decided' is not 'not Chinese' (cip_72), and treating it as false silently drops "
+            "brands out of the book.",
+    ),
+    Invariant(
         key="humans_live_and_opposed",
         sql="""SELECT count(*) FROM (
                  SELECT wayward_brand_id FROM ps_nationality_signals

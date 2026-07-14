@@ -85,7 +85,7 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done · `[T]` **blocked on Tim 
       Predicted: ~380 real not_china→unknown (Wayward's flag stops deciding); ~3 china→probable
       (the A4 three land at the top of Tim's probable queue). +invariant
       `not_china_requires_human_or_legal`.
-- [ ] **W3 — ONE HOME FOR `is_chinese`.** Spine derives from the verdict; data + writer in the same
+- [x] **W3 — ONE HOME FOR `is_chinese`.** ✅ 2026-07-14 · cip_90 · 5,248 → 0 disagreements, $0 moved · Spine derives from the verdict; data + writer in the same
       wave. +invariant `spine_is_chinese_matches_verdict`.
 - [ ] **W4 — THE RATE CLOCK.** `+365+183` GENERATED columns → calendar months. +invariant.
 - [ ] **W5 — ALIAS TRUTH.** Passthrough columns + `lens_ps_china_companies` rollup for headlines.

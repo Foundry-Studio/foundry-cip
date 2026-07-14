@@ -208,4 +208,49 @@ unknown-with-next-step, and Tim has seen the shape of all four piles.
 - D2 (dead CIP tables), D3 (freshness monitor rewrite) — Phase 2.
 - MCP write tools (`cip_china_record_decision` / `cip_china_ingest_sellers`) — decide in Phase 2
   when we design self-maintaining; the guard + single-script path covers Phase 1.
+  **⚠️ IF WE BUILD THEM — see the governance gate below. NOT NEGOTIABLE.**
 - Metabase — Tim: later.
+
+---
+
+# ⚠️ GOVERNANCE GATE — IF WE EVER BUILD MCP TOOLS
+
+**TIM, 2026-07-14: if we DO create the tools, we MUST do it per the tool-creation contract, and all
+governance and guidance in FAS and JOS — in the MCP server repo AND the FAS repo.**
+
+**This is a hard gate, not advice. No tool gets written until every line below is satisfied.**
+
+## Before writing a single line of tool code
+
+1. **READ THE TOOL-CREATION CONTRACT FIRST.** Find it and follow it literally. Do not infer it, do
+   not reconstruct it from other tools, do not "write it the way the last one looks."
+2. **READ THE GOVERNANCE + GUIDANCE IN BOTH REPOS:**
+   - the **MCP server repo** — tool registration, the router, schema conventions, the contract
+   - the **FAS repo** (`c:\Users\Tim Jordan\code\Foundry-Agent-System`) — architecture docs,
+     `docs/`, `AGENTS.md`, `MANIFEST.md`, `SYSTEM-CATALOG.md`, the decision register (D-xxx)
+   - **JOS** — the standards/rules layer. Every applicable JOS rule applies to a new tool. Check it,
+     don't assume.
+3. **CHECK THE DECISION REGISTER.** There are binding decisions on this (D-129 actor attribution,
+   D-026 tenant scoping, D-017/018/031 no hardcoded names, and others). A tool that violates a
+   D-number is not shippable, however well it works.
+4. **REGISTER IT PROPERLY.** System catalog, manifest, registries — whatever the contract requires.
+   A tool that works but isn't registered is the "untracked module breaks the deploy" failure class
+   we have already been bitten by.
+
+## The rules that already exist and already bind us
+
+- **D-026** — every DB query is tenant-scoped. No exceptions for a China tool.
+- **D-129** — actor attribution is forced from cryptographic identity under OAuth. This is a
+  *feature* here: it is exactly what makes "131 machine guesses wearing Tim's authority"
+  structurally impossible. Do not fight it, lean on it.
+- **D-017 / D-018 / D-031** — nothing hardcoded that belongs in config.
+- **FAS branch policy** — master only, no branches, no PRs. `git branch --show-current` before
+  staging, every time.
+- **Read specs before building. Do not invent.** (`CLAUDE.md`, and it is the rule I broke that
+  started this whole mess.)
+
+## The bar
+
+**If we cannot satisfy the contract and the governance, we do not build the tool.** The guard +
+single-script path works today. A tool that skips governance is not a shortcut — it is the next
+two-day cleanup, and we are not doing that again.

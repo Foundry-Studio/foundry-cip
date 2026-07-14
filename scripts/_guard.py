@@ -44,7 +44,7 @@ from typing import Any
 PS_TENANT = "078a37d6-6ae2-4e22-869e-cc08f6cb2787"
 
 
-class ChinaVerdictLoss(RuntimeError):
+class ChinaVerdictLossError(RuntimeError):
     """A write reduced the China book. That is Tim's call, not mine."""
 
 
@@ -97,7 +97,7 @@ def china_guard(conn: Any, action: str, *, tim_approved: bool = False,
 
     conn.rollback()
     detail = "\n".join(f"    {k}: {b} -> {a}   ({a - b})" for k, (b, a) in losses.items())
-    raise ChinaVerdictLoss(
+    raise ChinaVerdictLossError(
         f"\n\n*** BLOCKED, AND ROLLED BACK. ***\n\n"
         f"'{action}' would have REMOVED China evidence:\n\n{detail}\n\n"
         f"Adding evidence is my call. REMOVING it is TIM'S.\n"

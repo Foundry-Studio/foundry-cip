@@ -81,7 +81,7 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done · `[T]` **blocked on Tim 
 - [x] **W1 — HONEST LABELS.** ✅ 2026-07-14 · cip_87 · zero verdict movement· The 131 tier1 rubber-stamp `manual_review` rows → `tim_batch_approval`;
       research-agent `manual_review` rows → deleted (their legal signals carry the verdict).
       **Verdicts must not move. Verify identical.**
-- [ ] **W2 — THE 4-STATE VERDICT.** china / probable / not_china(human-or-legal-only) / unknown.
+- [x] **W2 — THE 4-STATE VERDICT.** ✅ 2026-07-14 · cip_88 · landed exactly on prediction · china / probable / not_china(human-or-legal-only) / unknown.
       Predicted: ~380 real not_china→unknown (Wayward's flag stops deciding); ~3 china→probable
       (the A4 three land at the top of Tim's probable queue). +invariant
       `not_china_requires_human_or_legal`.

@@ -201,17 +201,55 @@ INVARIANTS: tuple[Invariant, ...] = (
             "DEFINITIONAL china signal, so drift there corrupts the nationality verdict itself.",
     ),
     Invariant(
-        key="china_verdict_on_a_name_guess",
-        sql="""SELECT count(*) FROM lens_ps_china_verdict
-               WHERE verdict = 'china' AND verdict_strength IN ('weak', 'moderate')""",
-        why="The verdict computes a strength ladder (definitional > confirmed > strong > "
-            "moderate > weak) and then IGNORES it: `WHEN china_signals > 0 THEN 'china'` promotes "
-            "ANY signal at ANY strength to a hard verdict. A pinyin guess off an email handle "
-            "would become "
-            "indistinguishable from a frozen-exclusion-list entry. It already happened: an ingest "
-            "wrote UNRESOLVED research findings as weak china signals and 'Aiming Fluid Golf' — a "
-            "Chico, California business — came out Chinese. A NAME IS NOT A NATIONALITY: Bob and "
-            "Brad is Chinese, Lifepro is Los Angeles.",
+        key="china_needs_a_confirming_indicator_or_a_human",
+        sql="""SELECT count(*) FROM lens_ps_china_verdict v
+               WHERE v.verdict = 'china'
+                 AND NOT EXISTS (
+                       SELECT 1 FROM ps_nationality_signals s
+                        WHERE s.wayward_brand_id = v.wayward_brand_id
+                          AND s.points_to = 'china'
+                          AND s.signal IN ('on_exclusion_list','eric_sheet','wayward_country_cn',
+                                           'chinese_email_domain','cjk_in_name','phone_+86',
+                                           'qq_handle','cn_mobile_handle','cn_company_name_pinyin',
+                                           'shared_owner_mailbox','amazon_seller_entity',
+                                           'uspto_trademark_owner','tim_batch_approval'))
+                 AND NOT EXISTS (
+                       SELECT 1 FROM ps_nationality_signals s
+                        WHERE s.wayward_brand_id = v.wayward_brand_id
+                          AND s.signal = 'manual_review' AND s.points_to = 'china')""",
+        why="Tim's rule (cip_88): a brand is CONFIRMED Chinese on ANY approved indicator, or on "
+            "a named human. Nothing else. This catches a channel or a NAME being promoted to a "
+            "verdict — `chinese_partner` is BruMate's exact structure (American, referred by a "
+            "Chinese partner) and a Chinese NAME is not a Chinese COMPANY (Bob and Brad is "
+            "Chinese; Lifepro is Los Angeles). Those belong in `probable`, which is a queue for a "
+            "human, not an answer. The old view had no strength floor at all: an ingest wrote "
+            "UNRESOLVED "
+            "research findings as weak china signals and 'Aiming Fluid Golf' — a Chico, California "
+            "business — came out Chinese.",
+    ),
+    Invariant(
+        key="not_china_requires_a_human_or_a_legal_record",
+        sql="""SELECT count(*) FROM lens_ps_china_verdict v
+               WHERE v.verdict = 'not_china'
+                 AND NOT EXISTS (
+                       SELECT 1 FROM ps_nationality_signals s
+                        WHERE s.wayward_brand_id = v.wayward_brand_id
+                          AND s.signal = 'manual_review' AND s.points_to = 'not_china')
+                 AND NOT EXISTS (
+                       SELECT 1 FROM ps_nationality_signals s
+                        WHERE s.wayward_brand_id = v.wayward_brand_id
+                          AND s.points_to = 'not_china'
+                          AND s.signal IN ('amazon_seller_entity', 'uspto_trademark_owner'))""",
+        why="TIM: 'DONT ASSUME THAT WAYAWARD DATA IS CORRECT.' Only a named HUMAN or a LEGAL RECORD "
+            "may clear a brand. Wayward's country flag used to do it — and that flag is the least "
+            "reliable field we hold, because a Chinese seller behind a US-registered shell "
+            "reports "
+            "as US. That IS the pattern this audit exists to find: 104 CONFIRMED-CHINESE brands "
+            "carry it. The legal records are amazon_seller_entity (Amazon is compelled by the "
+            "INFORM Consumers Act to publish a seller's business name and address) and "
+            "uspto_trademark_owner (a Chinese company must file a US trademark under its real "
+            "entity). A US LLC in a website footer is NOT a clearance — Chinese sellers register "
+            "Delaware and Wyoming shells by the thousand.",
     ),
     Invariant(
         key="humans_live_and_opposed",

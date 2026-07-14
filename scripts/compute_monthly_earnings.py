@@ -202,7 +202,22 @@ EARNINGS = text("""
 
         el.eligibility,
         el.excluded_bucket,
-        el.is_chinese
+
+        -- *** is_chinese HAS EXACTLY ONE HOME, AND IT IS lens_ps_china_verdict. ***
+        -- It used to come from lens_ps_eligibility, which carries a LEGACY nationality signal.
+        -- The two disagreed on 498 brands and $48,652.77 of gross owed. Six of them said FALSE
+        -- while the verdict said china — every one carrying a +86 phone or sitting on the frozen
+        -- exclusion list (COOLIFE, Heyvalue, Gelrova, Neathova, Jarkyfine, MOSDART). Two
+        -- authoritative-looking answers to "is this brand Chinese", on the money table itself.
+        --
+        -- NULL where we do not know. `probable` and `unknown` are NOT false — that is the cip_72
+        -- lesson, and treating "we have not decided" as "not Chinese" silently drops brands out of
+        -- the book. NULL propagates; it does not lie.
+        CASE cv.verdict
+            WHEN 'china'     THEN true
+            WHEN 'not_china' THEN false
+            ELSE NULL                    -- 'probable' / 'unknown' / no row
+        END
     FROM usage u
     LEFT JOIN clock  c  ON c.wayward_brand_id = u.wayward_brand_id
                        AND c.product_id = u.product_id
@@ -211,11 +226,18 @@ EARNINGS = text("""
     -- lens_ps_eligibility is one row per brand, but guard the join anyway: a fan-out here
     -- would duplicate money rows, and a duplicated brand double-counts revenue.
     LEFT JOIN LATERAL (
-        SELECT brand_name, eligibility, excluded_bucket, is_chinese
+        SELECT brand_name, eligibility, excluded_bucket
         FROM lens_ps_eligibility x
         WHERE x.wayward_brand_id = u.wayward_brand_id
         LIMIT 1
     ) el ON true
+    -- the ONLY source of nationality. Same fan-out guard, same reason.
+    LEFT JOIN LATERAL (
+        SELECT verdict
+        FROM lens_ps_china_verdict y
+        WHERE y.wayward_brand_id = u.wayward_brand_id
+        LIMIT 1
+    ) cv ON true
     -- Jake's reports carry no product split, so the payment must land on exactly ONE row per
     -- brand-month or it double-counts. It used to require a CONNECT row, and silently DROPPED
     -- $4,012.06 of cash we have already received when the month existed only as Boost, or not at

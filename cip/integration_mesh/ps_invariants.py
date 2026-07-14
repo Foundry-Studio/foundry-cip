@@ -240,8 +240,8 @@ INVARIANTS: tuple[Invariant, ...] = (
                         WHERE s.wayward_brand_id = v.wayward_brand_id
                           AND s.points_to = 'not_china'
                           AND s.signal IN ('amazon_seller_entity', 'uspto_trademark_owner'))""",
-        why="TIM: 'DONT ASSUME THAT WAYAWARD DATA IS CORRECT.' Only a named HUMAN or a LEGAL RECORD "
-            "may clear a brand. Wayward's country flag used to do it — and that flag is the least "
+        why="TIM: 'DONT ASSUME THAT WAYAWARD DATA IS CORRECT.' Only a named HUMAN or a LEGAL "
+            "RECORD may clear a brand. Wayward's country flag used to do it — and it is the least "
             "reliable field we hold, because a Chinese seller behind a US-registered shell "
             "reports "
             "as US. That IS the pattern this audit exists to find: 104 CONFIRMED-CHINESE brands "

@@ -97,8 +97,17 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done · `[T]` **blocked on Tim 
       - [→] Harvest REWRITE (24 pairs, agency guard, drop pinyin) — **MOVED TO PHASE 2.** Manual/
             unscheduled, so it changes nothing today; belongs with the self-maintaining design.
 - [x] **W7 — SCHEMA CONSISTENCY BATCH.** ✅ 2026-07-14 · cip_93 · 11 FKs + 2 CHECKs + comment truth · FKs, CHECKs, pinned/superseded fix, units + comment lies.
-- [ ] **W8 — SHRINK THE UNKNOWNS.** `lens_ps_china_evidence_grid` + ranked candidate report →
-      **Tim flips**, nothing auto-flips.
+- [x] **W8 — SHRINK THE UNKNOWNS.** ✅ 2026-07-14 · cip_94 · `lens_ps_china_evidence_grid` built;
+      every one of the 932 unknowns now carries a `next_step` (REVIEW_USA 385 · RESEARCH_SELLER 446
+      · ENRICH_OR_JAKE 101). Nothing auto-flipped. Tim rules the REVIEW_USA pile at his pace.
+
+---
+
+## ✅ PHASE 1 (FOUNDATION) COMPLETE — 2026-07-14. W0–W8, migrations cip_87→cip_94.
+The book (REAL companies): **china 1,591 · not_china 39 · probable 0 · unknown 932 (all with a
+next-step)**. Money untouched throughout ($2,367,010.10 billed). Invariants 17 → 22.
+**NEXT: Phase 2 (self-maintaining) — design WITH Tim.** Also carried: W6 attic (when repo quiescent),
+the 549 seller records, B1/B2/B3, and the REVIEW_USA flips.
 
 ## PHASE 2 (queued, do not start): D2 dead CIP tables · D3 freshness monitor rewrite ·
 ## deterministic recompute chain on the FAS rails · LLM check-in design — WITH TIM.

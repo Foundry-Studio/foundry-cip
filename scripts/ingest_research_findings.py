@@ -44,6 +44,37 @@ DEFAULT_DIR = (
 # the agent's confidence vocabulary drifts (High / definitive / strong / weak). Normalise it.
 _STRONG = {"definitive", "strong", "high", "confirmed"}
 
+# ── EVIDENCE TYPES TIM HAS BANNED ───────────────────────────────────────────────
+#
+# The research agent flipped two brands to CHINA on Panjiva bill-of-lading records — "82 shipments,
+# origin China" — and I ingested it without asking. TIM: "import data wont help. EVERYONE imports
+# from china. no shipping info helps." Both had to be reversed.
+#
+# That is where the GOODS ARE MADE, not who OWNS THE COMPANY. It describes the entire consumer-goods
+# industry.
+#
+# Any finding whose evidence mentions these is QUARANTINED. It is never written, at any confidence.
+_BANNED_EVIDENCE = (
+    "shipment", "shipments", "import record", "import records", "importyeti", "panjiva",
+    "bill of lading", "customs", "origin country", "country of origin", "shipping origin",
+    "manufacturer", "made in china", "factory", "supplier",
+)
+
+# ── EVIDENCE TYPES TIM HAS APPROVED ─────────────────────────────────────────────
+#
+# A finding must rest on at least one of these to be acted on. Anything else is a NOVEL evidence
+# type, which is a QUESTION for Tim — not a finding. This is the gate the import-records failure
+# walked straight through because it did not exist.
+_APPROVED_EVIDENCE = (
+    "trademark", "uspto", "justia", "brand registry",          # who OWNS the mark
+    "seller information", "business name", "business address",  # the Amazon seller of record
+    "amazon seller", "sold by", "inform consumers",
+    "terms of service", "operated by", "registered agent",      # the named operator
+    "co., ltd", "co.,ltd", "youxiangongsi", "有限公司",           # a Chinese legal entity
+    "corporate registry", "opencorporates", "companies house",
+    "+86", "icp", "hong kong", "kowloon",                       # first-party China markers
+)
+
 
 def _load(folder: str) -> list[dict]:
     out: list[dict] = []
@@ -78,6 +109,7 @@ def main() -> int:
 
     url = os.environ["DATABASE_URL"].replace("postgresql+psycopg://", "postgresql://")
     decided, evidence_only, unmatched, skipped_junk, needs_tim = [], [], [], [], []
+    quarantined_banned, quarantined_novel = [], []
 
     with psycopg.connect(url) as conn:
         conn.execute("SELECT set_config('app.current_tenant', %s, false)", (PS_TENANT,))
@@ -103,6 +135,18 @@ def main() -> int:
             verdict = (f.get("verdict") or "").upper()
             conf = (f.get("confidence") or "").lower()
             strong = conf in _STRONG
+
+            # ── THE GATE. Check the KIND of evidence, not just that there is some. ──
+            blob = f"{f.get('evidence') or ''} {f.get('method') or ''}".lower()
+            hit_banned = [w for w in _BANNED_EVIDENCE if w in blob]
+            hit_ok = [w for w in _APPROVED_EVIDENCE if w in blob]
+
+            if hit_banned and verdict in ("CHINA", "NOT_CHINA"):
+                quarantined_banned.append((brand, verdict, hit_banned, f))
+                continue
+            if verdict in ("CHINA", "NOT_CHINA") and not hit_ok:
+                quarantined_novel.append((brand, verdict, f))
+                continue
 
             # the evidence, whatever the verdict — a legal record is worth keeping even when the
             # agent could not conclude from it.
@@ -210,6 +254,25 @@ def main() -> int:
         print(f"\nBRAND NAME NOT FOUND IN ps_brands ({len(unmatched)}): {', '.join(unmatched)}")
     if skipped_junk:
         print(f"\nSKIPPED — JUNK rows ({len(skipped_junk)}): {', '.join(skipped_junk)}")
+
+    if quarantined_banned:
+        print("\n" + "!" * 78)
+        print(f"QUARANTINED — BANNED EVIDENCE ({len(quarantined_banned)}). NOTHING WRITTEN.")
+        print('TIM: "import data wont help. EVERYONE imports from china. no shipping info helps."')
+        print("!" * 78)
+        for b, v, words, f in quarantined_banned:
+            print(f"\n   {b}  -> the agent said {v}")
+            print(f"      banned words in its evidence: {', '.join(words)}")
+            print(f"      \"{(f.get('evidence') or '')[:150]}\"")
+
+    if quarantined_novel:
+        print("\n" + "?" * 78)
+        print(f"QUARANTINED — EVIDENCE TYPE TIM HAS NOT APPROVED ({len(quarantined_novel)}).")
+        print("A novel evidence type is a QUESTION, not a finding. Ask before acting.")
+        print("?" * 78)
+        for b, v, f in quarantined_novel:
+            print(f"\n   {b}  -> the agent said {v}  [method: {f.get('method')}]")
+            print(f"      \"{(f.get('evidence') or '')[:150]}\"")
 
     if needs_tim:
         print("\n" + "=" * 78)

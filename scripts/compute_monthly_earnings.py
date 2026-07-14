@@ -91,7 +91,7 @@ PRODUCTIVE = text("""
 EARNINGS = text("""
     INSERT INTO ps_monthly_earnings (
         tenant_id, client_id, wayward_brand_id, brand_name, product_id, period_month,
-        usage_billed, usage_collected,
+        usage_billed, usage_collected, usage_voided,
         ps_rate_pct, months_since_productive,
         partner_id, partner_rate_pct,
         ps_actually_paid,
@@ -105,8 +105,20 @@ EARNINGS = text("""
         -- UNIQUE key then rejected. The brand id is the real identity here.
         SELECT l.wayward_brand_id, l.product_id, l.billing_month,
                max(l.client_id::text)::uuid                         AS client_id,
-               sum(l.amount)                                        AS billed,
-               sum(l.amount) FILTER (WHERE l.invoice_status='paid') AS collected
+               -- BILLED = LIVE invoices only. A VOIDED invoice was cancelled — never billed to
+               -- anybody, never owed, never collectable. Counting voids inflated billed by
+               -- $561,209 and, on 73 brand-months, dragged BILLED below COLLECTED (Zyllion:
+               -- billed -$57.78 against collected $470.80). A brand cannot pay us more than we
+               -- ever invoiced it.
+               COALESCE(sum(l.amount) FILTER (
+                    WHERE l.invoice_status IN ('paid','open')), 0)  AS billed,
+               -- COLLECTED = cash actually received. §3.1 pays PS on "Usage Fees actually
+               -- received" — this, and ONLY this, is the base for the 10/6/3%.
+               sum(l.amount) FILTER (WHERE l.invoice_status='paid') AS collected,
+               -- kept visible rather than folded away: a spike in voids is how a brand disputes
+               -- its bill, which makes it a leading indicator of revenue about to vanish.
+               COALESCE(sum(l.amount) FILTER (
+                    WHERE l.invoice_status IN ('void','uncollectible')), 0) AS voided
         FROM ps_stripe_invoice_lines l
         WHERE l.tenant_id = :t AND l.is_ps_base
           AND l.billing_month IS NOT NULL AND l.product_id IS NOT NULL
@@ -153,6 +165,7 @@ EARNINGS = text("""
         u.billing_month,
         u.billed,
         COALESCE(u.collected, 0),
+        u.voided,
 
         -- The tier that applied in THAT month, on THAT product's own clock.
         CASE
@@ -203,6 +216,7 @@ EARNINGS = text("""
         brand_name = COALESCE(EXCLUDED.brand_name, ps_monthly_earnings.brand_name),
         usage_billed = EXCLUDED.usage_billed,
         usage_collected = EXCLUDED.usage_collected,
+        usage_voided = EXCLUDED.usage_voided,
         ps_rate_pct = EXCLUDED.ps_rate_pct,
         months_since_productive = EXCLUDED.months_since_productive,
         partner_id = EXCLUDED.partner_id,

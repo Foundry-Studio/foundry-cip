@@ -96,7 +96,7 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done · `[T]` **blocked on Tim 
             them right now.** Do the `git mv` only when `git status --short scripts/` is clean. P4.
       - [→] Harvest REWRITE (24 pairs, agency guard, drop pinyin) — **MOVED TO PHASE 2.** Manual/
             unscheduled, so it changes nothing today; belongs with the self-maintaining design.
-- [ ] **W7 — SCHEMA CONSISTENCY BATCH.** FKs, CHECKs, pinned/superseded fix, units + comment lies.
+- [x] **W7 — SCHEMA CONSISTENCY BATCH.** ✅ 2026-07-14 · cip_93 · 11 FKs + 2 CHECKs + comment truth · FKs, CHECKs, pinned/superseded fix, units + comment lies.
 - [ ] **W8 — SHRINK THE UNKNOWNS.** `lens_ps_china_evidence_grid` + ranked candidate report →
       **Tim flips**, nothing auto-flips.
 

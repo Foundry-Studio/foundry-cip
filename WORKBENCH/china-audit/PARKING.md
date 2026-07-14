@@ -58,3 +58,33 @@ cannot write "Tim Jordan". That is the argument FOR the write tools, and it shou
 — under the governance gate in FOUNDATION-PLAN.md, not before.
 
 **Do not "fix" this by editing strings.** The string was never the problem.
+
+---
+
+## P3 — `canonical_brand_id` is CORRECT but INCOMPLETE → **Phase 2 / Tim's spreadsheets**
+
+**Found during:** W5 CTO QC, 2026-07-14.
+**Do NOT fix in W5.** The roll-up is right *given* canonical_brand_id. This is about the pointer
+itself being under-populated — a different job.
+
+`canonical_brand_id` links **exact-name** duplicates. It does not link:
+
+- **name variants** — `Grownsy` and `Selgrownsy` share the mailbox `catherine@grownsy.com` and are
+  almost certainly one company. They count as TWO. (This is the very brand whose split identity
+  started the whole problem.) Same shape: `NZI NZI`/`NZINZI`, `Petra Tools`/`PetraTools`.
+- **company-domain siblings** — **44 company-domain mailboxes span more than one "company",
+  covering 121 companies.** Those are candidates for merging.
+
+**Why it is not urgent:** it does not make any verdict wrong. Both Grownsy rows are `china`. It
+makes the company COUNT slightly high — we say 1,591 where the truth is somewhere near 1,470-1,550.
+It is a precision problem, not a correctness one.
+
+**Why it is not trivial:** a company-domain mailbox is strong evidence of one owner, but the
+identity audit found that **email is a "same OPERATOR" signal, not "same COMPANY"** —
+`zhou_yintong@163.com` runs 18 unrelated private-label brands. Merging on operator is arguably right
+for the CHINA decision (nationality follows the operator) and WRONG for revenue (18 separate billing
+relationships). **That is a policy call for Tim, not a data call**, and it should be made before any
+merge key is chosen.
+
+**Disposition:** raise it in Phase 3 when Tim brings his spreadsheets — he may simply know which of
+the 44 are one company.

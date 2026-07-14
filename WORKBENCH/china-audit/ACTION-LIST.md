@@ -88,7 +88,7 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done · `[T]` **blocked on Tim 
 - [x] **W3 — ONE HOME FOR `is_chinese`.** ✅ 2026-07-14 · cip_90 · 5,248 → 0 disagreements, $0 moved · Spine derives from the verdict; data + writer in the same
       wave. +invariant `spine_is_chinese_matches_verdict`.
 - [x] **W4 — THE RATE CLOCK.** ✅ 2026-07-14 · cip_91 · 2,371 → 0 wrong, $0 moved · `+365+183` GENERATED columns → calendar months. +invariant.
-- [ ] **W5 — ALIAS TRUTH.** Passthrough columns + `lens_ps_china_companies` rollup for headlines.
+- [x] **W5 — ALIAS TRUTH.** ✅ 2026-07-14 · cip_92 · headline was overstating China by 32 · Passthrough columns + `lens_ps_china_companies` rollup for headlines.
       Money lenses untouched (frozen).
 - [ ] **W6 — SCRIPTS FULL CLEAN.** Harvest rewritten (all 24 signal/source pairs, agency guard, NO
       pinyin regexes); ingest stops writing `manual_review`; everything else → `scripts/attic/`.

@@ -166,6 +166,65 @@ INVARIANTS: tuple[Invariant, ...] = (
             "distinguished from a guess — and a wrong one produces a confident number on the "
             "wrong brand, not an error.",
     ),
+    # ── the four an adversarial audit found on 2026-07-14 ────────────────────
+    Invariant(
+        key="money_on_a_brand_graded_junk",
+        sql="""SELECT count(*) FROM lens_ps_brand_reality r
+               WHERE r.reality = 'JUNK'
+                 AND EXISTS (SELECT 1 FROM ps_monthly_earnings e
+                              WHERE e.wayward_brand_id = r.wayward_brand_id
+                                AND (e.usage_collected > 0 OR e.usage_billed > 0))""",
+        why="cip_83 graded a brand JUNK if its Stripe mailbox was @wayward.com — and GCI Outdoors, "
+            "a real American company with $23,345.23 collected, was junked because a Wayward "
+            "EMPLOYEE set its Stripe account up on its behalf. EMAIL IS NEVER A KEY. A paid invoice "
+            "is the strongest evidence of existence there is; if a JUNK row has money, the grader "
+            "is wrong, not the money. Catches it in both directions.",
+    ),
+    Invariant(
+        key="stale_seen_in_flags",
+        sql="""SELECT count(*) FROM ps_brands b
+               WHERE b.seen_in_exclusion_list <> EXISTS (
+                       SELECT 1 FROM ps_excluded_brands x
+                        WHERE x.wayward_brand_id = b.wayward_brand_id)
+                  OR b.seen_in_eric_sheets <> EXISTS (
+                       SELECT 1 FROM ps_brand_observations o
+                        WHERE o.wayward_brand_id = b.wayward_brand_id
+                          AND o.source_system = 'gsheet:eric-all-agreements')""",
+        why="The seen_in_* flags are a denormalised cache that cip_55 filled once and NOTHING has "
+            "maintained since. By 2026-07-14 seen_in_exclusion_list was FALSE on 26 brands that "
+            "were on the frozen list — $41,743.82 collected, including CrownShade (bucket "
+            "'Shallow', where another partner is still being paid). "
+            "`WHERE NOT seen_in_exclusion_list` is the natural way to ask 'who does nobody else have "
+            "a claim on?' and it returned brands somebody else earns on. "
+            "seen_in_eric_sheets is worse: harvest_nationality_signals.py reads it to emit a "
+            "DEFINITIONAL china signal, so drift there corrupts the nationality verdict itself.",
+    ),
+    Invariant(
+        key="china_verdict_on_a_name_guess",
+        sql="""SELECT count(*) FROM lens_ps_china_verdict
+               WHERE verdict = 'china' AND verdict_strength IN ('weak', 'moderate')""",
+        why="The verdict computes a strength ladder (definitional > confirmed > strong > moderate > "
+            "weak) and then IGNORES it: `WHEN china_signals > 0 THEN 'china'` promotes ANY signal at "
+            "ANY strength to a hard verdict. A pinyin guess off an email handle would become "
+            "indistinguishable from a frozen-exclusion-list entry. It already happened: an ingest "
+            "wrote UNRESOLVED research findings as weak china signals and 'Aiming Fluid Golf' — a "
+            "Chico, California business — came out Chinese. A NAME IS NOT A NATIONALITY: Bob and "
+            "Brad is Chinese, Lifepro is Los Angeles.",
+    ),
+    Invariant(
+        key="humans_live_and_opposed",
+        sql="""SELECT count(*) FROM (
+                 SELECT wayward_brand_id FROM ps_nationality_signals
+                 WHERE signal = 'manual_review'
+                 GROUP BY wayward_brand_id
+                 HAVING count(*) FILTER (WHERE points_to = 'china') > 0
+                    AND count(*) FILTER (WHERE points_to = 'not_china') > 0) d""",
+        why="lens_ps_china_verdict checks `manual_not_china` FIRST, with no recency and no authority "
+            "ordering — and the unique key is (tenant, brand, signal, source_system), so an old "
+            "machine review and Tim's ruling can COEXIST on one brand. If both ever land, the older "
+            "one silently wins and a brand Tim personally ruled Chinese renders as not_china, "
+            "dropping out of the book. Zero today is luck; nothing prevents it.",
+    ),
 )
 
 

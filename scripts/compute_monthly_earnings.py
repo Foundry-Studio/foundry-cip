@@ -247,11 +247,37 @@ EARNINGS = text("""
 """)
 
 
+# 0. The spine is DERIVED. It must be a pure function of its source — which means it has to be
+#    able to SHRINK, not just grow.
+#
+#    This script only ever INSERTed and UPDATEd. So when cip_72 correctly RETRACTED 829 usage-fee
+#    lines whose brand identity had been resolved from an ambiguous email (a coin flip — 531
+#    emails map to more than one brand), the source rows lost their brand id and the spine kept
+#    192 ORPHANED rows carrying $32,693 of phantom billing. Nothing errored. The invariant suite
+#    caught it; a human had not.
+#
+#    A derived table that cannot shrink is not derived. It is a cache with no eviction.
+PRUNE_ORPHANS = text("""
+    DELETE FROM ps_monthly_earnings e
+     WHERE e.tenant_id = :t
+       AND NOT EXISTS (
+            SELECT 1 FROM ps_stripe_invoice_lines l
+             WHERE l.tenant_id = e.tenant_id
+               AND l.wayward_brand_id = e.wayward_brand_id
+               AND l.product_id       = e.product_id
+               AND l.billing_month    = e.period_month
+               AND l.is_ps_base
+       )
+""")
+
+
 def run(conn, *, apply: bool) -> dict:
     conn.execute(
         text("SELECT set_config('app.current_tenant', :t, false)"), {"t": PS_TENANT}
     )
     out: dict = {}
+
+    out["orphan_rows_pruned"] = conn.execute(PRUNE_ORPHANS, {"t": PS_TENANT}).rowcount
 
     r = conn.execute(PRODUCTIVE, {"t": PS_TENANT})
     out["productive_dates_set"] = r.rowcount

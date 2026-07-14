@@ -117,7 +117,14 @@ CLAIM = text(f"""
             -- Unknown is a QUEUE, not a verdict. It must never read as a denial.
             WHEN g.chinese = 'unknown'                 THEN 'unknown_nationality'
             WHEN g.chinese = 'no'                      THEN 'not_claimable_not_chinese'
-            -- Ruling 1: Boost is ours on every Chinese brand, excluded or not.
+            -- *** THE GOVERNING PRINCIPLE (Tim, 2026-07-13) ***
+            -- You cannot take a brand somebody else is actively being paid on. This is tested
+            -- BEFORE Boost, because Boost being a net-new product does NOT entitle us to revenue
+            -- on a brand where Eric/Adina/Jeremy/Shallow/OpenLight still collect an ongoing 10%.
+            -- Roborock (Heavy Producer, referrer Eric/Adina, rev_share) was being invoiced for
+            -- Boost under the old blanket rule.
+            WHEN st.someone_else_earning               THEN 'not_claimable_excluded'
+            -- Ruling 1: Boost, on brands nobody else is earning on (unlisted, or flat-fee winnable).
             WHEN e.product_id = 'boosted'              THEN 'boost_all_brands'
             -- Ruling 2: won back by reactivation (flat-fee only, post-2025-11-01 only).
             WHEN EXISTS (SELECT 1 FROM ps_product_subscriptions s
@@ -137,6 +144,8 @@ CLAIM = text(f"""
            END,
            is_claimable = CASE
             WHEN g.chinese <> 'yes'                    THEN false
+            -- somebody else is still being paid on this brand. Hands off, EVERY product.
+            WHEN st.someone_else_earning               THEN false
             WHEN e.product_id = 'boosted'              THEN true
             WHEN EXISTS (SELECT 1 FROM ps_product_subscriptions s
                           WHERE s.tenant_id = e.tenant_id
@@ -152,6 +161,9 @@ CLAIM = text(f"""
            END,
            computed_at = now()
       FROM elig g
+      -- exclusion status aggregated over ALL of a brand's bucket rows: ten brands sit in two
+      -- buckets at once, and an equality test picks whichever row it meets first.
+      JOIN lens_ps_exclusion_status st ON st.wayward_brand_id = g.wayward_brand_id
      WHERE e.tenant_id = :t
        AND g.wayward_brand_id = e.wayward_brand_id
 """)

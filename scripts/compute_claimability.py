@@ -58,7 +58,16 @@ REACTIVATION = text(f"""
         FROM months
     ),
     react AS (
-        SELECT wayward_brand_id, product_id, min(billing_month) AS reactivated_at
+        SELECT wayward_brand_id, product_id,
+               -- The EARLIEST reactivation that actually QUALIFIES (on/after the push restart),
+               -- not simply the earliest one that ever happened. A brand that went dark in
+               -- 2025-03 and again in 2026-02 used to record 2025-03, fail the >= 2025-11-01
+               -- test, and lose a legitimate win-back we DID cause. Fall back to the earliest
+               -- of any age so reactivated_at still records the history.
+               COALESCE(
+                   min(billing_month) FILTER (WHERE billing_month >= DATE '{PUSH_RESTART}'),
+                   min(billing_month)
+               ) AS reactivated_at
         FROM gaps
         WHERE prev IS NOT NULL
           AND billing_month >= prev + INTERVAL '3 months'   -- 90+ days dark
@@ -66,13 +75,22 @@ REACTIVATION = text(f"""
     )
     UPDATE ps_product_subscriptions s
        SET reactivated_at = r.reactivated_at,
+           -- Gated on lens_ps_exclusion_status.is_winnable, which aggregates over ALL of a
+           -- brand's exclusion buckets. The old test was `x.bucket = 'Eric Flat Fee Brands'`
+           -- over a LEFT JOIN — an EQUALITY against a MULTI-VALUED relation, which silently
+           -- picks whichever row it meets first. YOLIX and Nexiepoch are BOTH 'Eric Flat Fee'
+           -- (winnable) AND 'Shallow' (someone still earns), and it matched the flat-fee row.
+           --
+           -- cip_68 fixed the DATA with a one-time UPDATE but left this script alone, so every
+           -- --apply silently re-broke it. A migration that corrects data a script will
+           -- overwrite is not a fix; it is a delay.
            reactivation_qualifies = (
                 r.reactivated_at >= DATE '{PUSH_RESTART}'
-                AND x.bucket = '{FLAT_FEE_BUCKET}'
+                AND st.is_winnable
            ),
            updated_at = now()
       FROM react r
-      LEFT JOIN ps_excluded_brands x ON x.wayward_brand_id = r.wayward_brand_id
+      JOIN lens_ps_exclusion_status st ON st.wayward_brand_id = r.wayward_brand_id
      WHERE s.tenant_id = :t
        AND s.wayward_brand_id = r.wayward_brand_id
        AND s.product_id = r.product_id
@@ -84,19 +102,12 @@ REACTIVATION = text(f"""
 # NOT "this brand is not Chinese". Collapsing them writes off 1,044 brands and ~$141k of PS
 # commission as a settled negative — the same COALESCE-to-zero failure cip_55 removed from the
 # rate, reappearing one level up on the flag that gates every claim.
+# (The ISO-2 country guard this file used to carry has moved to harvest_nationality_signals.py,
+# where the signals are actually built. It was left behind here as a CTE nothing referenced —
+# documentation masquerading as code, and the most misleading kind: a reader would believe the
+# guard was applied here when it was not.)
 CLAIM = text(f"""
-    WITH ctry AS (
-        -- ISO-2 only. One brand's `country` is the string "Impersonate Account button  View
-        -- Contact in Intercom button *Hubspot Sync Information*" — Slack-parser debris scraped
-        -- off the page, not a country. It carries $11,524 of collected usage, and treating it
-        -- as a foreign country would silently disqualify the brand.
-        SELECT wayward_brand_id,
-               max(value) FILTER (WHERE value ~ '^[A-Z]{{2}}$') AS country
-        FROM ps_brand_observations
-        WHERE tenant_id = :t AND field = 'country'
-        GROUP BY wayward_brand_id
-    ),
-    elig AS (
+    WITH elig AS (
         -- Nationality now comes from lens_ps_china_verdict, which derives it from
         -- ps_nationality_signals (cip_66) rather than re-deriving it here. One place, one rule,
         -- and every verdict carries the evidence that produced it. CHINA WINS: a single positive

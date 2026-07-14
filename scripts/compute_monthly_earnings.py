@@ -168,11 +168,17 @@ EARNINGS = text("""
         u.voided,
 
         -- The tier that applied in THAT month, on THAT product's own clock.
+        --
+        -- CALENDAR MONTHS, not day counts. The 6->3 step used `+ 365 + 183` = 548 days, but
+        -- eighteen calendar months from the 1st is 546-549 days depending on the start month.
+        -- When it lands on 546 or 547, month NINETEEN falls inside the boundary and keeps 6%:
+        -- 46 brands were booked at 6% while owed 3%, overstating the claim by $217.32. It is
+        -- systematic and it grows — every brand crosses month 19 exactly once.
         CASE
             WHEN c.productive_date IS NULL THEN NULL
             WHEN u.billing_month < c.productive_date THEN NULL   -- before it went productive
-            WHEN u.billing_month < c.productive_date + 365 THEN 10
-            WHEN u.billing_month < c.productive_date + 365 + 183 THEN 6
+            WHEN u.billing_month < c.productive_date + INTERVAL '12 months' THEN 10
+            WHEN u.billing_month < c.productive_date + INTERVAL '18 months' THEN 6
             ELSE 3
         END,
         CASE WHEN c.productive_date IS NULL THEN NULL
@@ -185,7 +191,10 @@ EARNINGS = text("""
               OR p.partner_of_record = 'unassigned'          THEN 0
             WHEN p.deal_type = 'flat_fee'                    THEN 0
             WHEN c.productive_date IS NULL                   THEN 0
-            WHEN u.billing_month >= c.productive_date + 365  THEN 0   -- partner rolled off
+            -- Calendar months, matching the 10->6 step EXACTLY. If the partner's expiry and
+            -- our own step-down use different arithmetic they drift apart, and our NET dips
+            -- below 6% for whatever month falls in the gap.
+            WHEN u.billing_month >= c.productive_date + INTERVAL '12 months' THEN 0
             ELSE COALESCE(p.partner_rate, 0)
         END,
 
@@ -207,9 +216,18 @@ EARNINGS = text("""
         WHERE x.wayward_brand_id = u.wayward_brand_id
         LIMIT 1
     ) el ON true
+    -- Jake's reports carry no product split, so the payment must land on exactly ONE row per
+    -- brand-month or it double-counts. It used to require a CONNECT row, and silently DROPPED
+    -- $4,012.06 of cash we have already received when the month existed only as Boost, or not at
+    -- all. Dropping received cash inflates the claim 1:1 — the one direction §4.4 punishes.
+    -- Now: land it on the brand-month's alphabetically-first product, which always exists.
     LEFT JOIN paid pd ON pd.wayward_brand_id = u.wayward_brand_id
                      AND pd.m = u.billing_month
-                     AND u.product_id = 'connect'   -- Jake's reports have no product split
+                     AND u.product_id = (
+                          SELECT min(l2.product_id) FROM ps_stripe_invoice_lines l2
+                           WHERE l2.wayward_brand_id = u.wayward_brand_id
+                             AND l2.billing_month = u.billing_month
+                             AND l2.is_ps_base AND l2.product_id IS NOT NULL)
     ON CONFLICT (tenant_id, wayward_brand_id, product_id, period_month) DO UPDATE SET
         -- brand_name was missing from this list, so rows written before the name was known kept
         -- their NULL forever. The single largest claim in the book displayed as "?" because of it.

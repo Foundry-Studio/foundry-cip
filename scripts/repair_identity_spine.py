@@ -86,6 +86,33 @@ def run(conn, key: str, *, apply: bool) -> dict:
     out["stripe_customers"] = len(cust)
     out["stripe_customers_with_brandId"] = sum(1 for c in cust if c["brand_id"])
 
+    # ── 0. TEACH THE MASTER every brand id Wayward knows ─────────────────────
+    # ps_brands was seeded from ids that appeared on INVOICE rows. But a Stripe customer can
+    # carry a brandId and never have been billed — so that brand is real, is Wayward's, and is
+    # absent from the master. The moment we resolve an orphan invoice to it, the FK added in
+    # cip_55 rejects the write (it did, on first run: "Key (wayward_brand_id)=(04bb92f4…) is
+    # not present in table ps_brands"). That FK is doing its job: money may not point at a
+    # brand the master has never heard of. So the master learns it FIRST, from Stripe's own
+    # customer metadata, which is Wayward's record and not an inference.
+    if apply:
+        seed = [
+            {"w": c["brand_id"], "t": PS_TENANT}
+            for c in cust if c["brand_id"]
+        ]
+        if seed:
+            r = conn.execute(
+                text(
+                    """
+                    INSERT INTO ps_brands (wayward_brand_id, tenant_id, seen_in_stripe)
+                    VALUES (CAST(:w AS uuid), CAST(:t AS uuid), true)
+                    ON CONFLICT (wayward_brand_id) DO UPDATE
+                       SET seen_in_stripe = true, updated_at = now()
+                    """
+                ),
+                seed,
+            )
+            out["brands_taught_to_master"] = r.rowcount
+
     # email -> brand_id, from Stripe's own metadata. Exact, Wayward-owned.
     email_to_brand = {
         c["email"]: c["brand_id"]
@@ -120,56 +147,67 @@ def run(conn, key: str, *, apply: bool) -> dict:
     }
 
     # ── 2. Stripe invoices/lines with no brandId -> resolve via email ────────
-    resolved = 0
+    # Every write records HOW it was resolved (cip_56). An identity written without its
+    # provenance is a guess wearing the authority of a fact, and identity is upstream of
+    # all money — a wrong brand id yields a confident number on the wrong brand, not an error.
+    resolved = {"stripe_email_match": 0, "slack_feed_email": 0}
     for c in orphan_cust:
-        wb = brand_email.get(c["email"]) or email_to_brand.get(c["email"])
+        # Prefer Stripe's own email->brandId map; fall back to the onboarding feed's email.
+        wb, src = email_to_brand.get(c["email"]), "stripe_email_match"
+        if not wb:
+            wb, src = brand_email.get(c["email"]), "slack_feed_email"
         if not wb:
             continue
         if apply:
-            for tbl in ("ps_stripe_invoices", "ps_stripe_invoice_lines"):
-                conn.execute(
-                    text(
-                        f"UPDATE {tbl} SET wayward_brand_id = CAST(:w AS uuid) "
-                        f"WHERE tenant_id=:t AND stripe_customer_id=:c "
-                        f"AND wayward_brand_id IS NULL"
-                    ) if tbl == "ps_stripe_invoices" else
-                    text(
-                        f"UPDATE {tbl} l SET wayward_brand_id = CAST(:w AS uuid) "
-                        f"FROM ps_stripe_invoices i "
-                        f"WHERE i.stripe_invoice_id = l.stripe_invoice_id "
-                        f"AND i.stripe_customer_id = :c AND l.tenant_id=:t "
-                        f"AND l.wayward_brand_id IS NULL"
-                    ),
-                    {"t": PS_TENANT, "w": wb, "c": c["id"]},
-                )
-        resolved += 1
-    out["stripe_customers_resolved_by_email"] = resolved
+            conn.execute(
+                text(
+                    "UPDATE ps_stripe_invoices SET wayward_brand_id = CAST(:w AS uuid), "
+                    "brand_id_source = :s "
+                    "WHERE tenant_id=:t AND stripe_customer_id=:c AND wayward_brand_id IS NULL"
+                ),
+                {"t": PS_TENANT, "w": wb, "c": c["id"], "s": src},
+            )
+            conn.execute(
+                text(
+                    "UPDATE ps_stripe_invoice_lines l "
+                    "   SET wayward_brand_id = CAST(:w AS uuid), brand_id_source = :s "
+                    "  FROM ps_stripe_invoices i "
+                    " WHERE i.stripe_invoice_id = l.stripe_invoice_id "
+                    "   AND i.stripe_customer_id = :c AND l.tenant_id = :t "
+                    "   AND l.wayward_brand_id IS NULL"
+                ),
+                {"t": PS_TENANT, "w": wb, "c": c["id"], "s": src},
+            )
+        resolved[src] += 1
+    out["resolved_by_stripe_email_match"] = resolved["stripe_email_match"]
+    out["resolved_by_slack_feed_email"] = resolved["slack_feed_email"]
+    out["unresolvable_customers"] = len(orphan_cust) - sum(resolved.values())
 
-    # ── 3. cip_clients: link via the brand email we now trust ────────────────
+    # ── 3. cip_clients: DELIBERATELY NOT GUESSED ─────────────────────────────
+    #
+    # The original version matched `lower(c.name) = lower(split_part(email,'@',1))` — a client
+    # named "roborock" linked to roborock@anything. That is a guess, and it was about to be
+    # written into the column that 12 foreign keys and every money figure now depend on.
+    #
+    # It is worse than it looks: step 4 below propagates cip_clients.wayward_brand_id into
+    # ps_partner_credit and ps_attribution. So a bad guess here does not stay here — it flows
+    # into what we pay partners, as a confident dollar amount on the wrong brand. It would
+    # never surface as an error.
+    #
+    # There is no honest match available: cip_clients has no email column, so nothing exact
+    # exists to join on. The correct move is to leave these NULL and ASK, not to invent. The
+    # gap is logged to ps_information_gaps instead of being papered over.
+    out["cip_clients_left_null_on_purpose"] = len(rows)
+    out["cip_clients_note"] = (
+        "No exact key exists to link these (cip_clients has no email). Name-matching them "
+        "would propagate a guess into ps_partner_credit/ps_attribution and out into partner "
+        "payouts. Left NULL; logged as an information gap for Jake."
+    )
+
+    # ── 4. propagate the identities we DO trust into the money tables ────────
+    # Safe now: cip_clients.wayward_brand_id is only ever set from a Wayward-supplied id, never
+    # from a name guess (see 3). So what flows out to partner credit is a fact, not an inference.
     if apply:
-        r = conn.execute(
-            text(
-                """
-                UPDATE cip_clients c
-                   SET wayward_brand_id = s.wayward_brand_id
-                  FROM (
-                      SELECT DISTINCT ON (lower(i.customer_email))
-                             lower(i.customer_email) AS email, i.wayward_brand_id
-                      FROM ps_stripe_invoices i
-                      WHERE i.tenant_id = :t
-                        AND i.wayward_brand_id IS NOT NULL
-                        AND i.customer_email IS NOT NULL
-                  ) s
-                 WHERE c.tenant_id = :t
-                   AND c.wayward_brand_id IS NULL
-                   AND lower(c.name) = lower(split_part(s.email,'@',1))
-                """
-            ),
-            {"t": PS_TENANT},
-        )
-        out["cip_clients_linked_via_stripe"] = r.rowcount
-
-        # 4. re-backfill the two tables cip_54 added the column to
         for tbl in ("ps_partner_credit", "ps_attribution", "ps_product_subscriptions"):
             conn.execute(
                 text(

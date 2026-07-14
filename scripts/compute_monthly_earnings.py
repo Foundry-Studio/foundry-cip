@@ -144,7 +144,11 @@ EARNINGS = text("""
         :t,
         u.client_id,
         u.wayward_brand_id,
-        el.brand_name,
+        -- The eligibility lens only knows names Wayward's OWN feed supplied. Brands that reached
+        -- us only through Stripe have a name in ps_brands and NULL here — which is why the single
+        -- largest claim in the book once displayed as "?" (it was Apolosign, a HK company).
+        COALESCE(el.brand_name, (SELECT brand_name FROM ps_brands b
+                                  WHERE b.wayward_brand_id = u.wayward_brand_id)),
         u.product_id,
         u.billing_month,
         u.billed,
@@ -194,6 +198,9 @@ EARNINGS = text("""
                      AND pd.m = u.billing_month
                      AND u.product_id = 'connect'   -- Jake's reports have no product split
     ON CONFLICT (tenant_id, wayward_brand_id, product_id, period_month) DO UPDATE SET
+        -- brand_name was missing from this list, so rows written before the name was known kept
+        -- their NULL forever. The single largest claim in the book displayed as "?" because of it.
+        brand_name = COALESCE(EXCLUDED.brand_name, ps_monthly_earnings.brand_name),
         usage_billed = EXCLUDED.usage_billed,
         usage_collected = EXCLUDED.usage_collected,
         ps_rate_pct = EXCLUDED.ps_rate_pct,

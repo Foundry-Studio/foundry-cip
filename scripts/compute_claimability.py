@@ -97,19 +97,20 @@ CLAIM = text(f"""
         GROUP BY wayward_brand_id
     ),
     elig AS (
+        -- Nationality now comes from lens_ps_china_verdict, which derives it from
+        -- ps_nationality_signals (cip_66) rather than re-deriving it here. One place, one rule,
+        -- and every verdict carries the evidence that produced it. CHINA WINS: a single positive
+        -- signal locks the brand; a negative only decides one that has no positive signal at all.
         SELECT g.wayward_brand_id,
                g.is_excluded,
                g.onboarded,
-               CASE
-                 WHEN g.nationality_class IN ('chinese_confirmed','chinese_suspected')
-                   OR c.country = 'CN'                THEN 'yes'
-                 WHEN c.country IS NOT NULL           THEN 'no'      -- Wayward states a country
-                 WHEN g.nationality_class IS NOT NULL
-                  AND g.nationality_class <> 'unknown' THEN 'no'
-                 ELSE 'unknown'                                       -- never established
+               CASE v.verdict
+                    WHEN 'china'     THEN 'yes'
+                    WHEN 'not_china' THEN 'no'
+                    ELSE 'unknown'
                END AS chinese
         FROM lens_ps_eligibility g
-        LEFT JOIN ctry c ON c.wayward_brand_id = g.wayward_brand_id
+        LEFT JOIN lens_ps_china_verdict v ON v.wayward_brand_id = g.wayward_brand_id
     )
     UPDATE ps_monthly_earnings e
        SET claim_basis = CASE

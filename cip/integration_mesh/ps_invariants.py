@@ -255,6 +255,23 @@ INVARIANTS: tuple[Invariant, ...] = (
             "Delaware and Wyoming shells by the thousand.",
     ),
     Invariant(
+        key="stored_rate_clock_is_a_day_count",
+        sql="""SELECT count(*) FROM ps_product_subscriptions
+               WHERE productive_date IS NOT NULL
+                 AND (rate_10_expires        <> (productive_date + INTERVAL '12 months')::date
+                   OR partner_credit_expires <> (productive_date + INTERVAL '12 months')::date
+                   OR rate_6_expires         <> (productive_date + INTERVAL '18 months')::date)""",
+        why="NEVER COUNT MONTHS IN DAYS. rate_6_expires was GENERATED AS "
+            "((productive_date + 365) + 183) — 548 days standing in for 18 calendar months, which "
+            "is 546-549 days depending on the start month. It was wrong on 2,371 of 2,829 deals, "
+            "and 1,539 of them KEPT 6% TOO LONG, billing into month 19. "
+            "compute_monthly_earnings.py had been fixed to use real INTERVAL months, so the money "
+            "SPINE was right while these stored columns and lens_ps_rate_clock were wrong: one "
+            "fact, two computations. partner_credit_expires decides when a PARTNER STOPS BEING "
+            "PAID, and it carried the same bug — right today only because no current deal spans a "
+            "leap day. That is luck, not correctness.",
+    ),
+    Invariant(
         key="spine_is_chinese_matches_verdict",
         sql="""SELECT count(*) FROM ps_monthly_earnings m
                LEFT JOIN lens_ps_china_verdict v USING (wayward_brand_id)

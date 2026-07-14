@@ -36,10 +36,17 @@ WHAT IT HARVESTS
   chinese_email_domain   qq / 163 / 126 / sina / foxmail / aliyun / 139 / 188. A Chinese consumer
                          mailbox on a brand contact is not an accident.
 
-  chinese_partner        Referred by one of OUR China partners (Kerry, Cassie, Sarah, Adina,
-                         Eric, Shallow, OpenLight, Chen, Caspar, DBZW). They do not source US brands.
+  chinese_partner        Referred by one of OUR China partners (Kerry, Cassie, Sarah, Adina, Eric,
+                         Shallow, OpenLight, Chen, Caspar, DBZW). They do not source US brands.
+                         STRONG, never definitional: this is a REFERRAL relationship, and it is
+                         exactly BruMate's situation — American, referred by a Chinese partner.
 
   eric_sheet             Present in Eric's all-agreements sheet. His book IS the China programme.
+                         DEFINITIONAL, by Tim's ruling of 2026-07-14: "ANY that are on an eric list
+                         or something are definitely, you dont even need to ask me, CHinese.
+                         Exclusion list, heav performaer, or any of them." It was 'strong' until
+                         then, which left 71 brands resting on it alone looking like a research
+                         queue. They were never a queue. LIST MEMBERSHIP IS THE ANSWER.
 
   cjk_in_name            Chinese characters in the brand name or the contact name.
 
@@ -86,6 +93,23 @@ HARVESTS: list[tuple[str, str]] = [
                'contract:exhibit_a_frozen_2025_11_18'
         FROM ps_excluded_brands x
         WHERE x.tenant_id = CAST(:t AS uuid) AND x.wayward_brand_id IS NOT NULL
+    """),
+    # DEFINITIONAL, by Tim's ruling of 2026-07-14: "ANY that are on an eric list or something are
+    # definitely, you dont even need to ask me, CHinese. Exclusion list, heav performaer, or any of
+    # them." This was 'strong' until then, which left 71 brands resting on it alone looking like a
+    # research queue. They are not. LIST MEMBERSHIP IS THE ANSWER.
+    #
+    # The one carve-out is BruMate — on the list (OceanWing bucket) and American. Tim ruled it
+    # personally, and a pinned ps_added_facts row outranks any machine signal, definitional or not.
+    # That is the mechanism: the rule is absolute, and Tim can still overrule it by name.
+    ("eric_sheet", """
+        SELECT CAST(:t AS uuid), b.wayward_brand_id, 'eric_sheet', 'definitional', 'china',
+               'Present in Eric''s all-agreements sheet. Eric''s book IS the China programme — '
+               || 'every brand in it was sourced through Chinese referral channels. '
+               || 'TIM, 2026-07-14: list membership is DEFINITIVE, not a hint. Do not ask.',
+               'gsheet:eric-all-agreements'
+        FROM ps_brands b
+        WHERE b.tenant_id = CAST(:t AS uuid) AND b.seen_in_eric_sheets
     """),
     # ── CONFIRMED ───────────────────────────────────────────────────────────
     ("wayward_country_cn", """
@@ -135,14 +159,6 @@ HARVESTS: list[tuple[str, str]] = [
         FROM ps_partner_credit p
         WHERE p.tenant_id = CAST(:t AS uuid) AND p.wayward_brand_id IS NOT NULL
           AND p.partner_of_record IN ({", ".join(f"'{x}'" for x in CN_PARTNERS)})
-    """),
-    ("eric_sheet", """
-        SELECT CAST(:t AS uuid), b.wayward_brand_id, 'eric_sheet', 'strong', 'china',
-               'Present in Eric''s all-agreements sheet. Eric''s book IS the China programme — '
-               || 'every brand in it was sourced through Chinese referral channels.',
-               'gsheet:eric-all-agreements'
-        FROM ps_brands b
-        WHERE b.tenant_id = CAST(:t AS uuid) AND b.seen_in_eric_sheets
     """),
     # ── NEGATIVE ────────────────────────────────────────────────────────────
     # ISO-2 ONLY. Two brands carry HubSpot page furniture in this field — one of them is Tiny

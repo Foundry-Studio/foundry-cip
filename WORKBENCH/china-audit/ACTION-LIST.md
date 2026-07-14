@@ -78,7 +78,7 @@ no shipping info helps."*
 Legend: `[ ]` todo · `[~]` in progress · `[x]` done · `[T]` **blocked on Tim — do not touch**
 
 - [x] **W0 — BASELINE.** Snapshot in `BASELINE.md`. No changes. ✅ 2026-07-14
-- [ ] **W1 — HONEST LABELS.** The 131 tier1 rubber-stamp `manual_review` rows → `tim_batch_approval`;
+- [x] **W1 — HONEST LABELS.** ✅ 2026-07-14 · cip_87 · zero verdict movement· The 131 tier1 rubber-stamp `manual_review` rows → `tim_batch_approval`;
       research-agent `manual_review` rows → deleted (their legal signals carry the verdict).
       **Verdicts must not move. Verify identical.**
 - [ ] **W2 — THE 4-STATE VERDICT.** china / probable / not_china(human-or-legal-only) / unknown.

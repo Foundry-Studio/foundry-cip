@@ -255,6 +255,31 @@ INVARIANTS: tuple[Invariant, ...] = (
             "Delaware and Wyoming shells by the thousand.",
     ),
     Invariant(
+        key="company_rollup_is_one_row_per_company",
+        sql="""SELECT count(*) - count(DISTINCT company_id) FROM lens_ps_china_companies""",
+        why="lens_ps_china_companies is the ONLY place headline counts may come from, and its "
+            "whole job is to be one row per real company. A fan-out here would inflate exactly the "
+            "number we quote out loud — which is how a raw join to ps_excluded_brands once "
+            "inflated every summary by 8.6%.",
+    ),
+    Invariant(
+        key="company_rollup_never_overrules_a_human",
+        sql="""SELECT count(*) FROM lens_ps_china_companies c
+               WHERE c.verdict <> 'not_china'
+                 AND EXISTS (
+                       SELECT 1 FROM ps_brands b
+                       JOIN ps_nationality_signals s USING (wayward_brand_id)
+                       WHERE COALESCE(b.canonical_brand_id, b.wayward_brand_id) = c.company_id
+                         AND s.signal = 'manual_review' AND s.points_to = 'not_china')""",
+        why="If a named human pinned not_china on ANY row of a company, the company is "
+            "not_china. Full stop. The obvious roll-up design — take the row verdicts and let "
+            "china beat not_china — would hand the company to a MACHINE SIGNAL sitting on a "
+            "sibling row. Zero conflicts exist today, and that is exactly how every bug in this "
+            "dataset started. "
+            "The roll-up unions the SIGNALS and re-applies the constitution, so the human tier "
+            "survives identity resolution. This tripwire proves it stays that way.",
+    ),
+    Invariant(
         key="stored_rate_clock_is_a_day_count",
         sql="""SELECT count(*) FROM ps_product_subscriptions
                WHERE productive_date IS NOT NULL

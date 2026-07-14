@@ -43,13 +43,22 @@ from sqlalchemy import create_engine, text
 PS_TENANT = "078a37d6-6ae2-4e22-869e-cc08f6cb2787"
 
 # 1. Productive date per brand x product, straight from Stripe.
+#
+# KEYED ON wayward_brand_id, NOT client_id. This is the whole fix. client_id is the cip_clients
+# surrogate and covers only ~65% of brands, so keying the clock on it meant a brand outside that
+# set could not hold a productive date, could not be assigned a rate, and priced to nothing. The
+# arithmetic was never wrong; the brand simply had no name the schema could use. Stripe now
+# carries wayward_brand_id on 99.9% of usage-fee lines, so the clock finally reaches every brand
+# that has ever been billed.
 PRODUCTIVE = text("""
     INSERT INTO ps_product_subscriptions (
-        tenant_id, client_id, product_id,
+        tenant_id, wayward_brand_id, client_id, product_id,
         productive_date, productive_date_source, productive_date_confidence,
         first_billed_month, productive_date_note
     )
-    SELECT :t, l.client_id, l.product_id,
+    SELECT :t, l.wayward_brand_id,
+           max(l.client_id::text)::uuid,     -- convenience join only; never the identity
+           l.product_id,
            min(l.billing_month),
            'stripe', 'confirmed',
            min(l.billing_month),
@@ -59,15 +68,18 @@ PRODUCTIVE = text("""
     FROM ps_stripe_invoice_lines l
     WHERE l.tenant_id = :t
       AND l.is_ps_base
-      AND l.client_id IS NOT NULL
+      AND l.wayward_brand_id IS NOT NULL
       AND l.product_id IS NOT NULL
       AND l.billing_month IS NOT NULL
       AND l.amount > 0                 -- a negative reconciliation line is not a first sale
-    GROUP BY l.client_id, l.product_id
-    ON CONFLICT (tenant_id, client_id, product_id) DO UPDATE SET
+    GROUP BY l.wayward_brand_id, l.product_id
+    ON CONFLICT (tenant_id, wayward_brand_id, product_id)
+        WHERE wayward_brand_id IS NOT NULL
+    DO UPDATE SET
         productive_date = LEAST(
             ps_product_subscriptions.productive_date, EXCLUDED.productive_date
         ),
+        client_id = COALESCE(ps_product_subscriptions.client_id, EXCLUDED.client_id),
         productive_date_source = 'stripe',
         productive_date_confidence = 'confirmed',
         first_billed_month = EXCLUDED.first_billed_month,
@@ -102,18 +114,21 @@ EARNINGS = text("""
         GROUP BY 1,2,3
     ),
     clock AS (
-        SELECT client_id, product_id, productive_date
+        -- Keyed on the BRAND, not the client surrogate. See PRODUCTIVE above.
+        SELECT wayward_brand_id, product_id, productive_date
         FROM ps_product_subscriptions
-        WHERE tenant_id = :t AND productive_date IS NOT NULL
+        WHERE tenant_id = :t
+          AND productive_date IS NOT NULL
+          AND wayward_brand_id IS NOT NULL
     ),
     partner AS (
         -- One partner per brand x product. deal_type='flat_fee' earns them NOTHING
         -- ongoing, so their rate is zero regardless of any partner_rate on the row.
-        SELECT DISTINCT ON (client_id, product_id)
-               client_id, product_id, partner_of_record, deal_type, partner_rate
+        SELECT DISTINCT ON (wayward_brand_id, product_id)
+               wayward_brand_id, product_id, partner_of_record, deal_type, partner_rate
         FROM ps_partner_credit
-        WHERE tenant_id = :t
-        ORDER BY client_id, product_id, determined_at DESC NULLS LAST, created_at DESC
+        WHERE tenant_id = :t AND wayward_brand_id IS NOT NULL
+        ORDER BY wayward_brand_id, product_id, determined_at DESC NULLS LAST, created_at DESC
     ),
     paid AS (
         -- What Jake actually paid us, by brand x month. His reports carry no product
@@ -163,8 +178,10 @@ EARNINGS = text("""
         el.excluded_bucket,
         el.is_chinese
     FROM usage u
-    LEFT JOIN clock  c  ON c.client_id = u.client_id AND c.product_id = u.product_id
-    LEFT JOIN partner p ON p.client_id = u.client_id AND p.product_id = u.product_id
+    LEFT JOIN clock  c  ON c.wayward_brand_id = u.wayward_brand_id
+                       AND c.product_id = u.product_id
+    LEFT JOIN partner p ON p.wayward_brand_id = u.wayward_brand_id
+                       AND p.product_id = u.product_id
     -- lens_ps_eligibility is one row per brand, but guard the join anyway: a fan-out here
     -- would duplicate money rows, and a duplicated brand double-counts revenue.
     LEFT JOIN LATERAL (

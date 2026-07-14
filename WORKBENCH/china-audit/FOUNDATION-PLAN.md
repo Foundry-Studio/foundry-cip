@@ -254,3 +254,16 @@ governance and guidance in FAS and JOS — in the MCP server repo AND the FAS re
 **If we cannot satisfy the contract and the governance, we do not build the tool.** The guard +
 single-script path works today. A tool that skips governance is not a shortcut — it is the next
 two-day cleanup, and we are not doing that again.
+
+---
+
+## PHASE 2 addition (from W6 QC, 2026-07-14)
+
+**Harvest rewrite** — moved here out of W6. `harvest_nationality_signals.py` can regenerate only 8
+of the 24 `(signal, source)` pairs the DB now holds; a brand syncing in tomorrow would get a third
+of its evidence. The rewrite: regenerate ALL deterministic pairs idempotently, add the agency guard
+(skip any shared mailbox whose brand-set contains a confirmed not_china brand) and the JUNK
+exclusion, and **DELETE the pinyin person-name regexes** (17 brands, 4 false positives — a name is
+not a nationality). It is HERE, not in W6, because the harvest is manual and scheduled nowhere, so
+the rewrite changes nothing today — and it must be designed WITH the scheduling + post-sync
+recompute chain, which is this phase's job.

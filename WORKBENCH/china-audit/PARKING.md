@@ -88,3 +88,27 @@ merge key is chosen.
 
 **Disposition:** raise it in Phase 3 when Tim brings his spreadsheets — he may simply know which of
 the 44 are one company.
+
+---
+
+## P4 — W6 attic move, BLOCKED by a concurrent session → do when repo is quiescent
+
+**Found during:** W6 pre-check, 2026-07-14.
+
+35 dead one-off scripts are ready to move to `scripts/attic/` (6 dated `_*_2026_05_22`, plus
+backfills / seeds / rocky-ridge / research / smoke-test scripts). None are imported by the app or
+any kept script; verified by grep over src/ and cip/.
+
+**BUT:** at pre-check a concurrent session was mid-sweep across **28 scripts in `scripts/`** (an
+import cleanup — removing `from uuid import UUID` and similar), all uncommitted. A bulk `git mv` on
+top of that is the exact parallel-agent collision class in memory
+([[feedback_parallel_agent_commit_bundling]], [[feedback_concurrent_session_git_reset_data_loss]]):
+it would bundle their edits into my commit, or lose them to the move.
+
+**Disposition:** when `git status --short scripts/` is clean, `git mv` the 35 into `scripts/attic/`
++ a one-line README, in ONE pathspec-scoped commit. Pure cleanup, no data change.
+
+**KEEP — do NOT attic:** the 7 tools of record (check_invariants, _guard, ingest_amazon_sellers,
+load_added_facts, decide_nationality, preflight_alembic, harvest_nationality_signals-until-rewrite),
+the 18 live-pipeline scripts, and the 3 `run_wayward_*` scripts cited as onboarding templates in
+docs/ (run_wayward_initial_sync, _hubspot_only, _zendesk_only).

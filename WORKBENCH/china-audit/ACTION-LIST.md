@@ -90,8 +90,12 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done · `[T]` **blocked on Tim 
 - [x] **W4 — THE RATE CLOCK.** ✅ 2026-07-14 · cip_91 · 2,371 → 0 wrong, $0 moved · `+365+183` GENERATED columns → calendar months. +invariant.
 - [x] **W5 — ALIAS TRUTH.** ✅ 2026-07-14 · cip_92 · headline was overstating China by 32 · Passthrough columns + `lens_ps_china_companies` rollup for headlines.
       Money lenses untouched (frozen).
-- [ ] **W6 — SCRIPTS FULL CLEAN.** Harvest rewritten (all 24 signal/source pairs, agency guard, NO
-      pinyin regexes); ingest stops writing `manual_review`; everything else → `scripts/attic/`.
+- [~] **W6 — SCRIPTS CLEAN — SPLIT AFTER QC (2026-07-14).**
+      - [x] ingest_amazon_sellers stops writing `manual_review` (cip_87 consistency) · committed d3e0463
+      - [T] ATTIC the 35 dead one-off scripts — **BLOCKED: a concurrent session is editing 28 of
+            them right now.** Do the `git mv` only when `git status --short scripts/` is clean. P4.
+      - [→] Harvest REWRITE (24 pairs, agency guard, drop pinyin) — **MOVED TO PHASE 2.** Manual/
+            unscheduled, so it changes nothing today; belongs with the self-maintaining design.
 - [ ] **W7 — SCHEMA CONSISTENCY BATCH.** FKs, CHECKs, pinned/superseded fix, units + comment lies.
 - [ ] **W8 — SHRINK THE UNKNOWNS.** `lens_ps_china_evidence_grid` + ranked candidate report →
       **Tim flips**, nothing auto-flips.

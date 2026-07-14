@@ -221,7 +221,7 @@ INVARIANTS: tuple[Invariant, ...] = (
         why="Tim's rule: a brand is CONFIRMED Chinese on ANY approved indicator, or on a named "
             "human. Nothing else. This catches a NAME being promoted to a verdict — a Chinese NAME "
             "is not a Chinese COMPANY (Bob and Brad is Chinese; Lifepro is Los Angeles). Names "
-            "belong in `probable`, which is a queue for a human, not an answer. The old view had no "
+            "belong in `probable`, a queue for a human, not an answer. The old view had no "
             "strength floor at all: an ingest wrote UNRESOLVED research findings as weak china "
             "signals and 'Aiming Fluid Golf' — a Chico, California business — came out Chinese. "
             "NOTE `chinese_partner` IS on this list (cip_89). Tim: 'if they were refered by "

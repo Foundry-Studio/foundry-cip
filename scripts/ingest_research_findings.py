@@ -111,7 +111,8 @@ def main() -> int:
                 ev_bits.append(
                     ("amazon_seller_entity",
                      f"Amazon seller (INFORM Consumers Act disclosure): "
-                     f"{f['amazon_seller_name']} — {f.get('amazon_seller_address') or 'no address'}")
+                     f"{f['amazon_seller_name']} — "
+                     f"{f.get('amazon_seller_address') or 'no address'}")
                 )
             if f.get("owner_entity"):
                 ev_bits.append(
@@ -216,8 +217,10 @@ def main() -> int:
         print("=" * 78)
         for f in needs_tim:
             print(f"\n   {f['brand']}")
-            print(f"      trademark owner : {f.get('owner_entity')} — {f.get('owner_address')}")
-            print(f"      amazon seller   : {f.get('amazon_seller_name')} — {f.get('amazon_seller_address')}")
+            print(f"      trademark owner : {f.get('owner_entity')} "
+                  f"— {f.get('owner_address')}")
+            print(f"      amazon seller   : {f.get('amazon_seller_name')} "
+                  f"— {f.get('amazon_seller_address')}")
 
     if not args.apply:
         print("\nDRY RUN — nothing written. Re-run with --apply")

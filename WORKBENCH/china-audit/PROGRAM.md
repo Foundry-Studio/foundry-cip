@@ -19,22 +19,27 @@ current). Live parked discoveries: [PARKING.md](PARKING.md). Phase-1 history: [a
   cip_95 (probable retired). Grew from 1,600 via the July intake sheets (overdue +4; WeChat +104,
   incl. GHOST→REAL promotions as new contacts landed). Unknowns carry a next_step in
   `lens_ps_china_evidence_grid`.
-- **Schema:** alembic head **`cip_103_flat_fee_disposition`**. Phase-1 foundation = cip_87→cip_94.
+- **Schema:** alembic head **`cip_104_commission_engine`**. Phase-1 foundation = cip_87→cip_94.
   Since: cip_95 (retire probable → 3-state) · cip_97 (remove old cip_clients nationality system +
   4 dead views + the broken money writer) · cip_98/99 (drop 2 dead tables; comment raw source tables) ·
   cip_100 (`wechat_id` + `wechat_phone`) · cip_101/102 (`ps_partner_payouts` ledger + full docs) ·
-  cip_103 (flat-fee ownership labels + revenue-start).
+  cip_103 (flat-fee ownership labels + revenue-start) · **cip_104 (the commission recovery ENGINE,
+  lens-first: `lens_ps_rate_schedule` → `lens_ps_commission_ledger` → `lens_ps_claim` +
+  `ps_claim_statements`).**
 - **Money:** `ps_monthly_earnings` is a STATIC SNAPSHOT (as of 2026-07-14) — broken writer retired
   (cip_97). Raw Stripe facts (`ps_stripe_*`) live + syncing hourly. Payment history Dec-2025→Jun-2026
-  fully reconciled in `ps_payment_events` (totals tie exactly). us→partner payout ledger
-  `ps_partner_payouts` exists (cip_101). Replacement recompute engine = P2's deliverable.
-  **Money/claims math stays frozen until P2.**
+  fully reconciled in `ps_payment_events`. us→partner payout ledger `ps_partner_payouts` (cip_101).
+  **The LIVE recovery engine (cip_104) is built** — reconciles to the frozen snapshot **to the penny**
+  (formula recovered from the retired writer's git history); china still-owed ≈ **$10.88k**. The
+  frozen `ps_monthly_earnings` stays authoritative until the on-rails swap (writer-retire + consumer-
+  repoint), which is the ONE remaining shared-contract step — gated for Tim.
 - **Ownership (refined cip_103):** decided by "is anyone else being paid on this brand?", NOT list
   membership. Flat-fee-era-Eric brands (582) are OURS from 2025-12-01; genuinely-excluded (235) =
   the partner-earning buckets. Two revenue-start dates (never-listed 2025-10-01, flat-fee 2025-12-01);
   pre/post-cutover is a VANITY gut-check only. Recovery first-order ≈ $10.4k. Full spec:
   [OWNERSHIP-RULES.md](OWNERSHIP-RULES.md).
-- **Invariants: 21/21 green** (`scripts/check_invariants.py`, re-run 2026-07-15 post-cip_103).
+- **Invariants: 25/25 green** (`scripts/check_invariants.py`, re-run 2026-07-15 post-cip_104) — +4
+  engine gates: ledger-grain-unique, claim-requires-china, fee-only-when-claimable, rate-is-ladder.
 - **Metabase:** connection + role intact; cards built on the 4 dropped views error until P4 rebuilds.
 
 ## THE PROJECTS
@@ -43,7 +48,7 @@ current). Live parked discoveries: [PARKING.md](PARKING.md). Phase-1 history: [a
 |---|---------|-------|--------|-----------|
 | P0 | Program Hygiene & Setup | `959a0019` (WCC0) | **done** | Structure built; Phase-1 docs archived; rules re-grounded 2026-07-15 |
 | P1 | Raw Data Confirmation & Schema | `2b81922a` (WCC1) | **active — mostly done** | Overdue + WeChat sheets ingested; WeChat + multi-contact (cip_100); payments reconciled Dec–Jun; hygiene (cip_98/99); partner ledger (cip_101/102); flat-fee labels (cip_103). RESIDUE: identity spine, 549 seller records, HOLDS below |
-| P2 | Math Plan & Money Engine Rebuild | — | **not created — NEXT** | Propose ALL calculated fields → Tim confirms → BUILD the live recompute engine on rails (data+writer same wave) |
+| P2 | Math Plan & Money Engine Rebuild | — | **active — engine BUILT (lens-first, cip_104), reconciles** | Field catalog approved ([MATH-SPEC.md](MATH-SPEC.md)); ledger→claim lenses live + tested + 25 invariants. REMAINING: the on-rails swap (retire ps_monthly_earnings writer + repoint consumers), lens_ps_wayward_stated, partner-side reconciliation when Rhea's roster lands |
 | P3 | Ingest Automations | — | not created | Design source pulls, code-vs-LLM review checkpoints (Tim has ideas); governance gate applies to any MCP write tools |
 | P4 | Metabase Dashboards | — | not created | Layers, permissions, design; Metabase as base + possibly a smoother layer on top (Tim); card inventory first |
 | P5 | Owed vs Paid — Claim & Evidence | — | not created | Live owed-vs-paid; the KNOWN-Chinese-but-uncredited list (their HubSpot flag + payment sheets vs our book); pinned as-of statements |

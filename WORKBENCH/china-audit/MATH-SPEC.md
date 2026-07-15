@@ -1,6 +1,10 @@
-# MATH-SPEC — the money engine, every calculated field (P2 Phase A)
+# MATH-SPEC — the money engine, every calculated field (P2 Phase A → BUILT)
 
-**Status: SPEC for Tim's approval. No engine code exists yet. Approve this catalog before Phase B.**
+**Status (2026-07-15): BUILT — cip_104 shipped the lens stack (`lens_ps_rate_schedule` →
+`lens_ps_commission_ledger` → `lens_ps_claim` + `ps_claim_statements`), reconciled to the penny,
+25/25 invariants + tests green.** REMAINING: the on-rails swap (retire `ps_monthly_earnings` writer +
+repoint consumers — the ONE shared-contract step, gated for Tim); `lens_ps_wayward_stated` (deferred,
+needs the cip_deals→brand mapping); partner-side reconciliation when Rhea's roster lands.
 Design-first, per the approved P2 plan. The frozen snapshot (`ps_monthly_earnings`) stays untouched
 until the new engine is proven, then we swap on rails (data + writer same wave). Rules of record live
 in [OWNERSHIP-RULES.md](OWNERSHIP-RULES.md) and [RULES.md](RULES.md); this doc turns them into fields.
@@ -113,24 +117,43 @@ the sales signal, not `last_activity_at` (ambiguous source). (OWNERSHIP-RULES co
 
 ---
 
-## 3. PROPOSED ARCHITECTURE (⚠️ needs Tim's nod — it's the one real architectural call)
+## 3. ARCHITECTURE DECISION — LENS-FIRST (decided 2026-07-15; Tim delegated the call)
 
-**Recommendation: lens-first, thin-writer-for-the-ladder.** "Live math, not frozen" (Decision of
-Record) argues against a heavy periodic writer that goes stale.
+**Decision: a pure view stack. No materialized objects in v1.** Reasoning:
 
-- **Rules/rates/dates** live in tables (already do: subscriptions ladder, partner terms, disposition).
-- **The waterfall (L2–L8)** is a **view stack** over `ps_stripe_invoice_lines` + `ps_payment_events`
-  + `ps_partner_payouts` + the rules tables → always live, recomputes on read. Name:
-  `lens_ps_commission_ledger` (brand×product×month) → `lens_ps_claim` (net, china-gated).
-- **The one thing SQL-views do badly** is the time-varying rate ladder with reactivation re-anchor.
-  Options: (a) a small GENERATED/materialized helper `ps_rate_schedule` (brand×product×month→rate),
-  refreshed on subscription change; (b) a set-returning SQL function. **I lean (a).**
-- **`ps_monthly_earnings`** stops being authoritative; it becomes (or is replaced by) the derived
-  ledger. We keep it until the lens reconciles to it, then retire the writer + repoint consumers.
-- **On-rails swap:** build the lens alongside; reconcile; cut consumers over in one migration.
+- **Intent is decisive.** Decision of Record = "live math, not frozen — recompute continuously." We
+  retired the old writer *because* a compute-to-a-table went stale and embodied superseded law with
+  nobody noticing. A materialized table / scheduled writer reintroduces that exact failure mode (a
+  REFRESH lags or fails silently; the number looks authoritative while stale) — our recurring failure
+  class (old writer, corsair zombie: "computed once, looks current, isn't"). A view is derived on read
+  and structurally cannot go stale.
+- **Proven, not asserted.** The collected formula, recovered from the retired writer's git history, was
+  reconciled against the frozen snapshot: **every historical month ties to the penny** (2025-10 …
+  2026-06); the only delta is **+$1,781 of NEW collections since the 2026-07-14 freeze** — the lens is
+  already MORE correct than the snapshot after one day. That +$1,781 is the whole argument, concrete.
+- **SQL-expressible.** Collected = `Σ amount FILTER(invoice_status='paid')` over `is_ps_base AND
+  product_id NOT NULL AND wayward_brand_id NOT NULL`, grouped brand×product×billing_month. Ladder =
+  CASE on stored dates (`productive_date +12mo → 10%`, `+18mo → 6%`, else 3%). Reactivation re-anchor =
+  `GREATEST(productive_date, qualifying_reactivated_at)`. No procedural logic → no writer needed.
+- **Performance is not a real cost** at tens-of-thousands of rows (server-side, sub-second; Metabase
+  queries views fine). IF a P4 dashboard is *measured* slow → wrap the FINAL lens in a
+  `MATERIALIZED VIEW` + scheduled `REFRESH`: additive, no redesign. Escape hatch, not architecture.
+- **The one thing that MUST freeze** — a claim handed to Wayward — is a SEPARATE snapshot table
+  `ps_claim_statements` (SELECT the live lens INTO a pinned as-of row at statement time). Lens-first
+  separates *live truth* (lens) from *pinned statement* (snapshot); a materialized ledger blurs them.
+- **Testability:** insert known facts → assert derived output; deterministic, no refresh timing.
 
-**Alternative** (if Tim prefers): a materialized `ps_commission_ledger` table refreshed by a scheduled
-recompute — simpler for Metabase, but reintroduces a writer that can lag. I recommend lens-first.
+**Objects (all views except the one table):** `lens_ps_rate_schedule` (re-anchored ladder) →
+`lens_ps_commission_ledger` (waterfall L2–L8) → `lens_ps_claim` (net, china-gated);
+`lens_ps_wayward_stated` (typed HubSpot cross-check); **`ps_claim_statements`** (the one table —
+pinned as-of claims). `ps_monthly_earnings` stays as-is until the lens reconciles, then the writer
+retires + consumers repoint — the **on-rails swap, the ONE shared-contract step, gated for Tim.**
+
+**Recovered exact collected formula (validated):** `is_ps_base AND invoice_status='paid' AND
+product_id IS NOT NULL AND wayward_brand_id IS NOT NULL AND billing_month IS NOT NULL`, `Σ amount`
+grouped brand×product×billing_month. Billed = same base, status IN ('paid','open') (voids/uncollectible
+excluded — a void was never billed). Partner note: `deal_type='flat_fee'` partners earn NOTHING
+ongoing (rate 0 regardless of `partner_rate`).
 
 ---
 

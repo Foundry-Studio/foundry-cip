@@ -67,3 +67,4 @@ uv.lock
 
 # Client data intake (overdue/collection sheets, PII) — NEVER commit (P1 china-audit)
 WORKBENCH/china-audit/intake/
+WORKBENCH/china-audit/reports/*.xlsx

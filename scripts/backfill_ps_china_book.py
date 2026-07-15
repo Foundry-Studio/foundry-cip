@@ -12,7 +12,6 @@ Sources (paths are CLI args; defaults point at the venture-ecomlever artifacts):
   - EXCLUSION-LIST-EXHIBIT-A.csv     → cip_clients.exhibit_a (~235)
   - MASTER-FIGHT-70.csv              → ps_claims #001 (draft) + lines
   - MASTER-FINDERS-FEE-314.csv       → ps_partner_credit + ps_attribution (finders_fee)
-  - rule pass over cip_clients       → nationality_class first pass (name-signals)
 
 Every backfilled surface writes a ps_annotations provenance row
 (author=agent:claude_code, source_ref=<artifact>).
@@ -293,30 +292,6 @@ def backfill_finders_fee(conn, rows, source_ref) -> dict:
     return {"finders_fee_credited": credited, "finders_fee_attributed": attributed}
 
 
-_CJK = re.compile(r"[一-鿿㐀-䶿]")
-
-
-def classification_pass(conn, source_ref) -> dict:
-    """Phase-1 first pass over cip_clients using name-only signals (CJK chars).
-    Country/domain/email/phone signals need cip_companies/contacts joins — that
-    is the Phase-2 recurring job (S8 out of scope). Confirmed only on strong
-    (CJK-in-name) evidence; everything else left as-is ('unknown')."""
-    rows = conn.execute(text("SELECT id, name FROM cip_clients")).fetchall()
-    upd = text(
-        "UPDATE cip_clients SET nationality_class='chinese_confirmed' "
-        "WHERE id=:cid AND nationality_class <> 'chinese_confirmed'"
-    )
-    confirmed = 0
-    for cid, name in rows:
-        if name and _CJK.search(name):
-            conn.execute(upd, {"cid": str(cid)})
-            confirmed += 1
-    _annotate(conn, "cip_clients", "classification", "provenance",
-              f"name-signal classification pass: {confirmed} chinese_confirmed (CJK-in-name)",
-              source_ref)
-    return {"classification_confirmed": confirmed, "clients_scanned": len(rows)}
-
-
 def _read_csv(path: Path) -> list[dict]:
     with path.open(encoding="utf-8-sig", newline="") as f:
         return list(csv.DictReader(f))
@@ -340,7 +315,6 @@ def run_backfill(engine, report_path: Path, audit_dir: Path, *, dry_run: bool) -
         summary |= backfill_finders_fee(
             conn, _read_csv(audit_dir / "MASTER-FINDERS-FEE-314.csv"),
             "MASTER-FINDERS-FEE-314.csv")
-        summary |= classification_pass(conn, "ps_classification_rules")
         # Verification (read inside the txn)
         pe = conn.execute(text(
             "SELECT count(*), coalesce(sum(usage_fees_paid),0), "

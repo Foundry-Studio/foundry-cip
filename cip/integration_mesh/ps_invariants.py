@@ -221,7 +221,8 @@ INVARIANTS: tuple[Invariant, ...] = (
         why="Tim's rule: a brand is CONFIRMED Chinese on ANY approved indicator, or on a named "
             "human. Nothing else. This catches a NAME being promoted to a verdict — a Chinese NAME "
             "is not a Chinese COMPANY (Bob and Brad is Chinese; Lifepro is Los Angeles). Names "
-            "belong in `probable`, a queue for a human, not an answer. The old view had no "
+            "stay `unknown` (cip_95 retired the empty `probable` state); the evidence grid flags "
+            "them pinyin_name and routes them — a name is never an answer. The old view had no "
             "strength floor at all: an ingest wrote UNRESOLVED research findings as weak china "
             "signals and 'Aiming Fluid Golf' — a Chico, California business — came out Chinese. "
             "NOTE `chinese_partner` IS on this list (cip_89). Tim: 'if they were refered by "
@@ -311,7 +312,7 @@ INVARIANTS: tuple[Invariant, ...] = (
             "while the verdict said CHINA (COOLIFE, Heyvalue, Gelrova, Neathova, Jarkyfine, "
             "MOSDART) — each carrying a +86 phone or sitting on the frozen exclusion list. Two "
             "authoritative-looking answers to the same question, on the money table itself. "
-            "NULL is not FALSE: probable and unknown propagate as NULL, because 'we have not "
+            "NULL is not FALSE: unknown propagates as NULL, because 'we have not "
             "decided' is not 'not Chinese' (cip_72), and treating it as false silently drops "
             "brands out of the book.",
     ),

@@ -32,17 +32,18 @@ Caveat: the COMPUTED side (owed) is a **frozen snapshot** until P2 rebuilds the 
 
 ---
 
-## GAPS (schema additions to propose — not built yet)
+## GAPS
 
-1. **"Accrued, not yet billed to client"** — we only see usage once Wayward INVOICES it. There is no
-   pre-invoice usage feed (the `free_tier_daily_usage` table is unrelated FAS LLM data). So layer 1
-   is ESTIMABLE (from run-rate) but not directly measurable. → **Jake ask:** can we get usage before
-   it is invoiced? Until then, layer 1 is a projection, not a fact.
-2. **"We paid partners"** — there is **no partner-payout ledger.** We track partner_OWED but not
-   partner_PAID. `flat_fee_paid_at` is one date, unused (0 rows), and can't hold per-period amounts.
-   → **Propose `ps_partner_payouts`** (partner × period × amount paid + ref), mirroring
-   `ps_payment_events`. Then "owed vs paid to partners" reconciles exactly like "owed vs paid from
-   Wayward."
+1. **"Accrued, not yet billed to client"** — we only see usage once Wayward INVOICES it; no
+   pre-invoice usage feed (`free_tier_daily_usage` is unrelated FAS LLM data). **Tim, 2026-07-15:**
+   don't build it — Wayward almost certainly reconciles at invoice time today, so the data likely
+   doesn't exist yet. **Non-dependent: ask Jake; build the field later only if he can provide it.**
+   Added to DATA-WE-NEED.md.
+2. **"We paid partners"** — ✅ **RESOLVED (cip_101): `ps_partner_payouts`** — the us→partner ledger,
+   mirroring `ps_payment_events`. **SCOPE (Tim's rule):** only partners WE pay (brands referred in
+   OUR timeframe, post-cutover). Partners on the 10% exclusion list are paid by **Wayward** directly
+   and are NOT recorded here. Direct (no-partner) deals have no rows. Reconcile `amount_paid` vs
+   `ps_monthly_earnings.partner_owed` for the partner shortfall (the math is P2).
 
 ## LAYERS to make explicit (answer to "any layer I forgot?")
 - **"What Wayward has actually PAID us"** — you folded this into "Wayward owes us," but it is a
@@ -64,8 +65,21 @@ rev_share_start_date, days_since_start), invoice ids + links. Nothing looks un-m
   its columns against `ps_payment_events`. (We hold the ingested data, not the raw files — those were
   loaded in a prior session.)
 
-## Open decisions for Tim
-1. Approve **`ps_partner_payouts`** table (gap 2)?
-2. Do refunds/adjustments need their own home, or is `usage_voided` + invoice-status enough?
-3. Add the **un-invoiced-usage** ask to Jake's list (gap 1)?
-4. Want me to diff a re-dropped payment sheet vs `ps_payment_events` to confirm nothing was dropped?
+## PARTNER PORTAL — use cases the schema must support (Tim, 2026-07-15; fact-checked)
+Each partner will see what's in flight for THEIR referred brands: fees heading to Wayward, what
+Wayward has billed but not collected, and what's been collected — from which the partner is **owed
+their amount** (we keep ours). The partner does NOT see the Wayward→us→partner chain; they just see
+"client paid Wayward → you are owed $XXX." Schema supports it:
+- partner → brand/product: `ps_partner_credit` (2,869 attributions) + `ps_partner_registry`.
+- in-flight / billed-not-collected / collected: `ps_stripe_invoices` + `ps_monthly_earnings`
+  (usage_billed / usage_outstanding / usage_collected).
+- partner owed: `ps_monthly_earnings.partner_owed` (+ partner_rate_pct).
+- partner paid: `ps_partner_payouts` (cip_101).
+- **Direct deals (no partner)** have no `ps_partner_credit` / payout rows — handled natively.
+The portal itself is a later reporting/lens build (P4); the DATA it needs is now all present.
+
+## Decisions — settled 2026-07-15
+1. `ps_partner_payouts` — **approved, built (cip_101).**
+2. Refunds/adjustments — **not needed now; cross later.**
+3. Un-invoiced usage — **ask Jake; build later only if he can provide it** (non-dependent).
+4. Payment-sheet re-drop + diff — **yes; awaiting a payment sheet dropped in `intake/`.**

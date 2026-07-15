@@ -25,6 +25,12 @@ not manual sheets:
 **Ask shape:** (1) a backfill of the historical richer detail; (2) the live HubSpot/brand connector
 extended so new/updated brands carry it going forward. Not sent yet — queued.
 
+### Un-invoiced (accrued) usage — for the money waterfall
+Can we see client usage **before** Wayward invoices it? (Tim, 2026-07-15: suspects they reconcile at
+invoice time today, so it probably doesn't exist yet.) If Jake can provide accrued/un-invoiced
+usage, we build the "expected income on unbilled" layer then — **non-dependent**, no schema change
+until he confirms. See MONEY-WATERFALL.md gap 1.
+
 ## For RHEA — partner roster & rates
 Where the partner roster + commission rates live (referenced across the audit; needed for the
 attribution/SOP phase). Deferred to that phase; note to update OWNERSHIP-RULES.md + PROGRAM.md then.

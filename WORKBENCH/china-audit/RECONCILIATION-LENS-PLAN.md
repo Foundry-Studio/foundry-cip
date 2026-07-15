@@ -1,67 +1,72 @@
-# PLAN — Wayward reconciliation lens (our claim ↔ Wayward's acknowledgment ↔ paid)
+# PLAN — Wayward reconciliation lens (VALIDATED by 2 subagents 2026-07-15)
 
-**Status: PLAN for review — no code yet. Being pressure-tested by a subagent for blast radius.**
+**Status: plan validated + corrected by blast-radius (A) and mapping (B) subagents. Ready to build on
+Tim's go.** Blast radius confirmed LOW/additive — nothing breaks.
 
 ## Goal
-One row per brand showing the **delta ladder** Tim asked for:
-1. **WE say** — our verdict (china) + `ps_claim_owed` (our engine, cip_104).
-2. **WAYWARD acknowledges** — do they credit us? From `cip_deals.properties.attribution_source`
-   (e.g. "China Referral - Tim"), `attribution_active`, `average_attribution_commission_rate`.
-3. **WAYWARD paid** — `ps_payment_events.rev_share_stated`.
+One row per brand: **WE say china + owe $X · WAYWARD credits "China Referral - Tim" (or not) + their
+own commission number · WAYWARD paid $Y** → a `delta_status`. The point: surface **what Wayward's own
+CRM already admits owing us but hasn't paid.**
 
-So at a glance: *brands Wayward doesn't even acknowledge as ours · brands they credit to Tim but
-haven't paid (THE ASK) · brands paid.* Updates itself as Wayward edits HubSpot (hourly sync).
+## THE REFRAME the subagents surfaced (this is the important part)
+Our $11,099 claim splits three ways by whether Wayward *acknowledges* it:
+| bucket | brands | measure |
+|---|---|---|
+| **Wayward credits Tim, active, but $0 paid** | **194** | **≈ $14,603** Wayward-acknowledged lifetime commissions ($104,343 GMV @ ~14.8%) |
+| We claim, Wayward acknowledges NOBODY | 109 | ~$10,168 of our mgmt-fee owed (92% of our pool) |
+| We claim, Wayward credits someone else (Eric/Adina/…) | 16 | ~$521 (contested) |
 
-## The mapping (the crux)
-`cip_deals` has no `wayward_brand_id` — it carries `source_id` (HubSpot deal id) + `company_id`.
-Bridge: **`ps_brand_observations` (field=`hubspot_deal_id`) → `cip_deals.source_id`**.
-Verified coverage: 1,347 brands carry a `hubspot_deal_id`; **1,215 match a `cip_deals.source_id`.**
-(Brands with no HubSpot deal — slack/stripe-only — simply show NULL attribution = "not acknowledged".)
+The first bucket is the **strongest ask — Wayward's own system says it's owed.** The lens makes all
+three visible and self-updating.
 
-## ⚠️ Blast-radius flags found already
-- **The existing attribution lenses are EMPTY** (`lens_tim_attributed_deals`,
-  `lens_wayward_attribution_summary`, + per-partner ones all return **0 rows**) — their filters
-  predate the current `attribution_source = "China Referral - Tim"` format. **Do NOT reuse them; do
-  NOT assume anything reads them.** (Subagent: confirm why they're empty + whether anything depends
-  on them / Metabase cards break.)
-- There are ~17 views over `cip_deals` (`lens_ps_china_commission`, `lens_ps_china_deal_financials`,
-  `lens_ps_china_brands_by_original_attribution`, …). Subagent: do any already do this reconciliation?
-  Any we'd duplicate or should fix instead of adding a 18th?
+## Mapping (CORRECTED by subagent B — two traps avoided)
+- ⚠️ **`cip_deals.source_id` is NOT unique** (1,530 version-dupes; stale copies have BLANK attribution).
+  MUST dedup first: `DISTINCT ON (source_id) … ORDER BY refreshed_at DESC`. Skipping this both
+  multiplies rows AND nulls-out the attribution. Non-negotiable.
+- ⚠️ **`cip_deals.company_id` is 100% NULL** — the company key is `properties->>'hs_primary_associated_company'`.
+- **Bridge on deal_id UNION company:** `ps_brand_observations(field='hubspot_deal_id').value = source_id`
+  **∪** `(field='hubspot_company_id').value = hs_primary_associated_company`. Coverage over the 1,126
+  china brands: deal 576, company 602, **union 606**. Deal bridge is strictly 1:1 (no multi-deal
+  fan-out); **no brand has conflicting attribution sources** → aggregation is trivial.
+- ~550 china brands have no HubSpot deal (slack/stripe-only) → NULL attribution = "not acknowledged".
+  Label it so it never reads as "$0 owed".
 
-## Proposed object (additive, read-only)
-`lens_ps_wayward_reconciliation` (per brand):
+## Object: `lens_ps_wayward_reconciliation` (per wayward_brand_id)
 | column | source |
 |---|---|
-| wayward_brand_id, brand_name | ps_brands |
-| our_verdict, our_claim_owed | lens_ps_claim |
-| wayward_attribution_source | cip_deals via hubspot_deal_id map (agg per brand) |
-| wayward_credits_ps (bool) | attribution_source ILIKE '%Tim%' |
+| our_verdict, our_mgmt_fee_owed, our_claim_owed, wayward_paid | **reuse `lens_ps_claim`** (live cip_104 — do NOT re-derive money) |
+| wayward_credits_ps (bool) | `attribution_source ILIKE '%Tim%'` (verified: matches ONLY "China Referral - Tim", 492 — no false hits) |
+| wayward_attribution_source | deduped cip_deals (prefer the active row, else freshest) |
 | wayward_attribution_active | cip_deals |
-| wayward_stated_rate | avg_attribution_commission_rate |
-| wayward_paid | ps_payment_events |
-| delta_status | derived (below) |
+| wayward_ack_commission | **`properties->>'lifetime_commissions_generated'`** — Wayward's OWN owed number (THE ask measure, not ps_claim_owed) |
+| wayward_ack_rate, wayward_ack_gmv | avg_attribution_commission_rate, lifetime_gmv |
+| delta_status | derived |
 
-`delta_status`: `paid` · `acknowledged_unpaid` (credits Tim, active, $0 paid → the ask) ·
-`we_claim_credit_other` (we say china+owed, Wayward credits Eric/Adina) · `we_claim_no_ack`
-(we say china+owed, no Wayward attribution) · `not_ours`.
+`delta_status`: `paid` · **`acknowledged_unpaid`** (credits Tim + active + $0 paid → the ask) ·
+`we_claim_credit_other` (we owe, Wayward credits Eric/Adina) · `we_claim_no_ack` (we owe, no Wayward
+attribution) · `not_ours`.
 
-## Self-QC (my pass)
-- **Fan-out risk:** one brand → many deals (connect+boost, historical). MUST aggregate per brand
-  (bool_or credits_ps, pick active/latest attribution) or the join multiplies rows / double-labels.
-- **Mapping gap:** ~1,215 of the china brands map; the rest show NULL attribution — correct (=
-  "Wayward hasn't acknowledged"), not an error, but label it so it's not read as "$0 owed".
-- **attribution_source parsing:** `%Tim%` match — verify no false hits (no other source contains
-  "Tim"); "China Referral - Tim" is the only Tim value seen.
-- **RLS:** cip_deals is tenant-scoped; the lens inherits it (same pattern as cip_104). Confirm.
-- **Perf:** cip_deals ~5.2k rows — a view is fine; no materialization.
-- **Not authoritative for money:** this is a *reconciliation/negotiation* view, NOT a claim input.
-  The claim stays lens_ps_claim. This lens only *compares*.
+**⚠️ Do NOT headline `ps_claim_owed` for the ask.** It's a mgmt-fee residual already net of payments,
+floored at 0 — it reads $30 for the acknowledged-unpaid set because those are newer/low-realized
+brands. The real ask is Wayward's own `lifetime_commissions_generated` (~$14.6k). Keep `ps_claim_owed`
+as a column (our formal management-fee claim) but drive `acknowledged_unpaid` from Wayward's number.
 
-## What the subagent must verify (blast radius)
-1. Why are the existing attribution lenses empty — stale filter? and does ANYTHING (Metabase, code,
-   other lens) depend on them (so a fix/rebuild wouldn't break a consumer)?
-2. Is the `hubspot_deal_id → source_id` mapping the right/complete bridge, or is `company_id` better?
-   Fan-out shape (deals per brand)?
-3. Does any existing lens already produce this reconciliation (don't duplicate)?
-4. RLS + grant pattern for a new lens over cip_deals; any risk to the hourly HubSpot sync.
-5. Sanity-check the `delta_status` logic against real rows (esp. the "China Referral - Tim" 493).
+## Blast radius (subagent A — CONFIRMED LOW)
+- The old `lens_*_attributed_deals` / `lens_wayward_attribution_summary` are empty because they're the
+  **ecomlever tenant's `hubspot-v1` lenses** (our deals are mirrored under `lens-mirror-deals-v1`) —
+  NOT a stale filter. **Zero consumers** (no DB dependents, no code, no Metabase). Leave them; don't
+  build on them.
+- `cip_deals` has FORCE RLS + `cip_tenant_scope` — the lens is tenant-scoped automatically (add the
+  explicit `tenant_id` filter for defense-in-depth, matching every `lens_ps_*`).
+- No triggers on cip_deals; a view's SELECT (ACCESS SHARE) never blocks the hourly HubSpot sync.
+- Grants: `cip_query_reader, cip_metabase_project_silk, cip_twenty_project_silk, metabase_reader_foundry`
+  (+ guarded `cip_rls_test_role`) — the current `lens_ps_*` block.
+- No existing lens does this 3-axis reconciliation. `lens_ps_claim_reconciliation` does 2 axes off the
+  FROZEN snapshot — we supersede that by layering on the live `lens_ps_claim`.
+
+## Build steps (on Tim's go)
+1. Migration `cip_105_wayward_reconciliation` — `CREATE VIEW lens_ps_wayward_reconciliation` (deduped
+   cip_deals ∪ bridges → attribution; join live `lens_ps_claim`) + comments + standard grants.
+2. Tier-C (up/down/up + full-chain replay) · ruff · a behavioral test (seed a Tim-credited-unpaid
+   brand → assert `acknowledged_unpaid`) · reconcile the 194-brand / ~$14.6k headline on prod.
+3. Commit + push. Additive, read-only; the frozen snapshot + claim engine are untouched.

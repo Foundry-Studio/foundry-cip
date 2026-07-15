@@ -109,6 +109,27 @@ next-step)**. Money untouched throughout ($2,367,010.10 billed). Invariants 17 �
 **NEXT: Phase 2 (self-maintaining) — design WITH Tim.** Also carried: W6 attic (when repo quiescent),
 the 549 seller records, B1/B2/B3, and the REVIEW_USA flips.
 
+## ✅ REVIEW_USA DWINDLE — 2026-07-14 (Tim: "dwindle the list down before I have to review").
+Research-fleet loop: general-purpose subagents confirm OWNERSHIP COUNTRY with a source; I re-check
+and apply via `scripts/ingest_usa_research.py` (guard = china book may only grow; re-derives
+is_chinese; holds borderline). ~7 batches of 20×3.
+- **Book now: china 1,600 · not_china 310 · unknown 652.** From dwindle start (not_china 39):
+  **+271 not_china, +9 china, 280 unknowns cleared.** Money still frozen & untouched.
+- **China caught behind US fronts:** Nine Carat (Difung/Shenzhen), SinAlpha (Nanjiang, +86/.cn),
+  VVENACE (Guangzhou+Kowloon HK), CuPiLo (Xiamen) — plus earlier Ltinist, FLEXTAILGEAR, MorningBlues,
+  OutIn, Forthiq. Own-page Chinese address or Chinese trademark owner = the tell.
+- **not_china spanned many countries** (US, UK, EE, NL, IE, IL, IN, KR, KG, RO, AU, DE, PK) — a
+  named/registered non-China owner, never a "Made in USA" claim.
+- **HELD FOR TIM (scratchpad/hold_for_tim.json):** Solid Gold (real US brand, HK parent H&H —
+  parent-nationality call), NORDMOND (conflicted RO-vs-China), Intent Brands (leans US, WY mail-drop).
+- **STOPPED** because (a) account session limit hit ~9:40pm CT killed batch-7 chunk 3 (20 brands,
+  never written), and (b) the residual is now Jake's, not web-research's:
+  **REVIEW_USA 106 · RESEARCH_SELLER 446 · ENRICH_OR_JAKE 100** — 589 of these still bill
+  ($404,810.43 collected unattributed). The REVIEW_USA residual is mostly UNRESOLVED anonymous
+  Amazon shells / WY mail-drops; the rest need Amazon Seller-of-record (Jake) or enrichment.
+- **NEXT:** hand the 3 held brands to Tim; hand the shell tail to Jake (Amazon Seller Central); the
+  549 A-track seller records ingest is built & tested and would clear a big slice of RESEARCH_SELLER.
+
 ## PHASE 2 (queued, do not start): D2 dead CIP tables · D3 freshness monitor rewrite ·
 ## deterministic recompute chain on the FAS rails · LLM check-in design — WITH TIM.
 

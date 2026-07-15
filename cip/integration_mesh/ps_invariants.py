@@ -324,6 +324,43 @@ INVARIANTS: tuple[Invariant, ...] = (
             "one silently wins and a brand Tim personally ruled Chinese renders as not_china, "
             "dropping out of the book. Zero today is luck; nothing prevents it.",
     ),
+    # ── the commission engine (cip_104): the live money math must obey its own gates ──
+    Invariant(
+        key="ledger_grain_unique",
+        sql="""SELECT count(*) FROM (
+                 SELECT 1 FROM lens_ps_commission_ledger
+                 GROUP BY wayward_brand_id, product_id, period_month
+                 HAVING count(*) > 1) d""",
+        why="The live ledger is one row per brand x product x month, same as the frozen spine. A "
+            "duplicate — e.g. a fan-out from the ps_partner_credit join — double-counts a month's "
+            "collected usage and every fee derived from it.",
+    ),
+    Invariant(
+        key="claim_requires_china",
+        sql="""SELECT count(*) FROM lens_ps_commission_ledger
+               WHERE claimable AND verdict IS DISTINCT FROM 'china'""",
+        why="The nationality gate: a row can only be claimable when the brand's verdict is china. "
+            "unknown is QUEUED (claim_status='unknown_nationality'), never claimed; not_china is "
+            "never claimed. If this ever counts >0, we are billing Wayward for a brand we have not "
+            "proven Chinese — the exact thing the audit exists to avoid.",
+    ),
+    Invariant(
+        key="fee_only_when_claimable",
+        sql="""SELECT count(*) FROM lens_ps_commission_ledger
+               WHERE NOT claimable AND mgmt_fee_owed <> 0""",
+        why="mgmt_fee_owed must be $0 whenever a row is not claimable (not_china, excluded bucket, "
+            "or a month before the revenue-start). A non-zero fee on a non-claimable row means the "
+            "ownership/nationality/revenue-start gate leaked — money owed on a brand that is not "
+            "ours or not yet ours.",
+    ),
+    Invariant(
+        key="mgmt_rate_is_ladder",
+        sql="""SELECT count(*) FROM lens_ps_commission_ledger
+               WHERE mgmt_rate NOT IN (0.10, 0.06, 0.03)""",
+        why="The management rate is only ever 10%, 6%, or 3% (the ladder). Any other value means "
+            "the rate CASE or the re-anchored ladder dates in lens_ps_rate_schedule produced "
+            "something impossible — a mispriced claim.",
+    ),
 )
 
 

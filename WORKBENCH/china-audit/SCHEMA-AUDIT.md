@@ -78,6 +78,26 @@ list is the first data. Separate from partner attribution (already per-product).
 
 ---
 
+## SLACK #amazon-brand-connections — deep check (2026-07-15)
+The channel is an automated **n8n** feed: one structured message per new brand
+(`*Label*: value`), parsed by `scripts/ingest_slack_brand_connections.py` into
+`ps_brand_observations`.
+- **Schema is ready — every field has a home.** `ps_brand_observations` is a generic key-value fact
+  store (one row per field, with `source_system` + a Slack permalink `source_ref`), so ANY field the
+  feed carries lands cleanly as an observation. This is the "facts vs conclusions" design — Slack
+  says Country=CN, HubSpot says US, both coexist as facts; the decision layer resolves them.
+- **We capture 14 fields** (all populated): brand_name, website, contact_name, email,
+  connection_event_at, products_synced, referral_source, wayward_brand_id, country, deal_source,
+  usage_fee, saas_fee (+ hubspot_company_id / hubspot_deal_id from the link URLs). `usage_fee`/
+  `saas_fee` are only on ~897 of 1,348 (logged only on China-referral deals — expected).
+- **The one gap is INGEST completeness, not schema:** the parser maps a FIXED 12-label whitelist
+  (`_FIELDS`), so any NEW n8n label is silently dropped. Not verifiable from this environment (no
+  Slack token / read tool / stored sample) — **needs one raw "New Amazon Brand Connection" message
+  to diff against the 12.**
+- **Automation design rule (P3):** the rebuilt ingest should parse EVERY `*Label*: value` generically
+  (not a fixed whitelist) so a new n8n field auto-flows in as an observation with no code change.
+  That is the "goes in clean" guarantee.
+
 ## WHAT THIS ROUND DID NOT DO (proposed Round 2, needs Tim's input)
 - **Column-level dead sweep** across all tables (which specific columns nothing reads).
 - **The "is anything MISSING that we NEED" gut-check** — coverage against *what the source provides*

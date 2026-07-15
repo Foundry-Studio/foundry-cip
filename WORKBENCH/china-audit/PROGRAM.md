@@ -2,7 +2,9 @@
 
 **The read-first map for everything after Phase 1.** One page: where we are, the projects, what's
 decided, what waits on Tim. Rules live in [RULES.md](RULES.md) — read those before acting.
-Live parked discoveries: [PARKING.md](PARKING.md). Phase-1 history: [archive/](archive/).
+Tim's settled deal/money rules + schema review: [OWNERSHIP-RULES.md](OWNERSHIP-RULES.md) (P2's spec
+seed; note the frozen snapshot's `is_claimable`/`claim_basis` embody SUPERSEDED law — never read as
+current). Live parked discoveries: [PARKING.md](PARKING.md). Phase-1 history: [archive/](archive/).
 
 - **PM initiative:** `Wayward China Commission — Recovery & Ongoing` (`be0bede6-7f33-4681-af1f-c5d1afcc83f4`) —
   **deliberately separate from every other PS initiative. Other PS work is out of scope for this program.**

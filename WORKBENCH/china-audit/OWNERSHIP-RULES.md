@@ -94,15 +94,24 @@ Wayward's OWN stated numbers live only in `cip_deals.properties` JSONB, un-typed
 typed lens (type once, don't re-parse per consumer), as part of the math design. Full detail:
 [SCHEMA-AUDIT.md](SCHEMA-AUDIT.md) Finding 1. **Do not forget this in P2.**
 
-### 🎯 RECOVERY SCOPE — what we actually pursue (Tim, 2026-07-15)
-The recovery = **our management 10% on collected usage** for China brands we manage, from the revenue
-anchor (2025-10-01), MINUS what Wayward has already paid us.
-- **Exclusion / flat-fee list = NOT ours.** On `ps_excluded_brands` means someone else (Eric et al.)
-  is the one being paid on that brand — excluded from recovery. (A flat-fee where PS is the one paid
-  is not on this list; it stays ours.)
-- **Pre-cutover REFERRAL commissions: do NOT pursue.** For pre-cutover brands we manage we still
-  pursue our **management 10%** from the anchor date (non-exclusion only) — not the referral piece,
-  not pre-anchor revenue.
+### 🎯 RECOVERY SCOPE — what we actually pursue (Tim, 2026-07-15; refined + encoded in cip_103)
+Ownership is decided by **"is anyone else being paid on this brand?"** — NOT by raw list membership.
+The recovery = **our management 10% on collected usage** for China brands we own, MINUS what Wayward
+has already paid us. **Two revenue-start dates apply** (Tim: "we have different cutover dates for each"):
+
+- **Never-listed china brands** (not on the contract exhibit): ours from the **2025-10-01 anchor**.
+- **Flat-fee-era-Eric brands** — bucket `Eric Flat Fee Brands` (582): Eric is paid a FLAT FEE, so the
+  usage rev-share is free and **Wayward already pays it to us** (415/582 appear in Jake's payment
+  sheets, ~$11.3k paid). **These are OURS** — but only for revenue from the **first billing cycle
+  Jake sent a sheet for (2025-12-01)**, NOT the revenue before that. Encoded on `ps_excluded_brands`
+  as `disposition='flat_fee_era_eric'` + `ours_revenue_from='2025-12-01'` (cip_103) — labeled so we
+  can act on this cohort later (e.g. when Eric's flat-fee arrangement ends and the rate steps down).
+- **Genuinely excluded (NOT ours):** the buckets where a partner actually earns the rev-share —
+  Eric Rev Share, Heavy Producer, Jeremy Caspar, Shallow, OpenLight, OceanWing (235 rows,
+  `disposition='excluded'`, `ours_revenue_from` NULL). Don't pursue unless a **win-back trigger**
+  fires. `lens_ps_exclusion_status.takeable` already computes the ours-vs-not answer live.
+- **Pre-cutover REFERRAL commissions: do NOT pursue** — only the management 10% from the applicable
+  revenue-start; never pre-anchor revenue, never the referral piece.
 - **Post-cutover brands: fully ours** (management 10%; partner referral per the partner rules).
 - **Partner payout rate = 5% default** until Rhea's roster gives real per-partner rates
   (`ps_partner_terms._default` already = 5%). When the roster lands, **review it and manually map
@@ -113,7 +122,16 @@ anchor (2025-10-01), MINUS what Wayward has already paid us.
   future-proof any raw sheet: `lytasaur` / `Litusor` / `referral(lytasaur)` → `eric` in
   `ps_partner_aliases`. **If Tim has the exact contract spelling, add that exact alias too.**
 
-First-order magnitude (flat 10%, data through Jun 2026; precise number = the P2 engine): non-exclusion
-China management fee **still-owed ≈ $10.4k** across ~306 brands (~$9.5k pre-cutover, ~$0.8k
-post-cutover). Of the 278 China brands Wayward collected on but paid $0, **111 are ours** (not on
-Eric's list); 167 are Eric's (correctly excluded).
+**Pre/post-cutover is a VANITY gut-check ONLY (Tim, 2026-07-15).** We will never report on it or treat
+a brand differently by it — a china brand we own is ours regardless of which side of the freeze it
+signed up on. It exists only to sanity-check that the math counts the right brands. (This is why the
+freeze date isn't in the ownership logic — only the two revenue-start dates above are.)
+
+First-order magnitude (flat 10%, data through Jun 2026; precise number = the P2 engine): still-owed
+**≈ $10.4k**. Bringing the granted flat-fee brands in as ours moves the claim by only **~$490** — they
+are already ~square (Wayward pays them). The recovery is concentrated in **pre-cutover legacy** (~$10k;
+Wayward paid only 44% of the implied 10% there); post-cutover *new* brands are ~83% paid, hence only
+~$0.8k. Spot-checked and correct: **Tiny Land** ($1,152 owed, signup 2025-11-04 → falls in the
+pre-cutover bucket, not post) and **Beetles** (signup 2025-12-08, post-cutover but ~fully paid → ~$7).
+Of the 278 China brands Wayward collected on but paid $0, **111 are ours** (not genuinely excluded);
+167 are on partner-earning buckets (correctly excluded).

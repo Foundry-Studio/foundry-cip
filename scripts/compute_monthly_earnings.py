@@ -210,13 +210,13 @@ EARNINGS = text("""
         -- exclusion list (COOLIFE, Heyvalue, Gelrova, Neathova, Jarkyfine, MOSDART). Two
         -- authoritative-looking answers to "is this brand Chinese", on the money table itself.
         --
-        -- NULL where we do not know. `probable` and `unknown` are NOT false — that is the cip_72
+        -- NULL where we do not know. `unknown` is NOT false — that is the cip_72
         -- lesson, and treating "we have not decided" as "not Chinese" silently drops brands out of
         -- the book. NULL propagates; it does not lie.
         CASE cv.verdict
             WHEN 'china'     THEN true
             WHEN 'not_china' THEN false
-            ELSE NULL                    -- 'probable' / 'unknown' / no row
+            ELSE NULL                    -- 'unknown' / no row (cip_95 retired 'probable')
         END
     FROM usage u
     LEFT JOIN clock  c  ON c.wayward_brand_id = u.wayward_brand_id

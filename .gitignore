@@ -64,3 +64,6 @@ uv.lock
 
 # Agent scratch zone (JOS-R20) - never commit
 .scratchpad/
+
+# Client data intake (overdue/collection sheets, PII) — NEVER commit (P1 china-audit)
+WORKBENCH/china-audit/intake/

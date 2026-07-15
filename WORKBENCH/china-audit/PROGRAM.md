@@ -15,24 +15,35 @@ current). Live parked discoveries: [PARKING.md](PARKING.md). Phase-1 history: [a
 
 ## CURRENT TRUTH — 2026-07-15
 
-- **The book (REAL companies): china 1,600 · not_china 310 · unknown 652.** All 652 unknowns carry a
-  next_step in `lens_ps_china_evidence_grid`. 3-state verdict since cip_95 (probable retired).
-- **Schema:** alembic head `cip_97_remove_nationality_system`. Phase-1 foundation = cip_87→cip_94
-  (honest labels, 4→3-state verdict, is_chinese one home, calendar months, company rollup, FKs/CHECKs,
-  evidence grid). Old cip_clients nationality system + 4 dead views REMOVED (cip_97).
-- **Money:** `ps_monthly_earnings` is a STATIC SNAPSHOT (as of 2026-07-14) — the broken writer was
-  retired (cip_97 commit e5c213f). Raw Stripe facts (`ps_stripe_*`) live and syncing hourly. The
-  replacement engine is P2's deliverable. **Money/claims work stays frozen until P2.**
-- **Invariants: 21/21 hold** (`scripts/check_invariants.py`). Post-cip_97 hourly syncs verified green.
+- **The book (REAL companies): china 1,708 · not_china 310 · unknown 645.** 3-state verdict since
+  cip_95 (probable retired). Grew from 1,600 via the July intake sheets (overdue +4; WeChat +104,
+  incl. GHOST→REAL promotions as new contacts landed). Unknowns carry a next_step in
+  `lens_ps_china_evidence_grid`.
+- **Schema:** alembic head **`cip_103_flat_fee_disposition`**. Phase-1 foundation = cip_87→cip_94.
+  Since: cip_95 (retire probable → 3-state) · cip_97 (remove old cip_clients nationality system +
+  4 dead views + the broken money writer) · cip_98/99 (drop 2 dead tables; comment raw source tables) ·
+  cip_100 (`wechat_id` + `wechat_phone`) · cip_101/102 (`ps_partner_payouts` ledger + full docs) ·
+  cip_103 (flat-fee ownership labels + revenue-start).
+- **Money:** `ps_monthly_earnings` is a STATIC SNAPSHOT (as of 2026-07-14) — broken writer retired
+  (cip_97). Raw Stripe facts (`ps_stripe_*`) live + syncing hourly. Payment history Dec-2025→Jun-2026
+  fully reconciled in `ps_payment_events` (totals tie exactly). us→partner payout ledger
+  `ps_partner_payouts` exists (cip_101). Replacement recompute engine = P2's deliverable.
+  **Money/claims math stays frozen until P2.**
+- **Ownership (refined cip_103):** decided by "is anyone else being paid on this brand?", NOT list
+  membership. Flat-fee-era-Eric brands (582) are OURS from 2025-12-01; genuinely-excluded (235) =
+  the partner-earning buckets. Two revenue-start dates (never-listed 2025-10-01, flat-fee 2025-12-01);
+  pre/post-cutover is a VANITY gut-check only. Recovery first-order ≈ $10.4k. Full spec:
+  [OWNERSHIP-RULES.md](OWNERSHIP-RULES.md).
+- **Invariants: 21/21 green** (`scripts/check_invariants.py`, re-run 2026-07-15 post-cip_103).
 - **Metabase:** connection + role intact; cards built on the 4 dropped views error until P4 rebuilds.
 
 ## THE PROJECTS
 
 | # | project | PM id | status | one-liner |
 |---|---------|-------|--------|-----------|
-| P0 | Program Hygiene & Setup | `959a0019` (WCC0) | **active** | This structure; archive Phase-1 docs; backup posture; attic when quiescent |
-| P1 | Raw Data Confirmation & Schema | `2b81922a` (WCC1) | backlog — next | Tim's spreadsheets → gut check → confirm/flip; WeChat + multi-contact; identity spine; 549 seller records; residue |
-| P2 | Math Plan & Money Engine Rebuild | — | not created | Propose ALL calculated fields → Tim confirms → BUILD the live recompute engine on rails (data+writer same wave) |
+| P0 | Program Hygiene & Setup | `959a0019` (WCC0) | **done** | Structure built; Phase-1 docs archived; rules re-grounded 2026-07-15 |
+| P1 | Raw Data Confirmation & Schema | `2b81922a` (WCC1) | **active — mostly done** | Overdue + WeChat sheets ingested; WeChat + multi-contact (cip_100); payments reconciled Dec–Jun; hygiene (cip_98/99); partner ledger (cip_101/102); flat-fee labels (cip_103). RESIDUE: identity spine, 549 seller records, HOLDS below |
+| P2 | Math Plan & Money Engine Rebuild | — | **not created — NEXT** | Propose ALL calculated fields → Tim confirms → BUILD the live recompute engine on rails (data+writer same wave) |
 | P3 | Ingest Automations | — | not created | Design source pulls, code-vs-LLM review checkpoints (Tim has ideas); governance gate applies to any MCP write tools |
 | P4 | Metabase Dashboards | — | not created | Layers, permissions, design; Metabase as base + possibly a smoother layer on top (Tim); card inventory first |
 | P5 | Owed vs Paid — Claim & Evidence | — | not created | Live owed-vs-paid; the KNOWN-Chinese-but-uncredited list (their HubSpot flag + payment sheets vs our book); pinned as-of statements |
@@ -52,6 +63,9 @@ P5 can ship a v0 (HubSpot-flag discrepancy list) during P2 — the flag comparis
 | 2026-07-15 | **Metabase = base layer**; possibly a smoother consumption layer on top — design deferred wholly to P4. |
 | 2026-07-14 | Any future MCP write tools go through the tool-creation contract + FAS/JOS governance (committed note, FOUNDATION-PLAN §governance — carried into P3/P6). |
 | 2026-07-14 | Metabase DB role stays live (severing it breaks the tested read-role contract); broken cards are repaired app-side in P4. |
+| 2026-07-15 | **Ownership = "is anyone else paid on this brand?"**, not raw list membership. Flat-fee-era-Eric brands = OURS from the first billing-sheet cycle (2025-12-01); genuinely-excluded = partner-earning buckets (Eric Rev Share, Heavy Producer, Jeremy Caspar, Shallow, OpenLight, OceanWing). Encoded cip_103 (`disposition` + `ours_revenue_from`). Spec: OWNERSHIP-RULES.md. |
+| 2026-07-15 | **Pre/post-cutover is a vanity gut-check ONLY** — never reported, never changes handling; a china brand we own is ours regardless of which side of the freeze it signed up on. |
+| 2026-07-15 | **Partner payout rate = 5% default** until Rhea's roster (then review + map odd-named referral sources via `ps_partner_aliases`). **Lytasaur = Eric** — already normalized to `eric` in-DB. |
 
 ## P1 KICKOFF NOTES (Tim's braindump — riff at kickoff, not before)
 

@@ -20,7 +20,11 @@ then this doc is the carrier of record.
 4. **Boost:** flat-fee + non-frozen = ours; contract-10% = contested — evidence decides;
    **unknown defaults to the incumbent** (attribution-unknown ≠ nationality-unknown; see grain
    notes below).
-5. **Reactivation restarts the 10/6/3 rate clock, per product.**
+5. **Reactivation restarts the 10/6/3 rate clock, per product — the FULL ladder** (a fresh 12
+   months at 10%, then 6, then 3). Only when the reactivation is ours / our partner's, with
+   evidence. (Confirmed Tim, 2026-07-15.)
+   **Dormancy = platform SALES:** "dormant 90d" means no platform sales for 90 days (usage/billing),
+   NOT support/Zendesk activity. (Confirmed Tim, 2026-07-15.)
 6. **Decisions PIN.** Automated evidence FLAGS, never flips a pinned decision; only a manual change
    moves one.
 7. **Ambiguity → the conflicts queue → Tim.** Never silently resolved.
@@ -50,10 +54,11 @@ then this doc is the carrier of record.
    / `claim_basis` were computed by the now-deleted writer under RULE_B (2025-12-01) and the old
    reactivation window. **Do not read them as current truth — including for P5 v0.** P2's engine
    recomputes them under these rules.
-3. **"Restart the clock" is not yet expressible.** `rate_10_expires` is GENERATED from the single
-   `productive_date`; a reactivation restart needs a re-anchor (e.g. GREATEST(productive_date,
-   qualifying_reactivation_date) or episode rows). P2 design item — flagged so it isn't discovered
-   mid-build.
+3. **"Restart the clock" is not yet expressible — and it's a FULL-ladder restart (confirmed).**
+   `rate_10_expires` is GENERATED from the single `productive_date`; a qualifying reactivation must
+   re-anchor the WHOLE ladder to the reactivation date (fresh 12mo@10%, then 6, then 3). Needs a
+   re-anchor design (GREATEST(productive_date, qualifying_reactivation_date), or per-episode
+   subscription rows). P2 design item — flagged so it isn't discovered mid-build.
 
 ### ➕ Proposed additions (mine — Tim confirms before they become law)
 1. **Grain split, stated explicitly:** MONEY grain = `wayward_brand_id × product` (a billing
@@ -66,13 +71,17 @@ then this doc is the carrier of record.
 3. **Partner-side economics are half the math.** These rules cover PS-vs-Wayward; the same deal
    grain carries partner credit (finders fee, `credit_start/credit_end`, `partner_credit_expires`).
    P2's engine computes both sides; P6's SOPs govern changing them.
-4. **Dormancy needs a definition ruling.** "Dormant 90d" reads from
-   `ps_product_subscriptions.last_activity_at`; the 90-day derived logic lived in a view dropped by
-   cip_97 and must be rebuilt in P2. What SOURCES feed `last_activity_at` (usage only? Zendesk
-   activity?) is an open Tim question from 2026-07-14 — still unanswered.
+4. **Dormancy = platform SALES (Tim, 2026-07-15) — RESOLVED.** "Dormant 90d" = no platform sales for
+   90 days: usage/billing (`ps_stripe_*` / `ps_monthly_earnings`), NOT Zendesk/support activity. The
+   90-day derived logic lived in a view dropped by cip_97 and is rebuilt in P2 off the SALES signal,
+   not `ps_product_subscriptions.last_activity_at` (whose source was ambiguous).
 
-### ❓ For Tim, when convenient (P2 blockers, not today's)
-1. **Restart scope:** does a qualifying reactivation restart the FULL ladder (new 12 months at 10%)?
-   And only when the reactivation is ours/our-partner's with evidence — correct?
-2. **Dormancy source:** what counts as activity (Zendesk-as-dormancy scope, pending since 07-14)?
-3. Where does Rhea's partner roster live? (P1/P6 intake.)
+### ✅ ANSWERED by Tim 2026-07-15 (encode in P2)
+1. **Restart scope — YES, full ladder.** A qualifying reactivation restarts a fresh 12 months at
+   10% (then 6, then 3), per product. Only when the reactivation is ours / our partner's, with
+   evidence.
+2. **Dormancy = platform SALES.** Not Zendesk/support. See rule 5 + correction #4 above.
+
+### ❓ Deferred to its phase (Tim: "discuss in that phase, make a note to update the docs then")
+- **Where Rhea's partner roster lives** → the partner-intake / SOP phase (P1 intake or P6).
+  **TODO at that phase: get the roster's home from Tim and update this doc + PROGRAM.md.**

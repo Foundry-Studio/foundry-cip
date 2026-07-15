@@ -56,9 +56,15 @@ P5 can ship a v0 (HubSpot-flag discrepancy list) during P2 — the flag comparis
 ## P1 KICKOFF NOTES (Tim's braindump — riff at kickoff, not before)
 
 - Jake sent Tim a **WeChat list** → needs WeChat contact fields + matching users to wechat info.
-- Likely need **2+ contacts per company** (multiple employees: different names, emails, wechat).
-  `ps_brand_contacts` is already row-per-contact; the design question is person-identity across
-  email/wechat/name-spelling, and how contacts rank (owner vs employee vs agency).
+- **Brand-company contacts (NEW schema work, P1)** — the people we talk to AT the brand. Need at
+  least TWO contact slots, each **name + email + WeChat**: (1) our primary contact — often the
+  official person who signed up to Wayward; (2) a second employee, since we get additional info from
+  them. `ps_brand_contacts` is row-per-contact already but has **no WeChat field and no
+  primary/secondary role** — that's the P1 add. (Jake's WeChat list is the first data for this.)
+- **Partner attribution is SEPARATE and already per-PRODUCT** — do NOT conflate it with brand
+  contacts. One partner can be the lead source for Connect, another for Boost; that's
+  `ps_partner_credit` keyed by brand×product (`lead_source_initial`/`activation`). No schema change,
+  just the discipline of keeping the two models apart.
 - Some artifacts are pure confirmation, some carry new data — every one gets the RULES #10 gut check.
 - Fold in: PARKING P3 (identity spine policy — operator vs company merge is TIM'S call),
   the 549 seller records (blocked on Q0 ruling below), the lost batch-7 chunk (20 brands,

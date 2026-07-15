@@ -108,7 +108,8 @@ it would bundle their edits into my commit, or lose them to the move.
 **Disposition:** when `git status --short scripts/` is clean, `git mv` the 35 into `scripts/attic/`
 + a one-line README, in ONE pathspec-scoped commit. Pure cleanup, no data change.
 
-**KEEP — do NOT attic:** the 7 tools of record (check_invariants, _guard, ingest_amazon_sellers,
-load_added_facts, decide_nationality, preflight_alembic, harvest_nationality_signals-until-rewrite),
+**KEEP — do NOT attic:** the tools of record (check_invariants, _guard, ingest_amazon_sellers,
+load_added_facts, ingest_usa_research, preflight_alembic, harvest_nationality_signals-until-rewrite;
+~~decide_nationality~~ deleted in cip_97 with the old nationality system, 2026-07-15),
 the 18 live-pipeline scripts, and the 3 `run_wayward_*` scripts cited as onboarding templates in
 docs/ (run_wayward_initial_sync, _hubspot_only, _zendesk_only).

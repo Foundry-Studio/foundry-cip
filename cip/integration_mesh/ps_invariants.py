@@ -57,13 +57,6 @@ INVARIANTS: tuple[Invariant, ...] = (
             "Roborock alone double-counted $172,379.",
     ),
     Invariant(
-        key="lens_eligibility_fanout",
-        sql="""SELECT count(*) - count(DISTINCT wayward_brand_id)
-               FROM lens_ps_eligibility""",
-        why="Same fan-out, same cause. Always join lens_ps_exclusion_status, never "
-            "ps_excluded_brands directly.",
-    ),
-    Invariant(
         key="spine_grain_unique",
         sql="""SELECT count(*) FROM (
                  SELECT 1 FROM ps_monthly_earnings

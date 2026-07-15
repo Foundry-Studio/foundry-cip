@@ -14,8 +14,6 @@ The output is designed to be worked three ways, all of which Tim named:
 Routing (who can actually answer):
   referrer_unknown / referrer_conflict -> the China ops team (Rhea) — they know who
                                           brought a brand; Wayward often does not.
-  nationality_conflict                 -> Tim (definitional: US entity, Chinese operator)
-  no_activity_signal / not_paid_verify -> Jake (only Wayward holds per-brand sales)
   contact_missing (WeChat)             -> Jake (capture at onboarding)
 
 Usage:
@@ -34,22 +32,6 @@ PS_TENANT = "078a37d6-6ae2-4e22-869e-cc08f6cb2787"
 
 # (gap_type, ask_who, ask_channel, priority, blocks, question_sql, context_sql, where)
 DETECTORS: list[dict] = [
-    {
-        "gap_type": "nationality_conflict",
-        "ask_who": "tim",
-        "ask_channel": "manual",
-        "priority": 1,
-        "blocks": "nationality_class -> whether the brand is ours at all",
-        "sql": """
-            SELECT c.id, c.wayward_brand_id, c.name,
-                   'Is ' || c.name || ' a Chinese brand? Wayward books it as a NON-CN '
-                   || 'country, but our own China team referred it and the contact email '
-                   || 'is a Chinese domain.' AS question,
-                   c.nationality_rationale AS context
-            FROM cip_clients c
-            WHERE c.tenant_id = :t AND c.nationality_review_status = 'escalated'
-        """,
-    },
     {
         "gap_type": "referrer_conflict",
         "ask_who": "rhea",
@@ -101,32 +83,6 @@ DETECTORS: list[dict] = [
                   SELECT 1 FROM ps_brand_observations d
                   WHERE d.wayward_brand_id = o.wayward_brand_id AND d.field = 'deal_source')
             GROUP BY c.id, c.wayward_brand_id, c.name
-        """,
-    },
-    {
-        "gap_type": "not_paid_verify",
-        "ask_who": "jake",
-        "ask_channel": "email",
-        "priority": 1,
-        "blocks": "the claim -> is this unbilled, unsold, or unpaid?",
-        "sql": """
-            SELECT c.id, c.wayward_brand_id, c.name,
-                   'Has ' || c.name || ' generated any usage fees since 2025-12-01? It is '
-                   || 'a Chinese brand referred under Project Silk, but it has never '
-                   || 'appeared in a rev-share report. Either it has made no sales, or we '
-                   || 'are not being paid on it — we cannot tell which without per-brand '
-                   || 'sales.' AS question,
-                   'Chinese + China Referral - Tim + post-takeover + zero payment events.'
-                   AS context
-            FROM cip_clients c
-            WHERE c.tenant_id = :t
-              AND c.nationality_class = 'chinese_confirmed'
-              AND EXISTS (
-                  SELECT 1 FROM ps_brand_observations d
-                  WHERE d.client_id = c.id AND d.field='deal_source'
-                    AND d.value = 'China Referral - Tim')
-              AND NOT EXISTS (
-                  SELECT 1 FROM ps_payment_events pe WHERE pe.client_id = c.id)
         """,
     },
 ]

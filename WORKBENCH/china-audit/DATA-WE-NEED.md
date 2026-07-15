@@ -25,6 +25,12 @@ not manual sheets:
 **Ask shape:** (1) a backfill of the historical richer detail; (2) the live HubSpot/brand connector
 extended so new/updated brands carry it going forward. Not sent yet — queued.
 
+### Automate the monthly payment / rev-share reports
+Jake's monthly "Rev Share / Referral Report" is the **only** source of what Wayward actually PAID us
+(and their stated rev share) — not derivable from Stripe/HubSpot. Today it's a manual sheet per
+month → `ps_payment_events`. **Ask:** deliver it as a feed (or a stable dated file drop) so payments
+flow automatically. (Dec 2025–Jun 2026 are backfilled and reconciled — totals tie exactly.)
+
 ### Un-invoiced (accrued) usage — for the money waterfall
 Can we see client usage **before** Wayward invoices it? (Tim, 2026-07-15: suspects they reconcile at
 invoice time today, so it probably doesn't exist yet.) If Jake can provide accrued/un-invoiced

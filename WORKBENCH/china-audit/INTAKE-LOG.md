@@ -67,3 +67,24 @@ a +86 nationality signal). Ingest auto-routes each value.
 **Note:** operational lesson — the per-row ingest was too slow over the Railway proxy and ran long
 in the background; a set-based re-run then errored (ELTRIKO already added) and rolled back clean.
 Net effect landed exactly once. Future bulk ingests: set-based from the start.
+
+---
+
+## 2026-07-15 — Jake's payment reports Dec 2025–Jun 2026 (7 sheets) — RECONCILE (no new writes)
+
+Re-drop to confirm the earlier `ps_payment_events` ingest dropped nothing. Line-by-line across all 7
+months (Dec CSV + Jan–Jun xlsx; naming drifts "Rev Share"→"Referral Report").
+
+- **Columns:** stable 12-col core all months (+ SIGNUP_DATE / MONTHS_FROM_SIGNUP from Jan; Rev Share
+  Start Date / Days Since in May; a duplicate MONTHS col in Jan/Jun). **Every sheet column maps to a
+  `ps_payment_events` column — nothing un-captured.** `REV_SHARE_OWED` → `rev_share_stated`.
+- **Numbers tie:** `TOTAL_AMOUNT_PAID` matches EXACTLY every month (Dec 83,982.61 · Jan 134,292.93 ·
+  Feb 173,035.43 · Mar 236,283.65 · Apr 192,686.16 · May 96,213.45 · Jun 60,786.91). Row counts tie
+  (2,271 total). 100% of BRAND_IDs are in ps_brands.
+- **Minor:** `rev_share_stated` sum is off by pennies in 3 months (Jan $0.01, Mar $0.26, Apr $0.20 —
+  <$0.50 across 2,271 rows; per-row rounding, immaterial; chase only if asked).
+- **Documentation:** every money table is fully commented (0 uncommented cols); the one gap was the
+  new `ps_partner_payouts` → fixed in **cip_102** (now 0 uncommented).
+- **Data not from primary sources:** the payment amounts + stated rev share (what Wayward paid us) —
+  only in these sheets, already backfilled (Dec–Jun). Added "automate the payment reports" to
+  DATA-WE-NEED. **No missing items to backfill** — the 7 months are complete and reconciled.

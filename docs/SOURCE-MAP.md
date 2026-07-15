@@ -1,6 +1,10 @@
 # SOURCE MAP — every source of truth for the Wayward × Project Silk book
 
-**Last verified:** 2026-07-14 against prod.
+**Last verified:** 2026-07-15 against prod (schema head `cip_99`).
+**2026-07-15 refresh:** the nationality verdict is now **3-state** (china / not_china / unknown —
+`probable` retired in cip_95); the old `cip_clients` nationality system + 4 dead views were removed
+(cip_97); two dead tables dropped and the raw `cip_*` layer documented (cip_98/99). This program's
+read-first map is now `WORKBENCH/china-audit/PROGRAM.md`.
 **Why this exists:** an entire analysis was built on `ps_*` tables while HubSpot, Zendesk, the
 knowledge base and an identity graph sat unread **in the same database**, syncing hourly. Brands
 were graded *"cannot be proven Chinese"* — including a client whose Chinese product library we had
@@ -74,7 +78,7 @@ HubSpot field means.
 | **Brand websites** (1,345 known) | never fetched. `.cn` TLD, Chinese-language content and **ICP filing numbers** are hard nationality evidence |
 | **Amazon storefront "Sold by"** | never fetched. Sellers must disclose the legal entity + address |
 | **Rhea's partner roster & rates** | not received |
-| **WeChat ids** | Jake is collecting them |
+| **WeChat ids** | Jake's list incoming (P1) → WeChat contact field + a 2nd brand contact being added to `ps_brand_contacts` |
 
 ---
 
@@ -131,24 +135,28 @@ Per **deal** (brand × product): `onboarded` · `productive_date` (first billed 
 
 | table | rows | |
 |---|---|---|
-| **`ps_added_facts`** | 3 | Tim's determinations, Rhea's roster, Jake's lists, decoded referrer codes, **and the activation evidence the contested Boost book turns on** |
+| **`ps_added_facts`** | 751 | Tim's determinations, Rhea's roster, Jake's lists, decoded referrer codes, **and the activation evidence the contested Boost book turns on** |
 
 **PINNED**: automated evidence may **flag** a pinned fact in the conflicts queue — it may **never
 flip it**. Only a superseding human row moves it. Loader: `scripts/load_added_facts.py`.
 
 ---
 
-## 6. DECISIONS — derived, four-state, and they pin
+## 6. DECISIONS — derived, THREE-state (cip_95), and they pin
 
-`china_status ∈ {confirmed_yes, confirmed_no, probable, unknown}`
+`verdict ∈ {china, not_china, unknown}` in `lens_ps_china_verdict`. (`probable` retired cip_95 — a
+pinyin PERSONAL name is not a verdict; the evidence grid flags it and routes it.)
 
-- **`probable`** → a **research** task. **`unknown`** → a **data** task. **Neither is ever "no."**
-- Evidence lives as **rows** (`ps_nationality_signals`, 5,830) — one per source. Slack=CN and
+- **`unknown`** → a research/data task. **Never "no."** It propagates as NULL, never as false.
+- **`not_china`** requires a human ruling or a LEGAL record (`amazon_seller_entity` /
+  `uspto_trademark_owner`) — **never** Wayward's country flag.
+- Evidence lives as **rows** (`ps_nationality_signals`, ~8,531) — one per source. Slack=CN and
   HubSpot=US **coexist**; disagreement surfaces in the conflicts queue.
 - Precedence: **ADDED (a human) > `on_exclusion_list` > CHINA WINS > not_china > unknown.**
+- Book today: **china 1,600 · not_china 310 · unknown 652** (REAL companies, `lens_ps_china_companies`).
 
-**Ownership** (`is this deal ours`) — the seven rules live in
-`venture-ecomlever/.../15-THE-CHINA-BOOK-EXPLAINER.md` §5. **The deal is brand × PRODUCT.**
+**Ownership** (`is this deal ours`) — the settled, schema-reviewed deal rules now live in
+`WORKBENCH/china-audit/OWNERSHIP-RULES.md` (2026-07-15). **The deal is brand × PRODUCT.**
 
 ---
 

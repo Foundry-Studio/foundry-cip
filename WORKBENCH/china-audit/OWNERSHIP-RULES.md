@@ -85,3 +85,11 @@ then this doc is the carrier of record.
 ### ❓ Deferred to its phase (Tim: "discuss in that phase, make a note to update the docs then")
 - **Where Rhea's partner roster lives** → the partner-intake / SOP phase (P1 intake or P6).
   **TODO at that phase: get the roster's home from Tim and update this doc + PROGRAM.md.**
+
+### 📌 P2 CARRY-IN — type the HubSpot money fields (from the 2026-07-15 schema audit; Tim: handle in P2)
+Wayward's OWN stated numbers live only in `cip_deals.properties` JSONB, un-typed:
+`total_fees_paid` (2,911 deals), `lifetime_usage_fees_generated` (3,473), `lifetime_gmv` (3,484),
+`amazon_seller_type` (276). `total_fees_paid` is literally **what Wayward says they've paid a brand**
+— the other side of P5's owed-vs-paid. **P2 action:** decide which to promote to typed columns / a
+typed lens (type once, don't re-parse per consumer), as part of the math design. Full detail:
+[SCHEMA-AUDIT.md](SCHEMA-AUDIT.md) Finding 1. **Do not forget this in P2.**

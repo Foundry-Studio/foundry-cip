@@ -93,3 +93,27 @@ Wayward's OWN stated numbers live only in `cip_deals.properties` JSONB, un-typed
 — the other side of P5's owed-vs-paid. **P2 action:** decide which to promote to typed columns / a
 typed lens (type once, don't re-parse per consumer), as part of the math design. Full detail:
 [SCHEMA-AUDIT.md](SCHEMA-AUDIT.md) Finding 1. **Do not forget this in P2.**
+
+### 🎯 RECOVERY SCOPE — what we actually pursue (Tim, 2026-07-15)
+The recovery = **our management 10% on collected usage** for China brands we manage, from the revenue
+anchor (2025-10-01), MINUS what Wayward has already paid us.
+- **Exclusion / flat-fee list = NOT ours.** On `ps_excluded_brands` means someone else (Eric et al.)
+  is the one being paid on that brand — excluded from recovery. (A flat-fee where PS is the one paid
+  is not on this list; it stays ours.)
+- **Pre-cutover REFERRAL commissions: do NOT pursue.** For pre-cutover brands we manage we still
+  pursue our **management 10%** from the anchor date (non-exclusion only) — not the referral piece,
+  not pre-anchor revenue.
+- **Post-cutover brands: fully ours** (management 10%; partner referral per the partner rules).
+- **Partner payout rate = 5% default** until Rhea's roster gives real per-partner rates
+  (`ps_partner_terms._default` already = 5%). When the roster lands, **review it and manually map
+  oddly-named referral sources to the right partner** via `ps_partner_aliases` (like xq→kerry).
+- **Lytasaur = Eric** — it's Eric's company name; same entity as partner `eric`, no deal, we do NOT
+  owe. NOTE: "lytasaur" appears NOWHERE in our DB — the exclusion list + every referrer value were
+  already normalized to `eric` on ingest (so it's handled correctly). Alias rows added anyway to
+  future-proof any raw sheet: `lytasaur` / `Litusor` / `referral(lytasaur)` → `eric` in
+  `ps_partner_aliases`. **If Tim has the exact contract spelling, add that exact alias too.**
+
+First-order magnitude (flat 10%, data through Jun 2026; precise number = the P2 engine): non-exclusion
+China management fee **still-owed ≈ $10.4k** across ~306 brands (~$9.5k pre-cutover, ~$0.8k
+post-cutover). Of the 278 China brands Wayward collected on but paid $0, **111 are ours** (not on
+Eric's list); 167 are Eric's (correctly excluded).

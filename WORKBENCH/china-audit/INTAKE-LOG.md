@@ -38,3 +38,32 @@ flags, collection notes.
 - **Deferred option (Tim's call):** 232 of these overdue brands have no `ps_brand_contacts` row
   (their billing email lives in `ps_stripe_customers` but isn't copied into contacts). Could
   populate for outreach if wanted — held, since it's existing data, not new info.
+
+---
+
+## 2026-07-15 — "China brands with provided wechat" (Wayward brand export, 549 China brands)
+
+Wayward-origin. 76 cols; the useful block is a **named-person contact** (`contact_first_name/
+last_name/email`) + `wechat_id` (Jake filled in) + `source` (referral). 100% country_code=CN.
+
+**Schema (cip_100, applied):** `ps_brand_contacts.wechat` → `wechat_id` + new `wechat_phone`. Jake's
+WeChat column mixes handles and phone numbers; we now hold them apart (a phone is also callable and
+a +86 nationality signal). Ingest auto-routes each value.
+
+**Ingest (Tim-approved, applied to prod, set-based, guarded):**
+- **Contacts:** 243 new + 306 enriched; **237 wechat_id + 149 wechat_phone** landed (all 386 WeChat
+  values; we previously held zero).
+- **Flipped 88 → china** (87 CN-unknowns + ELTRIKO) via `wayward_country_cn` from this export.
+- **Added ELTRIKO** to `ps_brands` — the 1 China-list brand missing from our system (backfill detail
+  later when it bills).
+- **Referral source → 549 `ps_brand_observations` (`field=referral_source`)** — data only (incl.
+  `referral(Adina)`, `referral(xq)`); NOT wired into attribution decisions. Audit later.
+- **China book 1,604 → 1,708** (+104 = 82 flipped companies + ~22 already-china brands promoted
+  GHOST→REAL now that they have a contact). **21/21 invariants.**
+
+**KEPT (Tim ruling):** **Wyze** — on the CN list but `not_china` in our book via a human ruling
+(Seattle US company). Left not_china; the ingest explicitly excludes it.
+
+**Note:** operational lesson — the per-row ingest was too slow over the Railway proxy and ran long
+in the background; a set-based re-run then errored (ELTRIKO already added) and rolled back clean.
+Net effect landed exactly once. Future bulk ingests: set-based from the start.

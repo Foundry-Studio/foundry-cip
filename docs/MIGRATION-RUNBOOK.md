@@ -244,7 +244,7 @@ Symptom: test setup fails with unique constraint on `(tenant_id, slug)`. Cause: 
 
 **`cip_test_trace` — historical artifact, not a supported table**
 
-Debug table `cip_test_trace` created during M1 env.py troubleshooting; dropped 2026-04-20 by Tim — no migration backing it, artifact only.
+Debug table `cip_test_trace` created during M1 env.py troubleshooting; had no migration backing it (artifact only). **Formally dropped by `cip_98` (2026-07-15)** along with `ps_classification_rules` — see the P1 schema audit.
 
 ---
 

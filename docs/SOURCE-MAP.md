@@ -1,6 +1,10 @@
 # SOURCE MAP — every source of truth for the Wayward × Project Silk book
 
 **Last verified:** 2026-07-15 against prod (schema head `cip_99`).
+> ⚠️ **Partially stale (2026-07-16).** Head is now `cip_109`; the cip_100–109 wave (WeChat fields,
+> `ps_partner_payouts`, the whole money engine) isn't reflected below, and the book counts have moved.
+> Source-of-truth *buckets* are still valid; for money lenses + live counts see
+> [../WORKBENCH/china-audit/LENS-CATALOG.md](../WORKBENCH/china-audit/LENS-CATALOG.md).
 **2026-07-15 refresh:** the nationality verdict is now **3-state** (china / not_china / unknown —
 `probable` retired in cip_95); the old `cip_clients` nationality system + 4 dead views were removed
 (cip_97); two dead tables dropped and the raw `cip_*` layer documented (cip_98/99). This program's

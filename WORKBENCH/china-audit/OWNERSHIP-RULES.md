@@ -143,9 +143,11 @@ whether WE get Wayward's management commission; the pre-PS **rev-share** exclusi
 ARE eligible on **Boost** (open — we can sell it, earn the fee, and split with whoever brings it).
 Flat-fee-era + never-listed = eligible on all products. Model: `ps_product_eligibility` (manual
 override/backfill surface) + `lens_ps_product_eligibility` (effective eligibility + partner + rate).
-The old exclusion was brand-level and blocked all products — which **hid ~$936 of Boost management fee
-on 108 rev-share brands** (~$9.4k collected) we should be claiming. Rewiring the money ledger
-(`lens_ps_claim`) to consume per-product eligibility is a reviewed next step (it grows the recovery).
+The old exclusion was brand-level and blocked all products — which hid the Boost management fee on
+rev-share brands we should be claiming. **cip_107 rewired the ledger (`lens_ps_commission_ledger`)
+to gate on per-product eligibility** — surfacing that Boost: recovery **$11,099 → $12,035** (+$936,
+117 rev-share brands now claiming Boost; rev-share Boost anchors at 2025-10-01). Connect on those
+brands stays blocked (a partner earns it).
 
 **Wayward's CLIENT fee rate (cip_106):** `lens_ps_product_eligibility.wayward_client_fee_rate` surfaces
 what Wayward charges the client per brand × product — feed-first (`cip_deals.usage_fee` Connect /

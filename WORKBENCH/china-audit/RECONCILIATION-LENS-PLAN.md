@@ -1,5 +1,12 @@
 # PLAN — Wayward reconciliation lens (VALIDATED by 2 subagents 2026-07-15)
 
+> ✅ **SHIPPED as `cip_108_wayward_reconcile` (not cip_105 as this doc guessed).** The plan below is
+> the design record; two things changed on build: the delta_status values shipped as
+> **`paid_settled` / `paid_partial` / `acknowledged_unpaid` / `credited_other_unpaid` /
+> `unacknowledged_unpaid` / `no_claim`** (NOT the names in §"Object" below), and the baseline recovery
+> is now **$12,035** (post-cip_107).
+> Canonical reference: [LENS-CATALOG.md](LENS-CATALOG.md).
+
 **Status: plan validated + corrected by blast-radius (A) and mapping (B) subagents. Ready to build on
 Tim's go.** Blast radius confirmed LOW/additive — nothing breaks.
 

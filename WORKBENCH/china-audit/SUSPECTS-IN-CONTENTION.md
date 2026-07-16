@@ -8,7 +8,8 @@ in our data (no WeChat, no +86 phone, no `.cn`, no CN/HK country). The remaining
 **How the pipeline resolved:** most of the "$18k China upside" was Western brands stuck in `unknown` —
 US brands, EU/SE-Asia sellers, and Amazon aggregators (unybrands, AccelClub, Caravan GP, Goodwit).
 Confirmed China from this whole sweep: the 13 Amazon seller-of-record matches + HONG KONG HONGYI +
-MOUNTRAX (Tim, personally). Recovery settled at **~$11,099**.
+MOUNTRAX (Tim, personally). Recovery **≈ $12,035** (post-cip_107 per-product rewire; canonical in
+LENS-CATALOG.md). The "China Referral - Tim" reconciliation lens is now BUILT (cip_108).
 
 **Lesson banked:** a brand *name* is never evidence (Tumella=NL, BRMUD=KR, Marée=WY-shell). The
 reliable tells are the **hard** ones — a CN/HK seller-of-record, `.cn`/+86/WeChat, or a CN/HK entity.

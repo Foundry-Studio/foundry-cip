@@ -1,11 +1,14 @@
-# MATH-SPEC — the money engine, every calculated field (P2 Phase A → BUILT)
+# MATH-SPEC — the money engine, every calculated field (P2 Phase A → BUILT, cip_104–109)
 
-**Status (2026-07-15): BUILT — cip_104 shipped the lens stack (`lens_ps_rate_schedule` →
-`lens_ps_commission_ledger` → `lens_ps_claim` + `ps_claim_statements`), reconciled to the penny,
-25/25 invariants + tests green.** REMAINING: the on-rails swap (retire `ps_monthly_earnings` writer +
-repoint consumers — the ONE shared-contract step, gated for Tim); `lens_ps_wayward_stated` (deferred,
-needs the cip_deals→brand mapping); partner-side reconciliation when Rhea's roster lands.
-Design-first, per the approved P2 plan. The frozen snapshot (`ps_monthly_earnings`) stays untouched
+**Status (2026-07-16): BUILT + EXTENDED beyond this doc.** This spec captured the cip_104 lens stack;
+the engine has since gone **per-product** and grown. ⚠️ **§2 below still describes the original
+PER-BRAND eligibility — the shipped model (cip_105/107) is per brand × product** (rev-share exclusion
+is Connect-only, so Boost is ours). For the CURRENT read-surface + glossary, use
+[LENS-CATALOG.md](LENS-CATALOG.md). Shipped since cip_104: cip_105 (per-product eligibility), cip_106
+(Wayward client fee rate), cip_107 (ledger rewired to per-product), cip_108 (`lens_ps_wayward_reconciliation`),
+cip_109 (reporting lenses — incl. `lens_ps_wayward_stated`, which this doc called "deferred").
+**Recovery ≈ $12,035** (not the ~$10.4k cited in §6). The frozen `ps_monthly_earnings` is legacy;
+the ledger is live and no longer depends on it. The frozen snapshot (`ps_monthly_earnings`) stays untouched
 until the new engine is proven, then we swap on rails (data + writer same wave). Rules of record live
 in [OWNERSHIP-RULES.md](OWNERSHIP-RULES.md) and [RULES.md](RULES.md); this doc turns them into fields.
 
@@ -184,7 +187,7 @@ in your rundown; it's a display field, never a payable.
 - Live ledger's `usage_collected` total ties to the frozen snapshot within rounding (drift = a finding
   to explain, not silently accept).
 - `wayward_paid_us` total ties to the Dec–Jun payment sheets **exactly** (already reconciled).
-- Recovery (`Σ ps_claim_owed` for china, non-excluded) lands near the first-order **~$10.4k**;
+- Recovery (`Σ ps_claim_owed` for china) — current live figure **≈ $12,035** (the ~$10.4k below was the pre-engine first-order target; SUPERSEDED);
   material deviation = investigate before shipping.
 - Spot-checks reproduce: Tiny Land ~$1,152, Neakasa ~$2,355, Beetles ~$7.
 

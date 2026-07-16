@@ -127,7 +127,8 @@ a brand differently by it — a china brand we own is ours regardless of which s
 signed up on. It exists only to sanity-check that the math counts the right brands. (This is why the
 freeze date isn't in the ownership logic — only the two revenue-start dates above are.)
 
-First-order magnitude (flat 10%, data through Jun 2026; precise number = the P2 engine): still-owed
+First-order magnitude *(SUPERSEDED — the live engine now says **$12,035**; see LENS-CATALOG.md.
+Kept for the derivation)*: (flat 10%, data through Jun 2026): still-owed
 **≈ $10.4k**. Bringing the granted flat-fee brands in as ours moves the claim by only **~$490** — they
 are already ~square (Wayward pays them). The recovery is concentrated in **pre-cutover legacy** (~$10k;
 Wayward paid only 44% of the implied 10% there); post-cutover *new* brands are ~83% paid, hence only

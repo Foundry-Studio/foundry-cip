@@ -13,34 +13,26 @@ current). Live parked discoveries: [PARKING.md](PARKING.md). Phase-1 history: [a
 
 ---
 
-## CURRENT TRUTH — 2026-07-15
+## CURRENT TRUTH — 2026-07-16
 
-- **The book (REAL companies): china 1,708 · not_china 310 · unknown 645.** 3-state verdict since
-  cip_95 (probable retired). Grew from 1,600 via the July intake sheets (overdue +4; WeChat +104,
-  incl. GHOST→REAL promotions as new contacts landed). Unknowns carry a next_step in
-  `lens_ps_china_evidence_grid`.
-- **Schema:** alembic head **`cip_104_commission_engine`**. Phase-1 foundation = cip_87→cip_94.
-  Since: cip_95 (retire probable → 3-state) · cip_97 (remove old cip_clients nationality system +
-  4 dead views + the broken money writer) · cip_98/99 (drop 2 dead tables; comment raw source tables) ·
-  cip_100 (`wechat_id` + `wechat_phone`) · cip_101/102 (`ps_partner_payouts` ledger + full docs) ·
-  cip_103 (flat-fee ownership labels + revenue-start) · **cip_104 (the commission recovery ENGINE,
-  lens-first: `lens_ps_rate_schedule` → `lens_ps_commission_ledger` → `lens_ps_claim` +
-  `ps_claim_statements`).**
-- **Money:** `ps_monthly_earnings` is a STATIC SNAPSHOT (as of 2026-07-14) — broken writer retired
-  (cip_97). Raw Stripe facts (`ps_stripe_*`) live + syncing hourly. Payment history Dec-2025→Jun-2026
-  fully reconciled in `ps_payment_events`. us→partner payout ledger `ps_partner_payouts` (cip_101).
-  **The LIVE recovery engine (cip_104) is built** — reconciles to the frozen snapshot **to the penny**
-  (formula recovered from the retired writer's git history); china still-owed ≈ **$10.88k**. The
-  frozen `ps_monthly_earnings` stays authoritative until the on-rails swap (writer-retire + consumer-
-  repoint), which is the ONE remaining shared-contract step — gated for Tim.
-- **Ownership (refined cip_103):** decided by "is anyone else being paid on this brand?", NOT list
-  membership. Flat-fee-era-Eric brands (582) are OURS from 2025-12-01; genuinely-excluded (235) =
-  the partner-earning buckets. Two revenue-start dates (never-listed 2025-10-01, flat-fee 2025-12-01);
-  pre/post-cutover is a VANITY gut-check only. Recovery first-order ≈ $10.4k. Full spec:
-  [OWNERSHIP-RULES.md](OWNERSHIP-RULES.md).
-- **Invariants: 25/25 green** (`scripts/check_invariants.py`, re-run 2026-07-15 post-cip_104) — +4
-  engine gates: ledger-grain-unique, claim-requires-china, fee-only-when-claimable, rate-is-ladder.
-- **Metabase:** connection + role intact; cards built on the 4 dropped views error until P4 rebuilds.
+- **The book:** china / not_china / unknown — **live counts in `lens_ps_china_companies`** (moves with
+  each flip; don't hard-code). 3-state verdict since cip_95. Grew via the July intake sheets + the
+  Amazon seller-of-record / internal-breadcrumb triage (see SUSPECTS-IN-CONTENTION.md); unknowns
+  queued in `lens_ps_china_evidence_grid`.
+- **Schema:** alembic head **`cip_109_reporting_lenses`**. Phase-1 = cip_87→94. **Money engine =**
+  cip_104 (commission ledger, lens-first) · cip_105 (per-product eligibility) · cip_106 (Wayward
+  client fee rate) · cip_107 (ledger→per-product rewire) · cip_108 (Wayward reconciliation lens) ·
+  cip_109 (reporting lenses: aging / partner-payout / monthly / excluded-partner / wayward-stated).
+- **Money: LIVE, not frozen.** The engine is `lens_ps_commission_ledger` → `lens_ps_claim`,
+  self-updating off hourly Stripe. **Recovery ≈ $12,035** — the canonical number lives in
+  `lens_ps_claim`; see [LENS-CATALOG.md](LENS-CATALOG.md). The frozen `ps_monthly_earnings` is legacy
+  (the ledger no longer depends on it); retiring the old writer is cleanup, not a gate. Payments
+  Dec-2025→Jun-2026 reconciled in `ps_payment_events`; partner payouts in `ps_partner_payouts`.
+- **Ownership:** china is the only gate; eligibility is **per product** (cip_105/107) — the pre-PS
+  rev-share exclusion is Connect-only, so Boost is ours. Full rules: [OWNERSHIP-RULES.md](OWNERSHIP-RULES.md);
+  what-each-lens-answers + glossary: [LENS-CATALOG.md](LENS-CATALOG.md).
+- **Invariants: 25/25 green** (`scripts/check_invariants.py`, re-run 2026-07-16 post-cip_109).
+- **Metabase:** the cip_104–109 lenses are the read-surface; wiring cards is the next reporting step.
 
 ## THE PROJECTS
 
@@ -48,7 +40,7 @@ current). Live parked discoveries: [PARKING.md](PARKING.md). Phase-1 history: [a
 |---|---------|-------|--------|-----------|
 | P0 | Program Hygiene & Setup | `959a0019` (WCC0) | **done** | Structure built; Phase-1 docs archived; rules re-grounded 2026-07-15 |
 | P1 | Raw Data Confirmation & Schema | `2b81922a` (WCC1) | **active — mostly done** | Overdue + WeChat sheets ingested; WeChat + multi-contact (cip_100); payments reconciled Dec–Jun; hygiene (cip_98/99); partner ledger (cip_101/102); flat-fee labels (cip_103). RESIDUE: identity spine, 549 seller records, HOLDS below |
-| P2 | Math Plan & Money Engine Rebuild | — | **BUILT (cip_104–108), live + self-updating** | Commission engine (cip_104), per-product eligibility (cip_105), Wayward client fee rate (cip_106), ledger→per-product rewire (cip_107), Wayward reconciliation lens (cip_108). Ongoing "what's owed this month" tool. Recovery $12,035. REMAINING: backfills (rev-share exceptions), retire ps_monthly_earnings writer, partner-side reconciliation on Rhea's roster |
+| P2 | Math Plan & Money Engine Rebuild | — | **BUILT (cip_104–109), live + self-updating** | Commission engine (cip_104), per-product eligibility (cip_105), Wayward client fee rate (cip_106), ledger→per-product rewire (cip_107), Wayward reconciliation lens (cip_108), reporting lenses (cip_109: aging/partner-payout/monthly/excluded-partner/wayward-stated). Ongoing "what's owed this month" tool; lens map = [LENS-CATALOG.md](LENS-CATALOG.md). Recovery $12,035. REMAINING: backfills, retire ps_monthly_earnings writer, partner-side reconciliation on Rhea's roster |
 | P3 | Ingest Automations | — | not created | Design source pulls, code-vs-LLM review checkpoints (Tim has ideas); governance gate applies to any MCP write tools |
 | P4 | Metabase Dashboards | — | not created | Layers, permissions, design; Metabase as base + possibly a smoother layer on top (Tim); card inventory first |
 | P5 | Owed vs Paid — Claim & Evidence | — | not created | Live owed-vs-paid; the KNOWN-Chinese-but-uncredited list (their HubSpot flag + payment sheets vs our book); pinned as-of statements |

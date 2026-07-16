@@ -146,3 +146,10 @@ override/backfill surface) + `lens_ps_product_eligibility` (effective eligibilit
 The old exclusion was brand-level and blocked all products — which **hid ~$936 of Boost management fee
 on 108 rev-share brands** (~$9.4k collected) we should be claiming. Rewiring the money ledger
 (`lens_ps_claim`) to consume per-product eligibility is a reviewed next step (it grows the recovery).
+
+**Wayward's CLIENT fee rate (cip_106):** `lens_ps_product_eligibility.wayward_client_fee_rate` surfaces
+what Wayward charges the client per brand × product — feed-first (`cip_deals.usage_fee` Connect /
+`wayward_boosted_usage_fee_rate` Boost, negotiated 1–6% per brand, via the deal bridge), else the
+standard default (5% GMV Connect / 10% ad-spend Boost), overridable via
+`ps_product_eligibility.wayward_fee_rate_override` (CRM hand-set). Distinct from OUR commission (the
+10/6/3 ladder) and the partner cut (`ps_partner_credit`).

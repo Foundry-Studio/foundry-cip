@@ -188,17 +188,17 @@ def run(conn, *, apply: bool) -> dict:
         r = conn.execute(text(INSERT.format(select=select)), {"t": PS_TENANT})
         out["harvested"][name] = r.rowcount
 
+    # nationality lens = nationality only (cip_110): the money columns were vestigial and this
+    # summary referenced ps_owed_if_china / ps_paid_today, which never existed on the view (a
+    # pre-existing UndefinedColumn). Money lives in lens_ps_claim; here we report book + collected.
     out["verdicts"] = [
-        dict(zip(("verdict", "strength", "brands", "collected", "ps_owed", "ps_paid",
-                  "shortfall"), r, strict=False))
+        dict(zip(("verdict", "strength", "brands", "collected"), r, strict=False))
         for r in conn.execute(text("""
             SELECT verdict, COALESCE(verdict_strength, '-'),
-                   count(*), round(sum(usage_collected), 2),
-                   round(sum(ps_owed_if_china), 2), round(sum(ps_paid_today), 2),
-                   round(sum(shortfall), 2)
+                   count(*), round(sum(usage_collected), 2)
             FROM lens_ps_china_verdict
             GROUP BY 1, 2
-            ORDER BY 7 DESC NULLS LAST
+            ORDER BY 3 DESC NULLS LAST
         """)).fetchall()
     ]
     if not apply:

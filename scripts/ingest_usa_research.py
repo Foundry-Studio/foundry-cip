@@ -161,16 +161,9 @@ def main() -> int:
                         (PS_TENANT, str(bid), value, why, x.get("source_url") or "web research"))
                 applied[pt] += 1
 
-        # re-derive is_chinese (cip_90) — a flip leaves the spine stale otherwise
-        redrv = conn.execute(
-            """UPDATE ps_monthly_earnings m
-                 SET is_chinese = CASE v.verdict WHEN 'china' THEN true
-                                                 WHEN 'not_china' THEN false ELSE NULL END
-               FROM lens_ps_china_verdict v
-              WHERE v.wayward_brand_id = m.wayward_brand_id
-                AND m.is_chinese IS DISTINCT FROM CASE v.verdict WHEN 'china' THEN true
-                                                    WHEN 'not_china' THEN false ELSE NULL END"""
-        ).rowcount
+        # (cip_110: the old "re-derive is_chinese on the ps_monthly_earnings spine" step is gone.
+        #  The frozen spine was retired; is_chinese now has one LIVE home, lens_ps_china_verdict,
+        #  recomputed off ps_nationality_signals as soon as a flip lands. Nothing to backfill.)
 
         cn_after = conn.execute(
             "SELECT count(*) FROM lens_ps_china_companies "
@@ -185,8 +178,7 @@ def main() -> int:
             return 2
         conn.commit()
 
-        print(f"applied: {applied['not_china']} -> not_china, {applied['china']} -> china; "
-              f"re-derived is_chinese on {redrv} spine rows")
+        print(f"applied: {applied['not_china']} -> not_china, {applied['china']} -> china")
         if unmatched:
             print(f"name not matched (check spelling vs ps_brands): {unmatched}")
         print(f"GUARD OK: china {cn_before} -> {cn_after} (grew by the CHINA flips)")

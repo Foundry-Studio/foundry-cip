@@ -56,15 +56,8 @@ INVARIANTS: tuple[Invariant, ...] = (
             "duplicated brands and inflated every summary built on this view by $183,383 (8.6%). "
             "Roborock alone double-counted $172,379.",
     ),
-    Invariant(
-        key="spine_grain_unique",
-        sql="""SELECT count(*) FROM (
-                 SELECT 1 FROM ps_monthly_earnings
-                 GROUP BY tenant_id, wayward_brand_id, product_id, period_month
-                 HAVING count(*) > 1) d""",
-        why="The money spine is one row per brand x product x month. A duplicate is a "
-            "double-counted month.",
-    ),
+    # (retired cip_110: the frozen ps_monthly_earnings spine was dropped; grain uniqueness of the
+    #  LIVE money surface is now guarded by `ledger_grain_unique` below.)
     Invariant(
         key="orphan_money",
         sql="""SELECT count(*) FROM ps_stripe_invoice_lines l
@@ -76,14 +69,22 @@ INVARIANTS: tuple[Invariant, ...] = (
     ),
     # ── Tim's governing principle ────────────────────────────────────────────
     Invariant(
-        key="claiming_where_someone_else_earns",
-        sql="""SELECT count(*) FROM ps_monthly_earnings e
-               JOIN lens_ps_exclusion_status st USING (wayward_brand_id)
-               WHERE e.is_claimable AND st.someone_else_earning""",
-        why="Tim's rule: you cannot take a brand somebody else is actively being paid on — on ANY "
-            "product. We were invoicing Roborock's Boost revenue while Eric/Adina earn an ongoing "
-            "10% on it. (Rules 3 and 7 allow it ONLY with activation evidence, which flips "
-            "someone_else_earning off.)",
+        key="claim_requires_rev_share_eligible",
+        sql="""SELECT count(*) FROM lens_ps_commission_ledger e
+               LEFT JOIN lens_ps_product_eligibility el
+                 ON el.wayward_brand_id = e.wayward_brand_id AND el.product_id = e.product_id
+               WHERE e.claimable AND NOT COALESCE(el.ps_rev_share_eligible, false)""",
+        why="Tim's rule is now PER PRODUCT (cip_105/107): a claimable row must be "
+            "ps_rev_share_eligible for THAT PRODUCT. This SUPERSEDES the old brand-level rule "
+            "('cannot take a brand anyone else earns on, on ANY product'): Roborock's BOOST is "
+            "ours even though Eric/Adina earn 10% on its CONNECT, because the pre-PS rev-share "
+            "exclusion is Connect-only (102 brands / 328 boosted months, basis "
+            "rev_share_boost_open). "
+            "What this now guards: a CONNECT row for a rev-share-excluded brand leaking into "
+            "claimable, which IS still someone else's money. The ledger's claimable gate already "
+            "requires eligibility (cip_107); this proves the wire stays connected. Replaces "
+            "`claiming_where_someone_else_earns`, whose brand-level test flagged the intended "
+            "per-product Boost claims as false positives.",
     ),
     Invariant(
         key="reactivation_regression",
@@ -97,50 +98,34 @@ INVARIANTS: tuple[Invariant, ...] = (
     # ── NULL must never become a number ──────────────────────────────────────
     Invariant(
         key="unknown_rate_priced",
-        sql="""SELECT count(*) FROM ps_monthly_earnings
-               WHERE ps_rate_pct IS NULL AND ps_gross_owed IS NOT NULL""",
+        sql="""SELECT count(*) FROM lens_ps_commission_ledger
+               WHERE mgmt_rate IS NULL AND mgmt_fee_owed IS NOT NULL AND mgmt_fee_owed <> 0""",
         why="COALESCE(rate, 0) turned 'we do not know the rate' into a confident $0.00 and "
-            "reported it as fact. NULL means unknown and must propagate.",
+            "reported it as fact. NULL means unknown and must propagate. cip_110: repointed to the "
+            "live ledger (mgmt_rate/mgmt_fee_owed); complements mgmt_rate_is_ladder, which lets a "
+            "NULL rate slip through (NULL NOT IN (...) is NULL).",
     ),
     Invariant(
         key="unknown_partner_paid",
-        sql="""SELECT count(*) FROM ps_monthly_earnings
-               WHERE partner_rate_pct IS NULL AND partner_owed IS NOT NULL""",
+        sql="""SELECT count(*) FROM lens_ps_commission_ledger
+               WHERE partner_rate_pct IS NULL AND partner_fee_owed IS NOT NULL
+                 AND partner_fee_owed <> 0""",
         why="The same sin, relocated to deal_type: 457 rows where we did not know the partner's "
-            "deal defaulted to 5% and paid out $1,054 of PS net anyway.",
+            "deal defaulted to 5% and paid out $1,054 of PS net anyway. cip_110: repointed to the "
+            "live ledger (partner_rate_pct/partner_fee_owed).",
     ),
     # ── the arithmetic ──────────────────────────────────────────────────────
-    Invariant(
-        key="rate_tier_18_months",
-        sql="""SELECT count(*) FROM ps_monthly_earnings e
-               JOIN ps_product_subscriptions s
-                 ON s.wayward_brand_id = e.wayward_brand_id AND s.product_id = e.product_id
-               WHERE e.period_month >= s.productive_date + INTERVAL '18 months'
-                 AND e.ps_rate_pct = 6""",
-        why="'+365+183' = 548 days, but 18 CALENDAR months is 546-549 depending on the start "
-            "month. Month NINETEEN fell inside the boundary and kept 6% on 46 brands. Never use a "
-            "day count for a month boundary.",
-    ),
+    # (retired cip_110: `rate_tier_18_months` guarded the frozen day-count ladder — the live ladder
+    #  is re-anchored in lens_ps_rate_schedule and its VALUE is guarded by `mgmt_rate_is_ladder`;
+    #  `voided_counted_as_billed` is tautological on the live ledger, which derives usage_billed
+    #  inline from ps_stripe_invoice_lines (paid+open only) — there is no separate ETL to disagree.)
     Invariant(
         key="net_negative_on_positive_revenue",
-        sql="""SELECT count(*) FROM ps_monthly_earnings
-               WHERE ps_net_owed < 0 AND usage_collected > 0""",
+        sql="""SELECT count(*) FROM lens_ps_commission_ledger
+               WHERE (mgmt_fee_owed - partner_fee_owed) < 0 AND usage_collected > 0""",
         why="The partner cannot earn more than we do. (A negative net on NEGATIVE collected is "
-            "legitimate — that is a refund month.)",
-    ),
-    Invariant(
-        key="voided_counted_as_billed",
-        sql="""SELECT count(*) FROM ps_monthly_earnings e
-               WHERE e.usage_billed <> COALESCE((
-                   SELECT sum(l.amount) FILTER (WHERE l.invoice_status IN ('paid','open'))
-                   FROM ps_stripe_invoice_lines l
-                   WHERE l.wayward_brand_id = e.wayward_brand_id
-                     AND l.product_id = e.product_id
-                     AND l.billing_month = e.period_month
-                     AND l.is_ps_base), 0)""",
-        why="A VOIDED invoice was CANCELLED — never billed, never owed, never collectable. "
-            "Counting voids inflated 'billed' by $561,209 and made COLLECTED EXCEED BILLED on 73 "
-            "brand-months. A brand cannot pay us more than we invoiced it.",
+            "legitimate — that is a refund month.) cip_110: repointed to the live ledger "
+            "(mgmt_fee_owed - partner_fee_owed).",
     ),
     # ── provenance: a decision nobody can explain is a decision nobody can defend ──
     Invariant(
@@ -164,7 +149,7 @@ INVARIANTS: tuple[Invariant, ...] = (
         key="money_on_a_brand_graded_junk",
         sql="""SELECT count(*) FROM lens_ps_brand_reality r
                WHERE r.reality = 'JUNK'
-                 AND EXISTS (SELECT 1 FROM ps_monthly_earnings e
+                 AND EXISTS (SELECT 1 FROM lens_ps_commission_ledger e
                               WHERE e.wayward_brand_id = r.wayward_brand_id
                                 AND (e.usage_collected > 0 OR e.usage_billed > 0))""",
         why="cip_83 graded a brand JUNK if its Stripe mailbox was @wayward.com — and GCI Outdoors, "
@@ -290,25 +275,9 @@ INVARIANTS: tuple[Invariant, ...] = (
             "PAID, and it carried the same bug — right today only because no current deal spans a "
             "leap day. That is luck, not correctness.",
     ),
-    Invariant(
-        key="spine_is_chinese_matches_verdict",
-        sql="""SELECT count(*) FROM ps_monthly_earnings m
-               LEFT JOIN lens_ps_china_verdict v USING (wayward_brand_id)
-               WHERE m.is_chinese IS DISTINCT FROM CASE v.verdict
-                                                       WHEN 'china'     THEN true
-                                                       WHEN 'not_china' THEN false
-                                                       ELSE NULL
-                                                   END""",
-        why="is_chinese has ONE home — lens_ps_china_verdict — and the money spine must agree with "
-            "it. It used to be written from lens_ps_eligibility's LEGACY nationality signal, and "
-            "the two disagreed on 498 brands / $48,652.77 of gross owed. SIX of them said FALSE "
-            "while the verdict said CHINA (COOLIFE, Heyvalue, Gelrova, Neathova, Jarkyfine, "
-            "MOSDART) — each carrying a +86 phone or sitting on the frozen exclusion list. Two "
-            "authoritative-looking answers to the same question, on the money table itself. "
-            "NULL is not FALSE: unknown propagates as NULL, because 'we have not "
-            "decided' is not 'not Chinese' (cip_72), and treating it as false silently drops "
-            "brands out of the book.",
-    ),
+    # (retired cip_110: `spine_is_chinese_matches_verdict` guarded a SECOND home for is_chinese on
+    #  the frozen money spine. That column is gone — the live ledger reads verdict directly from
+    #  lens_ps_china_verdict (one home), so the two-answers-disagree failure mode cannot exist.)
     Invariant(
         key="humans_live_and_opposed",
         sql="""SELECT count(*) FROM (

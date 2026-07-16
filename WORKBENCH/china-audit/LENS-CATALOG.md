@@ -2,7 +2,8 @@
 
 **The read-first reference for the Wayward China-commission money system.** If you want a number —
 for an invoice, a report, Metabase, a partner, or Wayward — start here. Current as of the head
-migration **`cip_109_reporting_lenses`** (money engine = cip_104–109). Live + self-updating; every
+migration **`cip_110_retire_frozen_earnings`** (money engine = cip_104–110; cip_110 dropped the
+frozen `ps_monthly_earnings` snapshot — the whole engine now reads only live Stripe). Live + self-updating; every
 figure recomputes from current data.
 
 ## 📌 THE canonical number (updated on each engine change)

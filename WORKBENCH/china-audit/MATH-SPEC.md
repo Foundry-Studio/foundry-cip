@@ -7,9 +7,9 @@ is Connect-only, so Boost is ours). For the CURRENT read-surface + glossary, use
 [LENS-CATALOG.md](LENS-CATALOG.md). Shipped since cip_104: cip_105 (per-product eligibility), cip_106
 (Wayward client fee rate), cip_107 (ledger rewired to per-product), cip_108 (`lens_ps_wayward_reconciliation`),
 cip_109 (reporting lenses — incl. `lens_ps_wayward_stated`, which this doc called "deferred").
-**Recovery ≈ $12,035** (not the ~$10.4k cited in §6). The frozen `ps_monthly_earnings` is legacy;
-the ledger is live and no longer depends on it. The frozen snapshot (`ps_monthly_earnings`) stays untouched
-until the new engine is proven, then we swap on rails (data + writer same wave). Rules of record live
+**Recovery ≈ $12,035** (not the ~$10.4k cited in §6). **The frozen `ps_monthly_earnings` snapshot was
+DROPPED in cip_110** — the on-rails swap below is DONE: every lens/invariant/script was repointed to
+the live spine or retired, verified penny-identical, and the 16,020-row snapshot archived. Rules of record live
 in [OWNERSHIP-RULES.md](OWNERSHIP-RULES.md) and [RULES.md](RULES.md); this doc turns them into fields.
 
 **The grain of everything below: `wayward_brand_id × product_id × period_month`** (the
@@ -149,8 +149,9 @@ the sales signal, not `last_activity_at` (ambiguous source). (OWNERSHIP-RULES co
 **Objects (all views except the one table):** `lens_ps_rate_schedule` (re-anchored ladder) →
 `lens_ps_commission_ledger` (waterfall L2–L8) → `lens_ps_claim` (net, china-gated);
 `lens_ps_wayward_stated` (typed HubSpot cross-check); **`ps_claim_statements`** (the one table —
-pinned as-of claims). `ps_monthly_earnings` stays as-is until the lens reconciles, then the writer
-retires + consumers repoint — the **on-rails swap, the ONE shared-contract step, gated for Tim.**
+pinned as-of claims). ~~`ps_monthly_earnings` stays as-is until the lens reconciles, then the writer
+retires + consumers repoint~~ — **DONE in cip_110: the snapshot is dropped, consumers repointed to the
+live spine, invariants+scripts cleaned. The on-rails swap is complete.**
 
 **Recovered exact collected formula (validated):** `is_ps_base AND invoice_status='paid' AND
 product_id IS NOT NULL AND wayward_brand_id IS NOT NULL AND billing_month IS NOT NULL`, `Σ amount`
@@ -196,7 +197,7 @@ in your rundown; it's a display field, never a payable.
 - **5 subscriptions missing `productive_date`** — no ladder; default to 3%? or hold? (minor; propose 3%).
 - **Un-invoiced accrued usage (L1)** — reserved NULL until Jake feed.
 - **Partner rates** — 5% default now; re-run on Rhea's roster (no rebuild, just data + recompute).
-- **`ps_monthly_earnings.is_claimable/claim_basis`** — superseded law; DROP or ignore in the swap.
+- **`ps_monthly_earnings.is_claimable/claim_basis`** — superseded law; **DROPPED with the whole table in cip_110.**
 
 ---
 

@@ -1,9 +1,10 @@
 # MONEY WATERFALL — schema readiness (Tim, 2026-07-15)
 
 > ⚠️ **SUPERSEDED (2026-07-16).** This was the pre-build schema check; the money is now **LIVE, not
-> frozen** (cip_104–109). Its stage→column mappings point at the legacy `ps_monthly_earnings`
-> snapshot, which the engine replaced. For the current money read-surface see
-> [LENS-CATALOG.md](LENS-CATALOG.md). Kept as historical record.
+> frozen** (cip_104–110). Its stage→column mappings point at the legacy `ps_monthly_earnings`
+> snapshot — **which was DROPPED in cip_110**, so every `ps_monthly_earnings.*` reference below is
+> historical (the live equivalents are in `lens_ps_commission_ledger` / `lens_ps_claim`). For the
+> current money read-surface see [LENS-CATALOG.md](LENS-CATALOG.md). Kept as historical record.
 
 **Purpose:** before we build any owed-vs-paid math (P2), confirm the schema can HOLD every stage of
 the money flow, month by month. No engine here — just: do we have the fields? Grounded in Jake's

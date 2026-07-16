@@ -50,10 +50,11 @@ then this doc is the carrier of record.
 1. **NO revenue-start date exists in live code at all.** The superseded 2025-12-01 RULE_B died with
    cip_97's drops (good), but the settled **2025-10-01 anchor was never encoded anywhere**. Until P2
    lands it, this document is the only carrier. Same for 2025-11-18 (comments only).
-2. **The frozen snapshot's claim columns embody the SUPERSEDED law.** `ps_monthly_earnings.is_claimable`
-   / `claim_basis` were computed by the now-deleted writer under RULE_B (2025-12-01) and the old
-   reactivation window. **Do not read them as current truth — including for P5 v0.** P2's engine
-   recomputes them under these rules.
+2. **The frozen snapshot's claim columns embodied the SUPERSEDED law — now GONE (cip_110).**
+   `ps_monthly_earnings.is_claimable` / `claim_basis` were computed by the now-deleted writer under
+   RULE_B (2025-12-01) and the old reactivation window. **The whole table was dropped in cip_110**, so
+   the trap is closed at the source; current truth is `lens_ps_commission_ledger` / `lens_ps_claim`,
+   which recompute under these rules.
 3. **"Restart the clock" is not yet expressible — and it's a FULL-ladder restart (confirmed).**
    `rate_10_expires` is GENERATED from the single `productive_date`; a qualifying reactivation must
    re-anchor the WHOLE ladder to the reactivation date (fresh 12mo@10%, then 6, then 3). Needs a

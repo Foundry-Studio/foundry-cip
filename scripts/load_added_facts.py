@@ -103,8 +103,8 @@ RESOLVE_BRAND = text("""
     WHERE tenant_id = :t
       AND (wayward_brand_id::text = :s OR lower(btrim(brand_name)) = lower(btrim(:s)))
     ORDER BY (wayward_brand_id::text = :s) DESC,
-             (SELECT count(*) FROM ps_monthly_earnings m
-               WHERE m.wayward_brand_id = ps_brands.wayward_brand_id) DESC
+             (SELECT count(*) FROM ps_stripe_invoice_lines m
+               WHERE m.wayward_brand_id = ps_brands.wayward_brand_id AND m.is_ps_base) DESC
     LIMIT 1
 """)
 

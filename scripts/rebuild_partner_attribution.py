@@ -137,8 +137,8 @@ EVIDENCE = text("""
            max(o.value) FILTER (WHERE o.field = 'referrer')          AS eric_referrer,
            max(o.value) FILTER (WHERE o.field = 'eligible_for_10_rev_share') AS eligible_10,
            max(o.value) FILTER (WHERE o.field = 'brand_name')        AS brand_name
-    FROM (SELECT DISTINCT wayward_brand_id FROM ps_monthly_earnings
-           WHERE tenant_id = :t AND wayward_brand_id IS NOT NULL) b
+    FROM (SELECT DISTINCT wayward_brand_id FROM ps_stripe_invoice_lines
+           WHERE tenant_id = :t AND wayward_brand_id IS NOT NULL AND is_ps_base) b
     LEFT JOIN ps_brand_observations o
            ON o.wayward_brand_id = b.wayward_brand_id AND o.tenant_id = :t
     GROUP BY b.wayward_brand_id
@@ -146,7 +146,8 @@ EVIDENCE = text("""
 
 PRODUCTS = text("""
     SELECT DISTINCT wayward_brand_id, product_id
-    FROM ps_monthly_earnings WHERE tenant_id = :t AND wayward_brand_id IS NOT NULL
+    FROM ps_stripe_invoice_lines
+    WHERE tenant_id = :t AND wayward_brand_id IS NOT NULL AND product_id IS NOT NULL AND is_ps_base
 """)
 
 UPSERT = text("""

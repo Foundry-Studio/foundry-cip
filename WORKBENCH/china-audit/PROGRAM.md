@@ -89,17 +89,20 @@ P5 can ship a v0 (HubSpot-flag discrepancy list) during P2 — the flag comparis
 
 ## ⏳ HOLDS — waiting on Tim (do not act without his ruling)
 
-1. **Solid Gold** — real US pet-food brand (Chesterfield MO), parent = Hong-Kong-listed H&H Group
-   ($163M acquisition). HK=China by rule, but this is a genuine US operating brand with an HK parent,
-   not a shell. Does the parent's nationality flip it? (Symmetric case: Kate Farms left not_china
-   under French majority owner Danone.)
-2. **NORDMOND** — conflicted: one batch says likely-China; another found a Romanian privacy-policy
-   entity (NORDMOND STORE LLC, Bucharest) but self-flagged it thin.
-3. **Intent Brands** — leans not_china (named founder Janco Bronkhorst, US LLC holds trademarks);
-   held only because its sole address is a Sheridan WY mail-drop.
+**✅ RESOLVED 2026-07-16 (Tim's rulings, encoded in `scripts/manual_china_review_2026_07_16.py`,
+applied to prod, verdicts = not_china/human):**
+1. ~~**Solid Gold**~~ → **not_china** (US operating brand; HK-listed parent doesn't flip it, cf. Kate
+   Farms under Danone).
+2. ~~**NORDMOND**~~ → **not_china** (Tim's call over conflicted signals).
+3. ~~**Intent Brands**~~ → **not_china** (named founder + US trademark owner outweigh the WY mail-drop;
+   was already not_china/human).
+
+**Still open:**
 4. **Q0 — what clears a brand via the 549 seller records?** Proposed: trademark owner AND Amazon
    seller of record name the SAME entity, non-China country, REAL street address (not a
-   registered-agent drop). Blocks the A-track ingest. (Full detail: archive/QUESTIONS-FOR-TIM.md.)
+   registered-agent drop). Blocks the A-track ingest. **Review list built 2026-07-16:**
+   [SELLER-RECORDS-549.md](SELLER-RECORDS-549.md) — 548 brands, **413 still `unknown` AND billing
+   (~$82.7k collected)** = the priority queue. All kept `unknown` (Tim: "think about next step").
 5. **Q1 — `marketing@service908.com`**: one owner or shared service? (4 billing brands ride on it.)
 6. **Q2 — `zhou_yintong@163.com`**: agency or owner? (18 brands; migrations describe it both ways.)
 7. *(Deferred by RULES #9, not waiting:)* Q3/RobKushner (needed a Jake ask) · the 652-unknown

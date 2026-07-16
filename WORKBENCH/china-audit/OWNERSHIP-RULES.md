@@ -135,3 +135,14 @@ Wayward paid only 44% of the implied 10% there); post-cutover *new* brands are ~
 pre-cutover bucket, not post) and **Beetles** (signup 2025-12-08, post-cutover but ~fully paid → ~$7).
 Of the 278 China brands Wayward collected on but paid $0, **111 are ours** (not genuinely excluded);
 167 are on partner-earning buckets (correctly excluded).
+
+### 🧩 PER-PRODUCT ELIGIBILITY (Tim, 2026-07-16; cip_105)
+Eligibility is **per brand × product**, not per brand. Nationality (china) is the only gate for
+whether WE get Wayward's management commission; the pre-PS **rev-share** exclusion list is
+**Connect-only**, so those brands are NOT PS-eligible on Connect (a partner earns the rev-share) but
+ARE eligible on **Boost** (open — we can sell it, earn the fee, and split with whoever brings it).
+Flat-fee-era + never-listed = eligible on all products. Model: `ps_product_eligibility` (manual
+override/backfill surface) + `lens_ps_product_eligibility` (effective eligibility + partner + rate).
+The old exclusion was brand-level and blocked all products — which **hid ~$936 of Boost management fee
+on 108 rev-share brands** (~$9.4k collected) we should be claiming. Rewiring the money ledger
+(`lens_ps_claim`) to consume per-product eligibility is a reviewed next step (it grows the recovery).

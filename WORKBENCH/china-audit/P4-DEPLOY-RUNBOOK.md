@@ -31,9 +31,21 @@ restricted key):
    `run_ps_stripe_sync(engine, tenant_id=PS, mode="full")` from the local repo against prod
    (deliberate prod write — the same operation the manual ingest was, now via the module), with
    `STRIPE_API_KEY` in the command environment only. Duration ≈ 2-3 min.
-5. **Verify parity + correctness** (the plan §3 gates):
-   - Penny-reconcile: Dec-2025→Jun-2026 collected totals unchanged vs pre-refresh baseline;
-     `lens_ps_claim` recovery unchanged (capture before/after like cip_110's parity harness).
+5. **Verify parity + correctness** (the plan §3 gates — REFRAMED after the P2 truncation finding):
+   P2's QC proved the ORIGINAL ingest dropped every invoice line past the 10th (no `has_more`
+   pagination on the embedded lines page). Prod signature confirms real impact: **1,196 invoices sit
+   at EXACTLY 10 lines and zero above** — a truncation ceiling, so today's "collected" is likely
+   UNDERSTATED. The step-0 full refresh (fixed module) will recover those lines. Therefore the gate
+   is NOT "totals unchanged" — it is:
+   - **Existing lines byte-stable**: every pre-refresh `(stripe_line_id)` row unchanged in amount/
+     status/month (the refresh may only ADD lines and update statuses that genuinely changed).
+   - **Every collected delta attributable**: new lines may only belong to invoices that had exactly
+     10 lines pre-refresh (the truncated set) or invoices created/changed after 2026-07-13. Any
+     other delta = stop and investigate.
+   - Capture before/after: per-month collected totals + recovery + the truncated-invoice list;
+     report the recovered $ to Tim (it is NEW claimable money on china brands, straight into the
+     live lenses).
+   - `lens_ps_claim` recovery: expected to move ONLY upward by the recovered china-brand share.
    - Idempotency: immediately run incremental once → ~0 changes.
    - Invariants: `scripts/check_invariants.py` → 21/21.
    - **Refund-overlap recon**: `scripts/reconcile_refund_overlap.py` — the C1 question answered

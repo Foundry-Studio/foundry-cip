@@ -4,8 +4,8 @@
 
 declared_thing: foundry-cip-push-and-sync
 parent: foundry-cip
-last_modified: 2026-06-09
-last_reviewed: 2026-06-09
+last_modified: 2026-07-17
+last_reviewed: 2026-07-17
 review_cadence: 90
 generation_mode: file-authored
 
@@ -35,6 +35,57 @@ components:
     relations:
       depends_on: [cip-orchestrator, fas-subsystem-scheduler]
       external_dependencies: [hubspot-api, zendesk-api]
+
+  - component_id: ps-stripe-sync
+    type: connector
+    title: PS Stripe Live Sync
+    summary: >
+      Makes Stripe a truly live feed for Project Silk: polls /v1/events as the
+      change feed, hydrates each named object by id, and upserts via the penny-
+      reconciled kernels into the ps_stripe_* spine. Lands EVIDENCE-ONLY refunds
+      and credit notes (ingested, never netted into collected). Holds its own
+      ps-stripe-v1 advisory lock; records a cip_sync_runs heartbeat plus cursor.
+      Module cip.integration_mesh.sync.ps_stripe_sync; lifted from
+      scripts/ingest_stripe_invoices.py and ingest_stripe_customers.py, which
+      are now thin operator wrappers. AUTOMATIONS-PLAN section 3 (P2).
+    status: shipped
+    maturity: bronze
+    created: 2026-07-17
+    last_modified: 2026-07-17
+    owner: tim
+    domain: eng
+    container:
+      thing_id: foundry-cip-push-and-sync
+    visibility: tenant-scoped
+    tags: [sync, stripe, ingestion, events-cursor, hourly, ps]
+    relations:
+      depends_on: [cip-scheduled-sync, cip-orchestrator, cip-sync-run-recorder]
+      external_dependencies: [stripe-api]
+
+  - component_id: ps-signal-harvest
+    type: service
+    title: PS Nationality Signal Harvest
+    summary: >
+      Deterministically turns already-ingested fields (CN country codes,
+      exclusion-list and Eric-sheet membership, Chinese consumer mailboxes and
+      China partners) into settled ps_nationality_signals (ON CONFLICT DO
+      NOTHING). Re-syncs the seen_in_* denormalised cache to truth as a pre-step
+      (review C2); records a cip_sync_runs heartbeat so a dead harvester is
+      visible. Module cip.integration_mesh.sync.signal_harvest; lifted from
+      scripts/harvest_nationality_signals.py (now a thin wrapper).
+      AUTOMATIONS-PLAN section 6 solid-data machinery (P1).
+    status: shipped
+    maturity: bronze
+    created: 2026-07-17
+    last_modified: 2026-07-17
+    owner: tim
+    domain: eng
+    container:
+      thing_id: foundry-cip-push-and-sync
+    visibility: tenant-scoped
+    tags: [sync, signals, nationality, hourly, ps]
+    relations:
+      depends_on: [cip-sync-run-recorder]
 
   - component_id: cip-chatwoot-push
     type: connector

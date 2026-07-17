@@ -76,6 +76,7 @@
 | JOS-C51 | Components Compose — Typed Composition Between Parts on the Shelf | adopt | tim |
 | JOS-C52 | Component Partition — Substrate / Thing / Doc / View as Four Mutually Exclusive Buckets | adopt | tim |
 | JOS-C53 | Agents in an Org Chart | adopt | tim |
+| JOS-C54 | Questions as Cognition | adopt | tim |
 
 ## operations
 
@@ -91,4 +92,4 @@
 | JOS-C33 | Visibility Before Compression | adopt | tim |
 | JOS-C39 | Phase Transitions | adopt | tim |
 
-_Total: 53_
+_Total: 54_

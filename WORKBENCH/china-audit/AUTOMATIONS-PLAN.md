@@ -169,7 +169,23 @@ one cycle; `lens_ps_claim` recovery unchanged on a quiet hour.
 
 ---
 
-## 6. Scope item 3 — seller-of-record enrichment pipeline (DRAFT — riff with Tim before design-lock)
+## 6. DEFERRED — the decision system (Tim, 2026-07-17: solid data first)
+
+**Tim's framing, now the plan's law:** two kinds of data. **SOLID data** = facts pulled from
+sources (Stripe, HubSpot, Zendesk, Slack exports, payment sheets) — automate that first, it's
+plumbing, no judgment anywhere. If a source *says* chinese (country=CN, exclusion list, Eric
+sheet), the existing approved signal rules settle it mechanically on ingest. **DECISION data** =
+"the sources are silent — is this chinese?" — the enrichment/research system below. That gets
+designed AFTER solid-data automation ships. The decision queue self-builds meanwhile: whatever
+solid data doesn't settle stays `unknown` in `lens_ps_china_evidence_grid`.
+
+One addition this framing surfaces: **`harvest_nationality_signals.py` is solid-data machinery,
+not decision machinery** — it deterministically turns already-ingested fields (CN country codes,
++86 phones, exclusion-list membership…) into settled signals. It belongs on the schedule (daily,
+after the syncs) so a new CN flag arriving via HubSpot becomes a china verdict without anyone
+running anything. (Verify its idempotency before scheduling; it upserts signals.)
+
+### The deferred sketch (riff when we get here — not now)
 
 The machine that clears the 549 queue ($82.7k) and every future unknown. Sketch to riff on:
 
@@ -220,8 +236,8 @@ Small, surgical:
 | phase | contents | gate |
 |---|---|---|
 | **A — money spine live** | §3 sync module + FAS schedules + restricted key + §4.1/4.2/4.4 freshness+invariants wiring | Tier-C, penny-reconcile replay, double-run idempotency, staged Slack test (force a stale reading in cipobs → alert fires) |
-| **B — drift + drops** | §5 statement-drift lens + §7 payment-drop hardening + §5 credit-note verification query | drift lens reconciles against a hand-computed brand; drop flow rehearsed on the June sheet |
-| **C — enrichment** | §6 after the riff + Q0 | design-locked with Tim first |
+| **B — solid-data completion** | schedule the signal harvester (§6 note, daily post-sync; idempotency verified first) + §5 statement-drift lens + §7 payment-drop hardening + §5 credit-note verification query | harvester double-run = no new rows; drift lens reconciles against a hand-computed brand; drop flow rehearsed on the June sheet |
+| **C — decision system (DEFERRED)** | §6 enrichment/research pipeline, designed with Tim after A+B ship | riff + design-lock + Q0 first |
 
 Every phase: subagent QC + self QC + pathspec-scoped commit + push (the cip_110 protocol).
 PM: create the P3 project at Phase-A kickoff (per PROGRAM rules — at kickoff, not before).

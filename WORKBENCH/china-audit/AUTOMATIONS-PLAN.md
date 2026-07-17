@@ -102,37 +102,67 @@ fit the `cip_*` mapper contract; (b) `ps_lens_mirror` already proved this exact 
 production; (c) smallest new surface on the money path. A full connector refactor stays possible
 later — this decision is reversible.
 
-**The sync, each hour:**
+**Honesty note (review H5):** the reused-verbatim kernels are `classify()` + the two upsert
+statements (the penny-reconciled parts). `run()`'s control flow is REPLACED, not lifted — the old
+script prefetches the ENTIRE customer list every call (incompatible with hourly); the new module
+hydrates customers per-event (the script's `brand_of` fallback is the seed for this).
+
+**The sync, each hour (holding the `ps-stripe-v1` advisory lock — see below):**
 1. Read cursor from last `cip_sync_runs` row (`connector_id='ps-stripe-v1'`): last event `created`
    + last event id.
 2. Poll `/v1/events?created[gt]=cursor−24h&types[]=` invoice.*, customer.*, credit_note.*,
    charge.refunded (types list finalized at build).
 3. For each named object: **hydrate by ID** (GET the current invoice/customer), then upsert with
-   the existing keys + `classify()` parsing. Recency-guard so out-of-order events can't regress a
-   row. Record processed event ids (dedup table `ps_stripe_events_processed`).
+   the existing keys + `classify()` parsing. **Hydrate-by-ID IS the correctness guard** — we always
+   land current state, so replaying an event is idempotent; there is no separate version check
+   (review C3.3: the scripts' `ON CONFLICT DO UPDATE` is unconditional and Stripe invoices carry no
+   reliable `updated` to compare).
 4. Customers: same event-driven path (`customer.updated` etc.) + the brandId join logic from
    `ingest_stripe_customers.py`.
 5. Write counters + new cursor to `cip_sync_runs` via `SyncRunRecorder`.
 
-**Weekly full refresh** (safety net for event-less mutations): same module, `mode="full"` — the
-existing full-pull path, scheduled Sunday ~03:07 UTC. Also the auto-fallback if the cursor is >25
-days old. **Why Stripe specifically:** HubSpot's API supports "modified since" natively, so hourly
-increments already catch edits; Stripe's list endpoints filter on `created` only, events expire at
-30 days, and a few mutations emit no event — the weekly full is the guarantee the MONEY table can
-never drift >7 days from truth.
+**`ps_stripe_events_processed` (review H6 — specified):** `event_id TEXT PK, event_created
+timestamptz, object_id TEXT, applied_at timestamptz` + tenant/RLS like siblings; pruned to 45 days
+(> Stripe's 30-day event retention). Because hydrate-by-ID makes replays idempotent, this table is
+an **optimization + audit trail**, not a correctness requirement — a lost row causes a redundant
+re-fetch, never wrong data.
 
-**Refunds + credit notes (pulled into Phase A — Tim, 2026-07-17):** a refund does NOT mutate the
-invoice (it stays `paid`; the refund lives on the charge/credit-note objects), so re-ingesting the
-invoice alone can't correct "collected". Build step: (1) verification query — does Wayward's
-account contain any refunds/credit notes at all? (2) if yes: `ps_stripe_refunds` +
-`ps_stripe_credit_notes` tables in the same sync module (event types already in the poll list) and
-net them into the collected derivation; if no: land the tables' ingestion anyway but the derivation
-change waits for real cases (never build math against imagined data — but never let a real refund
-silently inflate collected either; the freshness of this check is what Phase A verifies).
+**Concurrency (review C3 — REQUIRED):** the lens-mirror precedent is only half-applicable — its
+locked half goes through `run_sync`; its direct-upsert half (which Stripe entirely is) holds NO
+lock, and `max_concurrent=1` only serializes within one schedule_id. The Stripe module therefore
+takes its own **advisory lock** (reuse the orchestrator's `_advisory_lock_key(tenant,
+"ps-stripe-v1")` pattern) around BOTH hourly and full modes — second-to-fire skips cleanly and
+records a skipped run.
+
+**Weekly full refresh** (safety net for event-less mutations): same module, `mode="full"`,
+scheduled **Sunday 03:03 UTC** (review C3.2: NOT :07 — the hourly fires at :07 every hour incl.
+Sunday 03:07, so the original minute collided with itself; :03 is unused fleet-wide). Runtime ≈
+2–3 min; explicit `timeout_seconds` set (1800 hourly / 3600 full — review L12). Auto-fallback:
+cursor >25 days old → force full (only 5 days inside Stripe's 30-day event horizon — don't let it
+slip). **Deployment order (review M7): the full refresh is STEP 0** — run it once to close the
+2026-07-13→now gap and seed the cursor, THEN enable the hourly schedule. **Why Stripe
+specifically:** HubSpot's API supports "modified since" natively, so hourly increments already
+catch edits; Stripe's list endpoints filter on `created` only, events expire at 30 days, and a few
+mutations emit no event — the weekly full is the guarantee the MONEY table can never drift >7 days
+from truth.
+
+**Refunds + credit notes (REFRAMED — review C1, verified on prod):** refund economics are
+**already partially in "collected"**: 777 negative paid `is_ps_base` lines (−$10,543.11; 102
+ledger rows with negative collected months) — Wayward's reconciliation-adjustment lines are
+Stripe-native negative invoice lines, and the ledger already nets them (the
+`net_negative_on_positive_revenue` invariant explicitly tolerates refund months). So the danger
+inverts: naively netting new `ps_stripe_refunds`/`ps_stripe_credit_notes` tables into collected
+would **double-subtract**. Build rule: the new tables land **EVIDENCE-ONLY** (ingest, don't net).
+The verification question is not "are there refunds?" but "**which refund economics are NOT
+already represented as negative `is_ps_base` lines?**" — reconcile Stripe-native
+refunds/credit-notes against the negative-line total; only a proven-uncovered remainder may ever
+enter the derivation, as its own explicit term, with the invariant suite re-baselined.
 
 **Monthly full re-sync for HubSpot/Zendesk (Tim, 2026-07-17):** their hourly "modified since"
 increments miss DELETED/MERGED records. Same framework (`sync_mode="full"`), one schedule row each,
-monthly (1st Sunday ~04:00/04:30 UTC). Cheap insurance, same pattern.
+monthly — **1st Sunday 04:11 / 04:41 UTC** (review L11: NOT 04:00 — three existing Sunday-04:00
+jobs incl. a 2h graph sweep already pile there; these route through `run_sync` so they self-lock,
+it's purely a load-window courtesy). Cheap insurance, same pattern.
 
 **FAS wiring** (mirrors HubSpot exactly):
 - `seed.py` SYSTEM_SCHEDULES: `cip_ps_stripe` hourly at **:07** (unused minute; existing: :17 :23
@@ -144,19 +174,34 @@ monthly (1st Sunday ~04:00/04:30 UTC). Cheap insurance, same pattern.
 
 **Verification gates:** replay Dec-2025→Jun-2026 and reconcile to the existing penny-exact totals;
 run twice in a row → second run lands ~0 changes; void an invoice in test → status flips within
-one cycle; `lens_ps_claim` recovery unchanged on a quiet hour.
+one cycle; `lens_ps_claim` recovery unchanged on a quiet hour; **per-scope key probe at deploy**
+(one GET per required scope — a mis-scoped restricted key is caught at setup, not Sunday 03:03;
+review L13); staged concurrency test (fire hourly + full together in cipobs → second skips via the
+advisory lock).
 
 ---
 
 ## 4. Scope item 2 — freshness + invariants (the "silence screams" layer)
 
-1. **Extend the existing watchdog** (`cip_freshness_watchdog.py` TENANT_ENTITY_MATRIX): add
-   `ps_stripe_invoice_lines` (max `ingested_at`) for PS-tenant with warn 2h / error 4h. Zero new
-   infrastructure — it already runs every 30 min and Slacks.
-2. **Schedule the invariants**: `run_ps_invariants` already matches the FAS executor contract
-   (`function(db, **params)`, raises on violation). New schedule `ps_invariants_check` hourly at
-   :12. The FAS glue catches `InvariantViolationError` and posts `post_ops_alert()` **immediately**
-   (not waiting for the ≥5-consecutive-failures notifier) — a lying number is urgent.
+1. **Extend the existing watchdog — via a small REFACTOR, not a one-liner (review H4):** the
+   watchdog hardcodes `MAX(refreshed_at)` and `ps_stripe_invoice_lines` has `ingested_at` — naively
+   adding the table crashes the WHOLE watchdog (`UndefinedColumn` → EC + PS monitoring both go
+   dark). Refactor `TENANT_ENTITY_MATRIX` to per-entity `(table, timestamp_column)`, template the
+   column, then add `ps_stripe_invoice_lines → ingested_at`. Two more review items land here:
+   **"money table empty = ALERT, not skip"** (the current empty-table branch would suppress the
+   stale-money alarm under an RLS change — review M10), and warn/error tiers need real plumbing
+   (today it's a single threshold).
+2. **Schedule the invariants — with a SWALLOW-not-fail contract (review C2):** naive wiring is a
+   trap: `run_ps_invariants` RAISES on violation → task fails → `consecutive_failures` climbs → at
+   10 the schedule AUTO-DISABLES — a real violation lasting >10h would disable the very tripwire
+   that's screaming. The FAS glue therefore **catches `InvariantViolationError`, posts
+   `post_ops_alert()` immediately, and returns a violations dict (task SUCCEEDS and keeps checking
+   hourly)**; only genuine execution errors (DB down, dropped lens) propagate as task failures.
+   Data problems alert; infra problems fail. New schedule `ps_invariants_check` hourly at :12.
+   Two pre-conditions: fix the GUC leak (`set_config(..., false)` is session-scoped and would leak
+   PS tenant onto FAS's pooled connections — flip to `true` or run on a NullPool engine; review
+   M8), and add `seen_in_*` flag maintenance to ingest so `stale_seen_in_flags` can't flap (green
+   today — 21/21 verified — but nothing maintains those caches; review C2/M9 shared root cause).
 3. **Monthly expectation for Jake's reports**: a check (same watchdog run) that month M's payment
    report exists in `ps_payment_events` by day N of M+1 — else a *reminder-grade* Slack (it's a
    human dependency, not a system failure). **Open question for Tim: what day is "late"?** (Jake's
@@ -202,6 +247,11 @@ not decision machinery** — it deterministically turns already-ingested fields 
 report as `unknown` until tomorrow; :27 sits right after the Stripe :07 and HubSpot :17 pulls so
 facts become verdicts inside the same hour). Gate before scheduling: verify idempotency (double-run
 = zero new rows); it's cheap deterministic SQL over already-ingested data, no API calls.
+**Review-verified (M9):** the harvester IS idempotent (`ON CONFLICT ... DO NOTHING`), additive-only,
+no book-guard/promotion side effects — hourly is semantically safe. Two build items: give it a
+**heartbeat** (`cip_sync_runs` row per run — today, if it silently dies, nothing notices), and its
+`eric_sheet` harvest reads the unmaintained `seen_in_eric_sheets` cache — same root cause as the
+`stale_seen_in_flags` invariant; the §4.2 seen_in maintenance fixes both.
 
 ### The deferred sketch (riff when we get here — not now)
 
@@ -268,6 +318,24 @@ PM: create the P3 project at Phase-A kickoff (per PROGRAM rules — at kickoff, 
 5. Weekly full-refresh window — Sunday 03:07 UTC proposed; any conflict?
 
 ## 10. Review trail
-- [ ] Riff with Tim on §6 (+ any scope updates)
-- [ ] Adversarial review by Opus subagent (architecture, failure modes, missed best practices)
-- [ ] Findings folded in; plan marked APPROVED; Phase A begins
+- [x] Scope riff with Tim (2026-07-17): solid-data first; harvester hourly; refunds into Phase A;
+      monthly CRM fulls; decision system deferred to Phase C
+- [x] **Adversarial review by Opus subagent (2026-07-17): GO-WITH-FIXES.** 3 critical / 3 high /
+      4 medium / 4 low findings; all 5 load-bearing claims independently re-verified on prod/source
+      before folding (incl. C1 stronger than stated: 777 negative paid is_ps_base lines,
+      −$10,543.11 already inside "collected").
+- [x] Findings folded (this revision): C1 evidence-only refund tables + reframed reconciliation ·
+      C2 swallow-not-fail invariant glue + seen_in maintenance + M8 GUC fix · C3 advisory lock +
+      full moved to Sun 03:03 · H4 watchdog matrix refactor + M10 empty-is-alert · H5 honest
+      reuse-scope · H6 events-table DDL/prune · M7 full-refresh-as-step-0 · M9 harvester heartbeat ·
+      L11 monthly fulls off the 04:00 pile · L12 explicit timeouts · L13 key-scope probe.
+- [ ] Tim's go → Phase A begins (build model: Fable plans/QCs, Opus agents build — Tim 2026-07-17)
+
+## 11. Build packages (the Opus fan-out, me reviewing/monitoring/QC-ing)
+
+| pkg | repo | contents | depends on |
+|---|---|---|---|
+| **P1 — pre-fixes** | foundry-cip | M8 GUC `false`→`true` in ps_invariants · seen_in_* maintenance (C2/M9 root cause) · harvester heartbeat | — (small, first) |
+| **P2 — the sync** | foundry-cip | cip_111 migration (`ps_stripe_events_processed` + evidence-only `ps_stripe_refunds`/`ps_stripe_credit_notes`) · `cip/integration_mesh/sync/ps_stripe_sync.py` (events cursor, hydrate-by-ID, advisory lock, SyncRunRecorder, per-txn tenant ctx) · refund-overlap reconciliation query · tests + Tier-C | P1 (same repo, sequential) |
+| **P3 — FAS wiring** | Foundry-Agent-System | watchdog matrix refactor (per-entity timestamp col, money-empty=alert) · schedules (stripe :07 hourly / Sun 03:03 full / invariants :12 / harvester :27 / CRM fulls 04:11-04:41 monthly) · swallow-contract invariant glue · executors | parallel with P1/P2 (different repo); integration test needs P2 |
+| **P4 — deploy + verify** | both | STRIPE restricted key (per-scope probe) → step-0 full refresh → enable schedules → staged Slack + concurrency tests → verification gates | P1+P2+P3 |

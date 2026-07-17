@@ -116,7 +116,23 @@ later — this decision is reversible.
 
 **Weekly full refresh** (safety net for event-less mutations): same module, `mode="full"` — the
 existing full-pull path, scheduled Sunday ~03:07 UTC. Also the auto-fallback if the cursor is >25
-days old.
+days old. **Why Stripe specifically:** HubSpot's API supports "modified since" natively, so hourly
+increments already catch edits; Stripe's list endpoints filter on `created` only, events expire at
+30 days, and a few mutations emit no event — the weekly full is the guarantee the MONEY table can
+never drift >7 days from truth.
+
+**Refunds + credit notes (pulled into Phase A — Tim, 2026-07-17):** a refund does NOT mutate the
+invoice (it stays `paid`; the refund lives on the charge/credit-note objects), so re-ingesting the
+invoice alone can't correct "collected". Build step: (1) verification query — does Wayward's
+account contain any refunds/credit notes at all? (2) if yes: `ps_stripe_refunds` +
+`ps_stripe_credit_notes` tables in the same sync module (event types already in the poll list) and
+net them into the collected derivation; if no: land the tables' ingestion anyway but the derivation
+change waits for real cases (never build math against imagined data — but never let a real refund
+silently inflate collected either; the freshness of this check is what Phase A verifies).
+
+**Monthly full re-sync for HubSpot/Zendesk (Tim, 2026-07-17):** their hourly "modified since"
+increments miss DELETED/MERGED records. Same framework (`sync_mode="full"`), one schedule row each,
+monthly (1st Sunday ~04:00/04:30 UTC). Cheap insurance, same pattern.
 
 **FAS wiring** (mirrors HubSpot exactly):
 - `seed.py` SYSTEM_SCHEDULES: `cip_ps_stripe` hourly at **:07** (unused minute; existing: :17 :23
@@ -181,9 +197,11 @@ solid data doesn't settle stays `unknown` in `lens_ps_china_evidence_grid`.
 
 One addition this framing surfaces: **`harvest_nationality_signals.py` is solid-data machinery,
 not decision machinery** — it deterministically turns already-ingested fields (CN country codes,
-+86 phones, exclusion-list membership…) into settled signals. It belongs on the schedule (daily,
-after the syncs) so a new CN flag arriving via HubSpot becomes a china verdict without anyone
-running anything. (Verify its idempotency before scheduling; it upserts signals.)
++86 phones, exclusion-list membership…) into settled signals. It runs **hourly at :27** (Tim,
+2026-07-17: daily would create "a weird day of reporting" — a CN brand arriving at 9:17 must not
+report as `unknown` until tomorrow; :27 sits right after the Stripe :07 and HubSpot :17 pulls so
+facts become verdicts inside the same hour). Gate before scheduling: verify idempotency (double-run
+= zero new rows); it's cheap deterministic SQL over already-ingested data, no API calls.
 
 ### The deferred sketch (riff when we get here — not now)
 
@@ -236,7 +254,7 @@ Small, surgical:
 | phase | contents | gate |
 |---|---|---|
 | **A — money spine live** | §3 sync module + FAS schedules + restricted key + §4.1/4.2/4.4 freshness+invariants wiring | Tier-C, penny-reconcile replay, double-run idempotency, staged Slack test (force a stale reading in cipobs → alert fires) |
-| **B — solid-data completion** | schedule the signal harvester (§6 note, daily post-sync; idempotency verified first) + §5 statement-drift lens + §7 payment-drop hardening + §5 credit-note verification query | harvester double-run = no new rows; drift lens reconciles against a hand-computed brand; drop flow rehearsed on the June sheet |
+| **B — solid-data completion** | schedule the signal harvester (hourly :27; idempotency verified first) + monthly HubSpot/Zendesk full re-syncs + §5 statement-drift lens + §7 payment-drop hardening | harvester double-run = no new rows; drift lens reconciles against a hand-computed brand; drop flow rehearsed on the June sheet |
 | **C — decision system (DEFERRED)** | §6 enrichment/research pipeline, designed with Tim after A+B ship | riff + design-lock + Q0 first |
 
 Every phase: subagent QC + self QC + pathspec-scoped commit + push (the cip_110 protocol).

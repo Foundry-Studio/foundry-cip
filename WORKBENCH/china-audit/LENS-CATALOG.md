@@ -53,6 +53,7 @@ exclusion-list partners direct* (Eric et al. — **not ours**, tracked separatel
 |---|---|
 | **lens_ps_wayward_reconciliation** | Per brand: our claim vs **Wayward-credits-Tim** (their attribution) vs paid → `delta_status`. |
 | **lens_ps_wayward_stated** | Wayward's OWN stated numbers (total_fees_paid / lifetime commissions / GMV) vs our recorded paid — the cross-check. |
+| **lens_ps_statement_drift** | Per brand pinned in `ps_claim_statements`: the **pinned** `stated_claim_owed` vs the **live** `ps_claim_owed` → `drift_amount` (live − stated) + `drift_direction`. **THE FIRST THING CHECKED BEFORE ANY invoice/statement goes out** — flag, don't block. Empty until a claim is pinned. |
 
 ### "What are the exclusion-list partners driving?" (separate — NOT ours)
 | lens | answers |
@@ -80,6 +81,7 @@ exclusion-list partners direct* (Eric et al. — **not ours**, tracked separatel
 - **`ours_revenue_from`** — the date we start counting a brand's revenue (2025-10-01 never-listed, 2025-12-01 flat-fee, 2025-10-01 rev-share Boost).
 - **`flat_fee_era_eric` / `excluded`** — disposition on the contract list: flat-fee = **ours** (Wayward pays us); excluded (rev-share) = **not ours on Connect**, Boost still ours.
 - **`unknown_nationality`** — brand not yet ruled china; queued, claimed at $0, revisitable — never denied.
+- **`drift_amount`** — live `ps_claim_owed` − the last **pinned** statement figure for a brand (`lens_ps_statement_drift`); `drift_direction` = up/down/none. A pinned statement is the bank statement, `lens_ps_claim` is the live balance — this is the gap between them. Checked before any statement goes out (flags a brand whose live number moved since we handed Wayward its statement); never blocks the send.
 
 ## Source-of-truth tables (not lenses)
 `ps_brands` (master) · `ps_nationality_signals` → `lens_ps_china_verdict` · `ps_excluded_brands`

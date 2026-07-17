@@ -16,14 +16,25 @@ How drift is handled (three rules, in order of importance):
      tolerance would hide that.
 
 Plus a cross-check that catches both parser bugs AND Wayward's own arithmetic:
-  4. Σ REV_SHARE_OWED in the file must equal the "Total Owed" Jake stated in the email
-     (EXPECTED_TOTALS below). A mismatch is reported loudly and, unless --force, the
-     month is not committed.
+  4. Σ REV_SHARE_OWED in the file must equal the "Total Owed" Jake stated in the email.
+     Those stated totals live in a SIDECAR CSV, not in this code (see below). A mismatch
+     is reported loudly and, unless --force, the month is not committed.
+
+The expected totals — the sidecar (why it's a CSV, not a dict):
+  Jake's "Total Owed" per month used to be a hardcoded dict here, so every new month was a
+  Python edit. It now lives next to the reports as EXPECTED-TOTALS.csv — a plain CSV Tim
+  edits (header: month,expected_total,source_note; month = YYYY-MM). Default path is
+  <reports-dir>/EXPECTED-TOTALS.csv; --expected-totals <path> overrides.
+  5. A report month ABSENT from the sidecar is a LOUD REJECT of that month (unless
+     --force) — exactly like a missing required column. Silence about a month is how a
+     month gets forgotten; we refuse to load one we were never told the total for. Add its
+     row to the sidecar, or pass --force to load it without the cross-check.
 
 Idempotent: re-running loads nothing new (ON CONFLICT DO NOTHING on the natural key).
 
 Usage:
-  DATABASE_URL=... python scripts/ingest_payment_reports.py [--dir <reports>] [--dry-run]
+  DATABASE_URL=... python scripts/ingest_payment_reports.py \
+      [--dir <reports>] [--expected-totals <csv>] [--dry-run] [--force]
 """
 from __future__ import annotations
 
@@ -44,16 +55,10 @@ _DEF_DIR = (
     "c:/Users/Tim Jordan/code/venture-ecomlever/clients/wayward/data/referral-reports"
 )
 
-# The totals Jake stated in his emails. The file must agree with these.
-EXPECTED_TOTALS: dict[str, Decimal] = {
-    "2025-12": Decimal("1806.86"),
-    "2026-01": Decimal("3155.54"),
-    "2026-02": Decimal("3630.28"),
-    "2026-03": Decimal("6196.64"),
-    "2026-04": Decimal("4500.07"),
-    "2026-05": Decimal("2859.81"),
-    "2026-06": Decimal("1149.20"),
-}
+# The totals Jake stated in his emails now live in a SIDECAR CSV next to the reports, not
+# in this file — see load_expected_totals() and the module docstring. This is the default
+# filename looked for inside --dir; --expected-totals overrides the whole path.
+_EXPECTED_TOTALS_FILENAME = "EXPECTED-TOTALS.csv"
 
 # canonical field -> accepted header aliases (lowercased, non-alnum stripped)
 _ALIASES: dict[str, tuple[str, ...]] = {
@@ -106,6 +111,39 @@ def _dec(v) -> Decimal:
         return Decimal(s)
     except Exception:
         return Decimal("0")
+
+
+def load_expected_totals(path: Path) -> dict[str, Decimal]:
+    """Read the EXPECTED-TOTALS sidecar CSV -> {"YYYY-MM": Decimal}.
+
+    Header: month,expected_total,source_note (source_note is documentation; ignored here).
+    Columns are matched by normalized NAME (like the report loader), so case/spacing drift
+    doesn't break it, and a month value is truncated to YYYY-MM so a full date is tolerated.
+    A MISSING file returns {} — which makes every month reject (unless --force): a lost
+    sidecar fails loud, never silent. A file that HAS rows but LACKS the required headers is
+    a hard error (a broken sidecar must not masquerade as an empty one)."""
+    totals: dict[str, Decimal] = {}
+    if not path.exists():
+        return totals
+    with path.open(encoding="utf-8-sig", newline="") as f:
+        rows = list(csv.reader(f))
+    if not rows:
+        return totals
+    header = [_norm_header(h) for h in rows[0]]
+    try:
+        mi = header.index("month")
+        ti = header.index("expectedtotal")
+    except ValueError as exc:
+        raise SystemExit(
+            f"{path}: EXPECTED-TOTALS sidecar needs headers 'month,expected_total,source_note'"
+        ) from exc
+    for row in rows[1:]:
+        if len(row) <= max(mi, ti):
+            continue
+        month = (row[mi] or "").strip()[:7]
+        if month:
+            totals[month] = _dec(row[ti])
+    return totals
 
 
 def _date(v):
@@ -208,7 +246,10 @@ _INSERT = text(
 )
 
 
-def ingest_file(conn, path: Path, wbid_map: dict[str, str], *, force: bool) -> dict:
+def ingest_file(
+    conn, path: Path, wbid_map: dict[str, str],
+    expected_totals: dict[str, Decimal], *, force: bool,
+) -> dict:
     month = path.stem[:7]
     headers, rows = _rows_from(path)
     field_map, unknown = _build_map(headers)
@@ -217,6 +258,14 @@ def ingest_file(conn, path: Path, wbid_map: dict[str, str], *, force: bool) -> d
     if missing:
         return {"file": path.name, "REJECTED": f"missing required columns: {missing}",
                 "headers_seen": headers}
+
+    # A month we were never told the total for is a month we refuse to load (unless --force),
+    # exactly like a missing required column — silence about a month is how one gets forgotten.
+    if month not in expected_totals and not force:
+        return {"file": path.name, "month": month,
+                "REJECTED": f"month {month} not in EXPECTED-TOTALS sidecar — add a "
+                            "'month,expected_total,source_note' row (or use --force)",
+                "unknown_columns (DRIFT)": unknown}
 
     def g(row, field):
         h = field_map.get(field)
@@ -253,7 +302,7 @@ def ingest_file(conn, path: Path, wbid_map: dict[str, str], *, force: bool) -> d
         })
 
     # Cross-check against what Jake said in the email.
-    expected = EXPECTED_TOTALS.get(month)
+    expected = expected_totals.get(month)
     delta = (total_stated - expected) if expected is not None else None
     ok = expected is None or abs(delta) < Decimal("0.02")
     result = {
@@ -284,6 +333,9 @@ def _int(v):
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--dir", default=_DEF_DIR)
+    ap.add_argument("--expected-totals", default=None,
+                    help="path to the EXPECTED-TOTALS sidecar CSV "
+                         "(default: <dir>/EXPECTED-TOTALS.csv)")
     ap.add_argument("--database-url", default=None)
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--force", action="store_true")
@@ -296,9 +348,22 @@ def main(argv: list[str] | None = None) -> int:
     if url.startswith("postgresql://"):
         url = url.replace("postgresql://", "postgresql+psycopg://", 1)
 
+    expected_path = (
+        Path(args.expected_totals) if args.expected_totals
+        else Path(args.dir) / _EXPECTED_TOTALS_FILENAME
+    )
+    expected_totals = load_expected_totals(expected_path)
+    if not expected_path.exists():
+        print(f"WARNING: EXPECTED-TOTALS sidecar not found at {expected_path} — every month "
+              "will REJECT unless --force. Create it (month,expected_total,source_note).",
+              file=sys.stderr)
+
+    # The sidecar itself is a .csv in --dir; never ingest it as a report.
+    sidecar_names = {_EXPECTED_TOTALS_FILENAME, expected_path.name}
     files = sorted(
         p for p in Path(args.dir).iterdir()
         if p.suffix.lower() in {".csv", ".xlsx"} and not p.name.startswith("~")
+        and p.name not in sidecar_names
     )
     engine = create_engine(url, pool_pre_ping=True)
     out = []
@@ -312,7 +377,7 @@ def main(argv: list[str] | None = None) -> int:
                     "WHERE wayward_brand_id IS NOT NULL")).fetchall()
             }
             for p in files:
-                out.append(ingest_file(conn, p, wbid_map, force=args.force))
+                out.append(ingest_file(conn, p, wbid_map, expected_totals, force=args.force))
             summary = conn.execute(text(
                 "SELECT count(*), coalesce(sum(rev_share_stated),0), "
                 "count(DISTINCT source_ref) FROM ps_payment_events WHERE tenant_id=:t"

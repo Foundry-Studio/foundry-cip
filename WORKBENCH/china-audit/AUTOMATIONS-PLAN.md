@@ -304,7 +304,7 @@ Small, surgical:
 | phase | contents | gate |
 |---|---|---|
 | **A — money spine live** | §3 sync module + FAS schedules + restricted key + §4.1/4.2/4.4 freshness+invariants wiring | Tier-C, penny-reconcile replay, double-run idempotency, staged Slack test (force a stale reading in cipobs → alert fires) |
-| **B — solid-data completion** | schedule the signal harvester (hourly :27; idempotency verified first) + monthly HubSpot/Zendesk full re-syncs + §5 statement-drift lens + §7 payment-drop hardening | harvester double-run = no new rows; drift lens reconciles against a hand-computed brand; drop flow rehearsed on the June sheet |
+| **B — solid-data completion** | schedule the signal harvester (hourly :27; idempotency verified first) + monthly HubSpot/Zendesk full re-syncs + §5 statement-drift lens **[✅ delivered-pending-QC — cip_112_statement_drift]** + §7 payment-drop hardening **[✅ delivered-pending-QC — EXPECTED-TOTALS.csv sidecar]** | harvester double-run = no new rows; drift lens reconciles against a hand-computed brand; drop flow rehearsed on the June sheet |
 | **C — decision system (DEFERRED)** | §6 enrichment/research pipeline, designed with Tim after A+B ship | riff + design-lock + Q0 first |
 
 Every phase: subagent QC + self QC + pathspec-scoped commit + push (the cip_110 protocol).

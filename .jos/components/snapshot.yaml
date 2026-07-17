@@ -5,18 +5,18 @@
 
 declared_thing: foundry-cip
 snapshot_version: '1.0'
-last_modified: '2026-05-21'
-source_commit: 6fc0e35ff83c124e2ddaf6e32bd99a865e67fa48
+last_modified: '2026-07-17'
+source_commit: 47ba1ea287412226d609ad23862a3e65deeae2ba
 generator:
   tool: scripts/components_snapshot.py
-  generated_at: '2026-05-21T20:52:24+00:00'
+  generated_at: '2026-07-17T12:55:11+00:00'
   source_components_yaml: docs/pillars/*/components.yaml
   content_hash: sha256:ed84463d8ec5911eff84850d1288621cd4ffca64bf4d69b510ae05d555608019
 coverage:
-  total_source_components: 36
+  total_source_components: 39
   public_components: 14
   omitted_by_visibility:
-    tenant-scoped: 16
+    tenant-scoped: 18
     by-request: 0
     external-paid: 0
     internal-only: 0

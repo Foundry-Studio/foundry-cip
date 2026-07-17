@@ -338,9 +338,22 @@ def run_ps_invariants(db: Any, *, ps_tenant_id: str = PS_TENANT) -> dict:
 
     Raising is deliberate: a violated invariant means a number somewhere is lying, and the
     scheduler's job is to make that loud rather than to file it politely.
+
+    TENANT GUC IS TRANSACTION-LOCAL (``set_config(..., true)``). Review M8: the third arg used
+    to be ``false`` (session-scoped), which pins ``app.current_tenant`` = PS onto the DBAPI
+    connection until it is reset or the pool recycles it. Run as a FAS scheduled task against a
+    pooled engine, that leaks the PS tenant onto whatever pooled connection the next FAS task
+    checks out — a silent cross-tenant RLS scope bleed. ``true`` binds the GUC to the current
+    transaction, so it clears automatically at commit/rollback and the connection returns to the
+    pool clean (same pattern as ``apply_tenant_context``).
+
+    CONTRACT: every check MUST run inside ONE transaction. With a transaction-local GUC, a mid-run
+    commit would drop the tenant context and the remaining checks would see no tenant. The sole
+    caller (``scripts/check_invariants.py``) wraps the whole run in a single ``engine.begin()``
+    transaction and nothing here commits, so the GUC set below holds for every check.
     """
     db.execute(
-        text("SELECT set_config('app.current_tenant', :t, false)"), {"t": ps_tenant_id}
+        text("SELECT set_config('app.current_tenant', :t, true)"), {"t": ps_tenant_id}
     )
 
     passed: list[str] = []

@@ -15,6 +15,12 @@ Members:
   from the FAS subsystem_scheduler (see
   ``Foundry-Agent-System/src/work_execution/producers/scheduled_tasks/cip_sync.py``).
 
+- ``signal_harvest`` — review M9: the PS nationality-signal harvester,
+  lifted from ``scripts/harvest_nationality_signals.py`` so the scheduler
+  can import it from the installed package. Re-syncs the ``seen_in_*``
+  cache to truth (review C2) as a pre-step, harvests every automatic china
+  signal (ON CONFLICT DO NOTHING), and records a ``cip_sync_runs`` heartbeat.
+
 These jobs do NOT go through ``run_sync`` / ``CIPRowPersister`` for the
 companion-writeback case — that writes companion columns with a different
 role. ``ps_lens_mirror`` DOES go through ``run_sync`` (it's a tenant-to-
@@ -27,11 +33,13 @@ from cip.integration_mesh.sync.crm_companion_writeback import (
     run_writeback,
 )
 from cip.integration_mesh.sync.ps_lens_mirror import run_ps_china_mirror
+from cip.integration_mesh.sync.signal_harvest import run_signal_harvest
 
 __all__ = [
     "PS_TENANT_ID",
     "RunSummary",
     "build_managed_companion",
     "run_ps_china_mirror",
+    "run_signal_harvest",
     "run_writeback",
 ]

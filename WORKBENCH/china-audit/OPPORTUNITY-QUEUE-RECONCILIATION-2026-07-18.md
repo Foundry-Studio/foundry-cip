@@ -1,14 +1,14 @@
 # Opportunity-queue nationality — reconciled decision (2026-07-18)
 
-> **FINAL LIVE STATE (after all Tim rulings, 2026-07-18):** of the 401 brands —
-> **china 31 ($4,356)** · **not_china 311 ($81,316)** · **unknown 59 ($8,379)**.
-> Backlog Wayward owes PS = **$13,893.42**. Sequence: reconciled the 6 sources →
-> flipped 12 hard-record china + 146 consensus not-china → Tim ruled all 19 remaining
-> likely-china as china + Nixplay (HK) → Tim ruled all 163 likely-not (minus bedbath)
-> as not-china → bedbath resolved not-China (Bed Bath N More Inc / Regency Home, Brooklyn)
-> → 2 unknowns (Woodenhouse, LUNAKAI) resolved not-china via Stripe leads. Remaining 59
-> unknowns are deliberately-anonymous shell/gmail operators (can't confirm either way).
-> Per-brand final verdict + all 6 sources: `reconciliation-final.csv`.
+> **FINAL — QUEUE FULLY RESOLVED (all Tim rulings, 2026-07-18):** of the 401 brands —
+> **china 32 ($4,387)** · **not_china 369 ($89,663)** · **unknown 0**.
+> Backlog Wayward owes PS = **$13,896.57**. Sequence: reconciled the 6 sources → flipped
+> 12 hard-record china + 146 consensus not-china → Tim ruled all 19 remaining likely-china
+> as china + Nixplay (HK) → Tim ruled all 163 likely-not (minus bedbath) as not-china →
+> bedbath resolved not-China (Bed Bath N More Inc / Regency Home, Brooklyn) → 2 unknowns
+> (Woodenhouse, LUNAKAI) resolved not-china via Stripe leads → Truckules ruled china (HK
+> seller-of-record T&T Media Global Creations Ltd) + the final 58 unknowns ruled not-China
+> by Tim. Per-brand final verdict + all 6 sources: `reconciliation-final.csv`.
 
 Reconciliation of **6 independent passes** — Claude (12 web-research agents) + Accio, Perplexity, ChatGPT, Gemini-1, and Gemini-2 (a narrow 'known-US-brand' filter) — over the 401 unknown+billing brands ($94,050.52). Adjudicated by hand; the two DEFINITE buckets have been **flipped into the verdict system**.
 

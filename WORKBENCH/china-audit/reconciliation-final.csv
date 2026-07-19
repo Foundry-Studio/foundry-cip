@@ -9,11 +9,11 @@ rank,brand,usd,final_verdict,src_claude,src_accio,src_perplexity,src_chatgpt,src
 8,Woodenhouse,2305.07,not_china,likely_china,definitely_not_china,unknown,likely_not_china,unknown,unknown
 9,Smart Home & Garden,2286.06,not_china,likely_not_china,definitely_not_china,definitely_not_china,likely_not_china,unknown,unknown
 10,Planetary Design,2169.04,not_china,definitely_not_china,definitely_not_china,definitely_not_china,definitely_not_china,definitely_not_china,definitely_not_china
-11,moralve,2038.64,unknown,likely_china,unknown,likely_not_china,likely_not_china,unknown,unknown
+11,moralve,2038.64,not_china,likely_china,unknown,likely_not_china,likely_not_china,unknown,unknown
 12,BCOZZY,1950.15,not_china,likely_not_china,definitely_not_china,likely_not_china,likely_not_china,unknown,unknown
 13,SplashEZ,1817.17,not_china,likely_not_china,definitely_not_china,likely_not_china,likely_not_china,unknown,unknown
 14,JLab,1742.53,not_china,definitely_not_china,definitely_not_china,definitely_not_china,definitely_not_china,definitely_not_china,definitely_not_china
-15,True Fresh,1671.05,unknown,likely_china,definitely_not_china,unknown,likely_not_china,unknown,unknown
+15,True Fresh,1671.05,not_china,likely_china,definitely_not_china,unknown,likely_not_china,unknown,unknown
 16,Gorillaz LLC,1300.92,not_china,likely_not_china,definitely_not_china,likely_not_china,likely_not_china,definitely_not_china,unknown
 17,Tractive,1253.53,not_china,definitely_not_china,definitely_not_china,definitely_not_china,definitely_not_china,definitely_not_china,unknown
 18,INICAT,1098.01,china,likely_china,unknown,definitely_china,definitely_china,unknown,unknown
@@ -40,15 +40,15 @@ rank,brand,usd,final_verdict,src_claude,src_accio,src_perplexity,src_chatgpt,src
 39,maisonovo,511.39,not_china,likely_not_china,likely_china,unknown,unknown,unknown,unknown
 40,Nixplay,499.64,china,likely_china,definitely_china,likely_not_china,likely_not_china,unknown,unknown
 41,Natemia,496.76,not_china,likely_not_china,definitely_not_china,likely_not_china,unknown,unknown,unknown
-42,Lebanta,490.72,unknown,unknown,unknown,unknown,unknown,unknown,unknown
+42,Lebanta,490.72,not_china,unknown,unknown,unknown,unknown,unknown,unknown
 43,liuliuby,487.14,not_china,likely_not_china,likely_china,likely_not_china,likely_china,unknown,unknown
 44,Eve Hansen,486.12,not_china,likely_not_china,definitely_not_china,likely_not_china,unknown,unknown,unknown
 45,Just Play,485.72,not_china,definitely_not_china,definitely_not_china,definitely_not_china,likely_not_china,definitely_not_china,definitely_not_china
 46,vitalisuvorov,472.35,not_china,likely_not_china,definitely_not_china,likely_not_china,likely_not_china,definitely_not_china,unknown
 47,LUNAKAI,465.00,not_china,unknown,definitely_not_china,unknown,unknown,unknown,unknown
 48,moonjuice,462.97,not_china,definitely_not_china,definitely_not_china,definitely_not_china,likely_not_china,definitely_not_china,definitely_not_china
-49,Mind-Glowing,460.01,unknown,unknown,definitely_not_china,unknown,unknown,unknown,unknown
-50,Retail Arbitrage,451.91,unknown,unknown,definitely_not_china,unknown,unknown,unknown,unknown
+49,Mind-Glowing,460.01,not_china,unknown,definitely_not_china,unknown,unknown,unknown,unknown
+50,Retail Arbitrage,451.91,not_china,unknown,definitely_not_china,unknown,unknown,unknown,unknown
 51,ezbombs,425.06,not_china,definitely_not_china,likely_not_china,definitely_not_china,unknown,unknown,unknown
 52,Shacke,407.09,not_china,unknown,likely_not_china,likely_not_china,unknown,unknown,unknown
 53,JadeYoga,404.59,not_china,definitely_not_china,likely_not_china,definitely_not_china,unknown,definitely_not_china,definitely_not_china
@@ -56,7 +56,7 @@ rank,brand,usd,final_verdict,src_claude,src_accio,src_perplexity,src_chatgpt,src
 55,Coda Music Technologies,397.22,not_china,likely_not_china,likely_not_china,unknown,unknown,unknown,unknown
 56,VANDEL,395.83,not_china,likely_not_china,likely_not_china,unknown,unknown,unknown,unknown
 57,BlissLights,395.56,not_china,definitely_not_china,likely_not_china,definitely_not_china,unknown,unknown,definitely_not_china
-58,Raw Science,395.16,unknown,likely_not_china,unknown,likely_china,unknown,unknown,unknown
+58,Raw Science,395.16,not_china,likely_not_china,unknown,likely_china,unknown,unknown,unknown
 59,HYDRO CELL,378.45,not_china,likely_not_china,likely_not_china,unknown,unknown,unknown,unknown
 60,LuxClub,375.41,not_china,likely_not_china,unknown,definitely_not_china,unknown,unknown,unknown
 61,Prepared4X,374.64,not_china,likely_not_china,unknown,unknown,unknown,unknown,unknown
@@ -71,7 +71,7 @@ rank,brand,usd,final_verdict,src_claude,src_accio,src_perplexity,src_chatgpt,src
 70,Hewlett Packard Enterprise Instant-On,316.98,not_china,definitely_not_china,definitely_not_china,likely_not_china,definitely_not_china,unknown,definitely_not_china
 71,SmartLabels,304.83,not_china,likely_not_china,likely_not_china,likely_not_china,likely_not_china,unknown,unknown
 72,Ahava,296.19,china,definitely_china,definitely_not_china,definitely_china,definitely_not_china,definitely_china,unknown
-73,TOP-UP,291.58,unknown,unknown,unknown,unknown,unknown,unknown,unknown
+73,TOP-UP,291.58,not_china,unknown,unknown,unknown,unknown,unknown,unknown
 74,Elgin,286.83,not_china,likely_not_china,likely_not_china,unknown,likely_not_china,unknown,unknown
 75,Gout and You,285.62,not_china,likely_not_china,unknown,likely_not_china,unknown,unknown,unknown
 76,ACDC LLC,278.07,not_china,likely_not_china,likely_not_china,unknown,likely_not_china,definitely_not_china,unknown
@@ -83,11 +83,11 @@ rank,brand,usd,final_verdict,src_claude,src_accio,src_perplexity,src_chatgpt,src
 82,Turquaz,259.52,not_china,likely_not_china,likely_not_china,definitely_not_china,unknown,unknown,unknown
 83,ECCOSOPHY,259.44,not_china,likely_not_china,unknown,likely_not_china,unknown,unknown,unknown
 84,vibesearplugs,248.68,not_china,definitely_not_china,definitely_not_china,definitely_not_china,unknown,unknown,unknown
-85,ALTA,242.79,unknown,unknown,likely_not_china,unknown,unknown,unknown,unknown
+85,ALTA,242.79,not_china,unknown,likely_not_china,unknown,unknown,unknown,unknown
 86,Sudstainables,240.22,not_china,unknown,unknown,likely_not_china,unknown,unknown,unknown
-87,Sprigrown,237.74,unknown,unknown,unknown,unknown,unknown,unknown,unknown
+87,Sprigrown,237.74,not_china,unknown,unknown,unknown,unknown,unknown,unknown
 88,Zen Dew,231.45,not_china,likely_not_china,unknown,definitely_not_china,unknown,unknown,unknown
-89,HydroNova,231.18,unknown,unknown,unknown,unknown,unknown,unknown,unknown
+89,HydroNova,231.18,not_china,unknown,unknown,unknown,unknown,unknown,unknown
 90,Realizations,230.62,not_china,likely_not_china,unknown,definitely_not_china,unknown,unknown,unknown
 91,PetLoversHQ,229.85,not_china,likely_not_china,unknown,definitely_not_china,unknown,unknown,unknown
 92,Billion Pets,229.74,not_china,likely_not_china,unknown,unknown,unknown,unknown,unknown
@@ -96,21 +96,21 @@ rank,brand,usd,final_verdict,src_claude,src_accio,src_perplexity,src_chatgpt,src
 95,Champion,215.49,not_china,definitely_not_china,definitely_not_china,definitely_not_china,unknown,unknown,definitely_not_china
 96,Cutluxe,215.37,not_china,unknown,unknown,likely_not_china,unknown,unknown,unknown
 97,Amanda Creation Inc.,215.27,not_china,likely_not_china,definitely_not_china,definitely_not_china,unknown,unknown,unknown
-98,Freshero,214.51,unknown,unknown,unknown,unknown,unknown,unknown,unknown
+98,Freshero,214.51,not_china,unknown,unknown,unknown,unknown,unknown,unknown
 99,LyfeFuel,212.42,not_china,definitely_not_china,unknown,definitely_not_china,unknown,unknown,unknown
-100,STRIV Labs,206.05,unknown,unknown,unknown,unknown,unknown,unknown,unknown
+100,STRIV Labs,206.05,not_china,unknown,unknown,unknown,unknown,unknown,unknown
 101,Dreamland Baby,205.50,not_china,definitely_not_china,definitely_not_china,definitely_not_china,unknown,unknown,unknown
 102,SEVEN POTIONS,201.51,not_china,likely_not_china,definitely_not_china,definitely_not_china,unknown,unknown,unknown
 103,jakelangley,200.46,not_china,likely_not_china,definitely_not_china,definitely_not_china,likely_not_china,unknown,unknown
 104,Funcils,199.81,china,unknown,unknown,likely_china,likely_china,unknown,unknown
 105,Itari,199.30,china,likely_china,definitely_china,unknown,likely_china,unknown,unknown
 106,Beast Bites Supplements,192.43,not_china,likely_not_china,definitely_not_china,definitely_not_china,unknown,unknown,unknown
-107,Crafty Happitoys,188.03,unknown,unknown,likely_china,unknown,unknown,unknown,unknown
+107,Crafty Happitoys,188.03,not_china,unknown,likely_china,unknown,unknown,unknown,unknown
 108,Super Area Rugs,186.71,not_china,likely_not_china,definitely_not_china,definitely_not_china,unknown,unknown,unknown
 109,Gold Standard,186.06,not_china,unknown,unknown,definitely_not_china,unknown,unknown,unknown
 110,Great Bay Home,185.43,not_china,definitely_not_china,definitely_not_china,definitely_not_china,unknown,unknown,unknown
 111,MatthewMangione,184.48,not_china,likely_not_china,definitely_not_china,definitely_not_china,unknown,unknown,unknown
-112,Coreminded,182.50,unknown,unknown,unknown,unknown,unknown,unknown,unknown
+112,Coreminded,182.50,not_china,unknown,unknown,unknown,unknown,unknown,unknown
 113,Little Spoon,179.43,not_china,definitely_not_china,definitely_not_china,definitely_not_china,unknown,unknown,definitely_not_china
 114,Earth Rated,176.43,not_china,definitely_not_china,definitely_not_china,definitely_not_china,likely_not_china,unknown,unknown
 115,Aerosmith LLC,174.09,not_china,likely_not_china,definitely_not_china,definitely_not_china,likely_not_china,definitely_not_china,unknown
@@ -127,7 +127,7 @@ rank,brand,usd,final_verdict,src_claude,src_accio,src_perplexity,src_chatgpt,src
 126,Bubzi Co,144.36,not_china,likely_not_china,definitely_not_china,definitely_not_china,unknown,unknown,unknown
 127,Optimal Carnivore,140.50,not_china,unknown,definitely_not_china,likely_not_china,unknown,unknown,unknown
 128,Jerk Fit Ventures Inc,138.47,not_china,definitely_not_china,definitely_not_china,definitely_not_china,unknown,unknown,unknown
-129,HONEYERA,134.40,unknown,unknown,likely_china,likely_not_china,unknown,unknown,unknown
+129,HONEYERA,134.40,not_china,unknown,likely_china,likely_not_china,unknown,unknown,unknown
 130,Arden Line,130.91,not_china,likely_not_china,likely_not_china,likely_not_china,unknown,unknown,unknown
 131,MAX'IS Creations,127.76,not_china,definitely_not_china,definitely_not_china,definitely_not_china,likely_not_china,unknown,unknown
 132,Weljoy,125.60,china,likely_china,unknown,likely_china,likely_china,unknown,unknown
@@ -143,7 +143,7 @@ rank,brand,usd,final_verdict,src_claude,src_accio,src_perplexity,src_chatgpt,src
 142,Core Med Science,117.30,not_china,likely_not_china,definitely_not_china,definitely_not_china,unknown,unknown,unknown
 143,Tiege Hanley,115.01,not_china,definitely_not_china,definitely_not_china,definitely_not_china,likely_not_china,unknown,definitely_not_china
 144,Feculs,113.49,china,likely_china,unknown,unknown,likely_china,unknown,unknown
-145,SAPHUS,112.97,unknown,unknown,unknown,unknown,unknown,unknown,unknown
+145,SAPHUS,112.97,not_china,unknown,unknown,unknown,unknown,unknown,unknown
 146,riptoned,112.18,not_china,likely_not_china,unknown,definitely_not_china,unknown,unknown,unknown
 147,Gamakay,109.05,china,definitely_china,definitely_china,definitely_china,definitely_china,unknown,unknown
 148,Oaktiv,108.86,not_china,likely_not_china,likely_not_china,definitely_not_china,unknown,unknown,unknown
@@ -160,11 +160,11 @@ rank,brand,usd,final_verdict,src_claude,src_accio,src_perplexity,src_chatgpt,src
 159,Homesick Candles,86.11,not_china,definitely_not_china,definitely_not_china,likely_not_china,likely_not_china,unknown,definitely_not_china
 160,Comfify,85.92,not_china,unknown,likely_not_china,likely_not_china,unknown,unknown,unknown
 161,admintq,82.24,not_china,likely_not_china,likely_not_china,likely_not_china,unknown,unknown,unknown
-162,GLUIT,82.07,unknown,unknown,definitely_china,unknown,unknown,unknown,unknown
+162,GLUIT,82.07,not_china,unknown,definitely_china,unknown,unknown,unknown,unknown
 163,RUGGED & DAPPER,81.24,not_china,definitely_not_china,definitely_not_china,unknown,likely_not_china,unknown,definitely_not_china
 164,HRYCF,80.44,china,definitely_china,definitely_china,definitely_china,likely_china,unknown,unknown
 165,Study Key,79.75,not_china,likely_not_china,likely_not_china,likely_not_china,unknown,unknown,unknown
-166,BottleShield,77.80,unknown,unknown,likely_not_china,unknown,unknown,unknown,unknown
+166,BottleShield,77.80,not_china,unknown,likely_not_china,unknown,unknown,unknown,unknown
 167,LOFT + IVY,77.37,not_china,likely_not_china,definitely_not_china,likely_not_china,unknown,unknown,unknown
 168,Velmia,76.70,not_china,likely_not_china,definitely_not_china,likely_not_china,unknown,unknown,unknown
 169,Chill Pill,74.73,not_china,unknown,likely_not_china,likely_not_china,likely_not_china,unknown,unknown
@@ -172,7 +172,7 @@ rank,brand,usd,final_verdict,src_claude,src_accio,src_perplexity,src_chatgpt,src
 171,AEROSQUAD,73.20,not_china,likely_not_china,likely_not_china,unknown,unknown,unknown,unknown
 172,CozyGreensJoyeza,70.88,not_china,likely_not_china,definitely_not_china,likely_not_china,unknown,unknown,unknown
 173,beblox llc,70.52,not_china,likely_not_china,likely_not_china,likely_china,unknown,unknown,unknown
-174,Piticco,67.04,unknown,unknown,unknown,unknown,unknown,unknown,unknown
+174,Piticco,67.04,not_china,unknown,unknown,unknown,unknown,unknown,unknown
 175,Loobanipets,66.96,china,likely_china,definitely_china,likely_not_china,likely_china,unknown,unknown
 176,Bunion Bootie,66.76,not_china,likely_not_china,definitely_not_china,likely_not_china,unknown,unknown,unknown
 177,syncgo,65.97,china,unknown,definitely_china,likely_china,likely_china,unknown,unknown
@@ -181,11 +181,11 @@ rank,brand,usd,final_verdict,src_claude,src_accio,src_perplexity,src_chatgpt,src
 180,Winthorpe Conservation,65.21,not_china,likely_not_china,likely_not_china,likely_not_china,unknown,unknown,unknown
 181,Drillbrush,64.88,not_china,likely_not_china,definitely_not_china,likely_not_china,likely_not_china,unknown,definitely_not_china
 182,Dalstrong,64.44,not_china,likely_not_china,definitely_not_china,likely_not_china,likely_not_china,unknown,unknown
-183,Rollerex,64.11,unknown,unknown,likely_not_china,unknown,unknown,unknown,unknown
+183,Rollerex,64.11,not_china,unknown,likely_not_china,unknown,unknown,unknown,unknown
 184,Waggle,63.98,not_china,likely_not_china,definitely_not_china,likely_not_china,unknown,unknown,unknown
 185,Pleminnky trading,63.38,not_china,likely_not_china,definitely_china,unknown,unknown,unknown,unknown
-186,hemme,63.12,unknown,unknown,likely_not_china,unknown,unknown,unknown,unknown
-187,CORE FIBER,63.02,unknown,unknown,definitely_china,likely_not_china,unknown,unknown,unknown
+186,hemme,63.12,not_china,unknown,likely_not_china,unknown,unknown,unknown,unknown
+187,CORE FIBER,63.02,not_china,unknown,definitely_china,likely_not_china,unknown,unknown,unknown
 188,IceBeanie,62.88,not_china,definitely_not_china,definitely_not_china,likely_not_china,unknown,unknown,unknown
 189,L.ī.Q. Inc.,61.91,not_china,likely_not_china,likely_not_china,unknown,unknown,unknown,unknown
 190,Lotus Linen,61.61,not_china,likely_not_china,definitely_not_china,likely_not_china,likely_not_china,unknown,unknown
@@ -206,7 +206,7 @@ rank,brand,usd,final_verdict,src_claude,src_accio,src_perplexity,src_chatgpt,src
 205,Baby K'tan,45.18,not_china,definitely_not_china,definitely_not_china,likely_not_china,likely_not_china,unknown,definitely_not_china
 206,Pup Choice,44.81,not_china,likely_not_china,likely_not_china,likely_china,likely_not_china,unknown,unknown
 207,Thermajane,44.67,not_china,likely_not_china,likely_not_china,likely_not_china,unknown,unknown,unknown
-208,Stofinity,44.56,unknown,unknown,unknown,unknown,unknown,unknown,unknown
+208,Stofinity,44.56,not_china,unknown,unknown,unknown,unknown,unknown,unknown
 209,Hailey Ennis,44.43,not_china,definitely_not_china,definitely_not_china,likely_not_china,likely_not_china,unknown,definitely_not_china
 210,adi120life,43.85,not_china,definitely_not_china,likely_not_china,unknown,unknown,unknown,unknown
 211,fullnow,42.21,china,unknown,likely_china,unknown,likely_china,unknown,unknown
@@ -216,7 +216,7 @@ rank,brand,usd,final_verdict,src_claude,src_accio,src_perplexity,src_chatgpt,src
 215,ResoseseHZH,39.87,china,likely_china,definitely_china,likely_china,likely_china,unknown,unknown
 216,SwaddleDesigns,38.86,not_china,definitely_not_china,definitely_not_china,likely_not_china,unknown,unknown,unknown
 217,Stripebird,38.05,not_china,likely_not_china,likely_not_china,unknown,likely_not_china,unknown,unknown
-218,openr,37.39,unknown,unknown,unknown,unknown,unknown,unknown,unknown
+218,openr,37.39,not_china,unknown,unknown,unknown,unknown,unknown,unknown
 219,OUFER,36.18,china,likely_china,definitely_china,likely_not_china,definitely_china,unknown,unknown
 220,Purplesful Snacking inc.,35.57,not_china,definitely_not_china,likely_not_china,likely_not_china,unknown,unknown,unknown
 221,kiwinurse,34.79,china,definitely_china,unknown,unknown,unknown,unknown,unknown
@@ -234,7 +234,7 @@ rank,brand,usd,final_verdict,src_claude,src_accio,src_perplexity,src_chatgpt,src
 233,Hiker Hunger Outfitters,32.14,not_china,definitely_not_china,likely_not_china,likely_not_china,unknown,unknown,unknown
 234,Marque,32.01,not_china,likely_not_china,likely_not_china,unknown,unknown,unknown,unknown
 235,survivalgardenseeds,31.96,not_china,definitely_not_china,likely_not_china,definitely_not_china,unknown,unknown,unknown
-236,Truckules,31.50,unknown,unknown,unknown,unknown,unknown,unknown,unknown
+236,Truckules,31.50,china,unknown,unknown,unknown,unknown,unknown,unknown
 237,NUTRAHARMONY,31.20,not_china,likely_not_china,definitely_not_china,likely_not_china,likely_not_china,unknown,unknown
 238,Choice Marts,30.88,not_china,likely_not_china,unknown,unknown,unknown,unknown,unknown
 239,Stojo Products Inc.,30.80,not_china,definitely_not_china,definitely_not_china,likely_not_china,unknown,unknown,unknown
@@ -249,19 +249,19 @@ rank,brand,usd,final_verdict,src_claude,src_accio,src_perplexity,src_chatgpt,src
 248,Just Add Luv,27.05,not_china,definitely_not_china,unknown,unknown,likely_not_china,unknown,unknown
 249,BlauKe,26.78,not_china,likely_not_china,unknown,unknown,likely_not_china,unknown,unknown
 250,100% Pure New Zealand Honey,26.68,not_china,definitely_not_china,unknown,likely_not_china,likely_not_china,unknown,unknown
-251,Bywabee,26.59,unknown,likely_not_china,likely_china,unknown,unknown,unknown,unknown
+251,Bywabee,26.59,not_china,likely_not_china,likely_china,unknown,unknown,unknown,unknown
 252,SipArt Mastery,26.38,not_china,likely_not_china,likely_china,unknown,unknown,unknown,unknown
 253,TesLiner,26.34,not_china,likely_not_china,likely_china,unknown,unknown,unknown,unknown
 254,Paper Plan,25.88,not_china,unknown,unknown,likely_not_china,unknown,unknown,unknown
-255,Siblings,25.36,unknown,unknown,likely_not_china,unknown,unknown,unknown,unknown
+255,Siblings,25.36,not_china,unknown,likely_not_china,unknown,unknown,unknown,unknown
 256,MatchAiA,25.07,china,likely_china,unknown,likely_china,unknown,unknown,unknown
 257,TRYNDI,24.69,not_china,unknown,likely_not_china,unknown,likely_not_china,unknown,unknown
-258,Birdee,24.48,unknown,unknown,unknown,unknown,unknown,unknown,unknown
+258,Birdee,24.48,not_china,unknown,unknown,unknown,unknown,unknown,unknown
 259,elizabethmott,24.33,not_china,definitely_not_china,likely_not_china,likely_not_china,unknown,unknown,unknown
-260,bcomstock,24.30,unknown,unknown,unknown,unknown,unknown,unknown,unknown
+260,bcomstock,24.30,not_china,unknown,unknown,unknown,unknown,unknown,unknown
 261,andrewEMJ,24.22,not_china,definitely_not_china,definitely_not_china,likely_not_china,unknown,unknown,definitely_not_china
 262,SITFIT Elliptical,23.40,china,likely_china,unknown,unknown,unknown,unknown,unknown
-263,Biotequelab,23.18,unknown,unknown,unknown,unknown,unknown,unknown,unknown
+263,Biotequelab,23.18,not_china,unknown,unknown,unknown,unknown,unknown,unknown
 264,AnyScope,22.57,china,likely_china,unknown,unknown,unknown,unknown,unknown
 265,"Chopper Mill, Inc.",22.38,not_china,likely_not_china,likely_not_china,definitely_not_china,unknown,unknown,unknown
 266,Celor,22.05,china,unknown,unknown,likely_china,unknown,unknown,unknown
@@ -269,27 +269,27 @@ rank,brand,usd,final_verdict,src_claude,src_accio,src_perplexity,src_chatgpt,src
 268,PolyTeak,21.78,not_china,likely_not_china,unknown,unknown,unknown,unknown,unknown
 269,Hail M Cocktails,21.77,not_china,likely_not_china,unknown,likely_not_china,unknown,unknown,unknown
 270,Pet Wellness Direct,21.71,not_china,definitely_not_china,likely_not_china,likely_not_china,unknown,unknown,unknown
-271,oilbanker,20.72,unknown,unknown,unknown,unknown,unknown,unknown,unknown
+271,oilbanker,20.72,not_china,unknown,unknown,unknown,unknown,unknown,unknown
 272,Yuca,20.46,not_china,definitely_not_china,likely_not_china,definitely_not_china,likely_not_china,unknown,unknown
 273,T is for Tame,20.21,not_china,definitely_not_china,unknown,definitely_not_china,unknown,unknown,unknown
 274,"Lumē Deodorant, LLC",19.89,not_china,definitely_not_china,definitely_not_china,likely_not_china,unknown,unknown,definitely_not_china
 275,Vital Purple,19.77,not_china,likely_not_china,unknown,unknown,unknown,unknown,unknown
 276,tea facto,19.62,not_china,likely_not_china,unknown,unknown,unknown,unknown,unknown
-277,D'Artisan Shoppe,19.13,unknown,unknown,likely_not_china,unknown,unknown,unknown,unknown
+277,D'Artisan Shoppe,19.13,not_china,unknown,likely_not_china,unknown,unknown,unknown,unknown
 278,Goode Health,19.02,not_china,definitely_not_china,unknown,definitely_not_china,unknown,unknown,unknown
 279,Henry Schein,18.60,not_china,likely_not_china,unknown,definitely_not_china,definitely_not_china,unknown,unknown
 280,Back Bay Audio,18.23,not_china,likely_not_china,unknown,likely_not_china,unknown,unknown,unknown
 281,Joyful Moose,17.85,not_china,definitely_not_china,definitely_not_china,unknown,likely_not_china,unknown,unknown
 282,Clyrio,17.80,not_china,unknown,definitely_not_china,unknown,likely_not_china,unknown,unknown
 283,kevinleeme,17.58,not_china,definitely_not_china,definitely_not_china,likely_not_china,unknown,unknown,unknown
-284,IGANCE,16.94,unknown,likely_not_china,unknown,definitely_china,unknown,unknown,unknown
-285,burakbilisik,16.60,unknown,unknown,unknown,unknown,unknown,unknown,unknown
+284,IGANCE,16.94,not_china,likely_not_china,unknown,definitely_china,unknown,unknown,unknown
+285,burakbilisik,16.60,not_china,unknown,unknown,unknown,unknown,unknown,unknown
 286,The Bean Coffee Company,16.10,not_china,likely_not_china,definitely_not_china,definitely_not_china,likely_not_china,unknown,definitely_not_china
 287,Flipper Aquarium Products,15.85,not_china,likely_not_china,unknown,likely_not_china,unknown,unknown,unknown
 288,RazorGroup,15.74,not_china,definitely_not_china,definitely_not_china,likely_not_china,likely_not_china,definitely_not_china,unknown
 289,OLIVIAUMMA,15.64,not_china,likely_not_china,likely_not_china,likely_not_china,likely_not_china,unknown,unknown
 290,PetraTools,15.00,not_china,definitely_not_china,unknown,unknown,unknown,unknown,unknown
-291,Serei,14.85,unknown,unknown,unknown,unknown,unknown,unknown,unknown
+291,Serei,14.85,not_china,unknown,unknown,unknown,unknown,unknown,unknown
 292,Melinda's Hot Sauce,14.79,not_china,definitely_not_china,definitely_not_china,definitely_not_china,likely_not_china,unknown,definitely_not_china
 293,NATIVEPET24,14.63,not_china,definitely_not_china,definitely_not_china,definitely_not_china,unknown,unknown,definitely_not_china
 294,Straight Coastin',14.61,not_china,likely_not_china,likely_not_china,likely_not_china,unknown,unknown,unknown
@@ -307,7 +307,7 @@ rank,brand,usd,final_verdict,src_claude,src_accio,src_perplexity,src_chatgpt,src
 306,Pirate Wizards,12.31,not_china,likely_not_china,unknown,likely_not_china,unknown,unknown,unknown
 307,ExcelMark,12.27,not_china,definitely_not_china,definitely_not_china,definitely_not_china,likely_not_china,unknown,unknown
 308,adminTPC,11.92,not_china,likely_not_china,unknown,likely_not_china,unknown,unknown,unknown
-309,Vitamizdd,11.73,unknown,unknown,unknown,unknown,unknown,unknown,unknown
+309,Vitamizdd,11.73,not_china,unknown,unknown,unknown,unknown,unknown,unknown
 310,Novel Brands,11.35,not_china,likely_not_china,definitely_not_china,definitely_not_china,likely_not_china,unknown,unknown
 311,ericmendes,11.25,not_china,definitely_not_china,definitely_not_china,definitely_not_china,likely_not_china,unknown,unknown
 312,Cosmic Freeze,11.09,not_china,likely_not_china,unknown,likely_not_china,unknown,unknown,unknown
@@ -315,7 +315,7 @@ rank,brand,usd,final_verdict,src_claude,src_accio,src_perplexity,src_chatgpt,src
 314,BathBlocks,9.86,not_china,likely_not_china,likely_not_china,unknown,unknown,unknown,unknown
 315,RainbowShow,9.75,china,likely_china,unknown,likely_china,likely_china,unknown,unknown
 316,Pals Socks,9.34,not_china,definitely_not_china,likely_not_china,definitely_not_china,unknown,unknown,unknown
-317,Brick House,9.27,unknown,unknown,unknown,unknown,unknown,unknown,unknown
+317,Brick House,9.27,not_china,unknown,unknown,unknown,unknown,unknown,unknown
 318,Menfirst,9.21,not_china,likely_not_china,definitely_not_china,definitely_not_china,unknown,unknown,unknown
 319,mconley,8.82,not_china,definitely_not_china,definitely_not_china,likely_not_china,likely_not_china,unknown,definitely_not_china
 320,Goli Nutrition,8.76,not_china,definitely_not_china,definitely_not_china,definitely_not_china,likely_not_china,unknown,definitely_not_china
@@ -328,13 +328,13 @@ rank,brand,usd,final_verdict,src_claude,src_accio,src_perplexity,src_chatgpt,src
 327,Arterra Pet Science,8.07,not_china,likely_not_china,unknown,definitely_not_china,unknown,unknown,unknown
 328,Numeira Dead Sea,7.97,not_china,definitely_not_china,unknown,definitely_not_china,unknown,unknown,unknown
 329,Vitavelle Cosmetics,7.80,not_china,likely_not_china,unknown,unknown,unknown,unknown,unknown
-330,Brilliant Beauty,7.72,unknown,unknown,unknown,unknown,unknown,unknown,unknown
+330,Brilliant Beauty,7.72,not_china,unknown,unknown,unknown,unknown,unknown,unknown
 331,ieró Beauty™,7.56,not_china,definitely_not_china,unknown,definitely_not_china,unknown,unknown,unknown
 332,Puppy Pouch,7.44,not_china,likely_not_china,unknown,unknown,unknown,unknown,unknown
 333,ZenHalal,7.20,not_china,unknown,unknown,likely_not_china,unknown,unknown,unknown
-334,Sandunes,7.18,unknown,unknown,unknown,unknown,unknown,unknown,unknown
+334,Sandunes,7.18,not_china,unknown,unknown,unknown,unknown,unknown,unknown
 335,FordeBaker,7.00,not_china,likely_not_china,unknown,unknown,unknown,unknown,unknown
-336,nechemya,6.98,unknown,unknown,unknown,unknown,unknown,unknown,unknown
+336,nechemya,6.98,not_china,unknown,unknown,unknown,unknown,unknown,unknown
 337,Glow by hormone university,6.72,not_china,definitely_not_china,definitely_not_china,likely_not_china,likely_not_china,unknown,unknown
 338,Vivid Scribbles,6.72,not_china,likely_not_china,unknown,unknown,unknown,unknown,unknown
 339,vinsguir,6.60,china,definitely_china,unknown,likely_china,unknown,unknown,unknown
@@ -345,32 +345,32 @@ rank,brand,usd,final_verdict,src_claude,src_accio,src_perplexity,src_chatgpt,src
 344,MEEMA,5.37,not_china,likely_not_china,unknown,definitely_not_china,unknown,unknown,unknown
 345,Timeline,5.25,not_china,definitely_not_china,unknown,definitely_not_china,unknown,unknown,unknown
 346,Foldies,5.04,not_china,unknown,unknown,likely_not_china,unknown,unknown,unknown
-347,VitaUp,4.93,unknown,unknown,unknown,unknown,unknown,unknown,unknown
-348,jdhaley00,4.91,unknown,unknown,unknown,unknown,unknown,unknown,unknown
+347,VitaUp,4.93,not_china,unknown,unknown,unknown,unknown,unknown,unknown
+348,jdhaley00,4.91,not_china,unknown,unknown,unknown,unknown,unknown,unknown
 349,AURA IN BLOOM,4.75,not_china,likely_not_china,unknown,unknown,unknown,unknown,unknown
-350,Osaber,4.32,unknown,unknown,unknown,unknown,unknown,unknown,unknown
+350,Osaber,4.32,not_china,unknown,unknown,unknown,unknown,unknown,unknown
 351,LOOKNOOK,4.31,china,likely_china,unknown,likely_china,likely_china,unknown,unknown
-352,TTolbi,3.98,unknown,unknown,unknown,unknown,unknown,unknown,unknown
+352,TTolbi,3.98,not_china,unknown,unknown,unknown,unknown,unknown,unknown
 353,Oleksii,3.97,not_china,likely_not_china,unknown,unknown,unknown,unknown,unknown
 354,Barely Halal,3.90,not_china,likely_not_china,unknown,unknown,unknown,unknown,unknown
 355,leolandau,3.84,not_china,likely_not_china,unknown,likely_not_china,unknown,unknown,unknown
-356,Bubble Sponge,3.72,unknown,unknown,unknown,unknown,unknown,unknown,unknown
+356,Bubble Sponge,3.72,not_china,unknown,unknown,unknown,unknown,unknown,unknown
 357,Teracube,3.60,not_china,definitely_not_china,definitely_not_china,definitely_not_china,unknown,unknown,definitely_not_china
 358,alexdittrich,3.60,not_china,definitely_not_china,unknown,likely_not_china,unknown,unknown,unknown
 359,Aromafume,3.35,not_china,definitely_not_china,definitely_not_china,definitely_not_china,definitely_not_china,unknown,unknown
 360,Ecomcy,3.27,not_china,definitely_not_china,definitely_not_china,likely_not_china,unknown,unknown,unknown
 361,Matjaz,3.25,not_china,likely_not_china,unknown,unknown,unknown,unknown,unknown
 362,Aiming Fluid Golf,3.21,not_china,likely_not_china,unknown,likely_not_china,unknown,unknown,unknown
-363,TokyoRush,3.08,unknown,unknown,unknown,unknown,unknown,unknown,unknown
-364,Ouch Baby,3.00,unknown,unknown,unknown,unknown,unknown,unknown,unknown
+363,TokyoRush,3.08,not_china,unknown,unknown,unknown,unknown,unknown,unknown
+364,Ouch Baby,3.00,not_china,unknown,unknown,unknown,unknown,unknown,unknown
 365,VZJZHAN,2.86,china,likely_china,unknown,likely_china,likely_china,unknown,unknown
 366,Alodia,2.72,not_china,definitely_not_china,definitely_not_china,definitely_not_china,likely_not_china,unknown,definitely_not_china
-367,Bonded By Stories,2.70,unknown,unknown,unknown,unknown,unknown,unknown,unknown
+367,Bonded By Stories,2.70,not_china,unknown,unknown,unknown,unknown,unknown,unknown
 368,Aum Active,2.60,china,likely_china,definitely_china,definitely_china,likely_china,likely_china,unknown
 369,tukaho,2.55,not_china,likely_not_china,likely_china,unknown,unknown,unknown,unknown
 370,Goat Soap,2.52,not_china,definitely_not_china,definitely_not_china,likely_not_china,definitely_not_china,definitely_not_china,unknown
 371,SMOLBOL,2.46,not_china,definitely_not_china,unknown,likely_not_china,unknown,unknown,unknown
-372,BnD US,2.10,unknown,unknown,unknown,unknown,unknown,unknown,unknown
+372,BnD US,2.10,not_china,unknown,unknown,unknown,unknown,unknown,unknown
 373,Nuanced Media,2.10,not_china,definitely_not_china,definitely_not_china,likely_not_china,unknown,unknown,definitely_not_china
 374,Gemonklee,2.01,china,likely_china,unknown,unknown,unknown,unknown,unknown
 375,itservicesVremi,1.93,not_china,definitely_not_china,definitely_not_china,unknown,unknown,unknown,unknown
@@ -378,23 +378,23 @@ rank,brand,usd,final_verdict,src_claude,src_accio,src_perplexity,src_chatgpt,src
 377,Matrescence,1.86,not_china,likely_not_china,definitely_not_china,definitely_not_china,unknown,unknown,unknown
 378,Milspin,1.83,not_china,definitely_not_china,definitely_not_china,definitely_not_china,likely_not_china,unknown,definitely_not_china
 379,Level Up Pup,1.65,not_china,likely_not_china,unknown,unknown,unknown,unknown,unknown
-380,MyMed,1.60,unknown,unknown,unknown,unknown,unknown,unknown,unknown
+380,MyMed,1.60,not_china,unknown,unknown,unknown,unknown,unknown,unknown
 381,barebotanicsteam,1.60,not_china,likely_not_china,definitely_not_china,likely_not_china,unknown,unknown,unknown
-382,mondaymoose,1.52,unknown,unknown,unknown,unknown,unknown,unknown,unknown
+382,mondaymoose,1.52,not_china,unknown,unknown,unknown,unknown,unknown,unknown
 383,Elevate Pet Provisions,1.50,not_china,definitely_not_china,definitely_not_china,unknown,unknown,unknown,unknown
-384,ELEMITO,1.50,unknown,unknown,unknown,unknown,unknown,unknown,unknown
+384,ELEMITO,1.50,not_china,unknown,unknown,unknown,unknown,unknown,unknown
 385,PureHimalayanShilajit,1.50,not_china,likely_not_china,definitely_not_china,likely_not_china,likely_not_china,unknown,unknown
-386,Settini,1.44,unknown,unknown,unknown,unknown,unknown,unknown,unknown
+386,Settini,1.44,not_china,unknown,unknown,unknown,unknown,unknown,unknown
 387,Supplements Studio,1.38,not_china,likely_not_china,unknown,likely_not_china,unknown,unknown,unknown
-388,Swigzy,1.35,unknown,unknown,unknown,unknown,unknown,unknown,unknown
+388,Swigzy,1.35,not_china,unknown,unknown,unknown,unknown,unknown,unknown
 389,GYMGUM,1.09,not_china,likely_not_china,unknown,unknown,unknown,unknown,unknown
-390,Signs That Pop,0.96,unknown,unknown,unknown,unknown,unknown,unknown,unknown
+390,Signs That Pop,0.96,not_china,unknown,unknown,unknown,unknown,unknown,unknown
 391,Darlington Snacks,0.90,not_china,definitely_not_china,definitely_not_china,definitely_not_china,definitely_not_china,unknown,definitely_not_china
-392,ANTOMILIO,0.75,unknown,unknown,unknown,unknown,unknown,unknown,unknown
-393,yaqubnmc1,0.72,unknown,unknown,unknown,unknown,unknown,unknown,unknown
-394,DecorChiq,0.60,unknown,unknown,unknown,unknown,unknown,unknown,unknown
+392,ANTOMILIO,0.75,not_china,unknown,unknown,unknown,unknown,unknown,unknown
+393,yaqubnmc1,0.72,not_china,unknown,unknown,unknown,unknown,unknown,unknown
+394,DecorChiq,0.60,not_china,unknown,unknown,unknown,unknown,unknown,unknown
 395,Argosy QR,0.60,not_china,likely_not_china,definitely_not_china,likely_not_china,unknown,unknown,unknown
-396,sharmony,0.56,unknown,unknown,unknown,unknown,unknown,unknown,unknown
+396,sharmony,0.56,not_china,unknown,unknown,unknown,unknown,unknown,unknown
 397,bioworld,0.50,not_china,definitely_not_china,definitely_not_china,likely_not_china,likely_not_china,unknown,definitely_not_china
 398,acorn+oak,0.47,not_china,likely_not_china,unknown,unknown,unknown,unknown,unknown
 399,Dragon Grips and Bright Knight Decals,0.45,not_china,likely_not_china,definitely_not_china,unknown,unknown,unknown,unknown

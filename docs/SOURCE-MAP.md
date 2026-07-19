@@ -179,7 +179,7 @@ pinyin PERSONAL name is not a verdict; the evidence grid flags it and routes it.
 1. **`commission_fees` is NOT our base.** ~**4.6× larger** than usage fees ($13.6M vs $2.97M). It's creator pass-through. **Use `usage_fees`.**
 2. **`amount` is DOLLARS, not cents.** Dividing by 100 understated the whole book by 100×.
 3. **`billing_month` ≠ the billing cycle.** It's the month the usage is *for*; they differ by 1–7 months, and the 10/6/3 step-down is month-sensitive.
-4. **A VOIDED invoice was never billed.** Counting voids inflated "billed" by **$561,209** and made *collected > billed* on 73 rows.
+4. **A VOIDED invoice was never billed.** Counting voids inflated "billed" by **$561,209** and made *collected > billed* on 73 rows. **A REFUNDED usage fee was not, in the end, *received*** — `usage_collected` nets succeeded refunds (their `is_ps_base` invoice share only), per the contract's "actually received" (cip_113 / `lens_ps_refund_allocation`).
 5. **Use CALENDAR MONTHS, not day counts.** `+365+183` = 548 days, but 18 calendar months is 546–549 — month 19 slipped inside and kept 6%.
 6. **NULL ≠ zero.** NULL = *we don't know* (must never become a number). A sentinel (`'unassigned'`) = *we know there is none*. Collapsing them turned unknowns into confident $0.00.
 7. **A raw join to `ps_excluded_brands` FANS OUT.** 817 rows, 807 brands.

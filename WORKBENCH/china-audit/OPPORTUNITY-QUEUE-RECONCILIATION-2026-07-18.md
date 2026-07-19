@@ -4,16 +4,20 @@ Reconciliation of **6 independent passes** — Claude (12 web-research agents) +
 
 | Final bucket | Brands | $ | Action |
 | --- | --: | --: | --- |
-| definitely_china | 11 | $2,299.48 | **flipped → china** |
-| likely_china | 20 | $2,056.22 | residual (human review) |
+| definitely_china | 12 | $2,799.12 | **flipped → china** |
+| likely_china | 19 | $1,556.58 | residual (human review) |
 | unknown | 61 | $11,148.69 | residual (human review) |
 | likely_not_china | 163 | $40,770.55 | residual (human review) |
 | definitely_not_china | 146 | $37,775.58 | **flipped → not_china** |
 | **total** | **401** | **$94,050.52** | |
 
-**Residual still needing a human call:** the two 'probably' buckets = **183 brands ($42,826.77)** [20 likely-China + 163 likely-not], plus **61 still-unknown ($11,148.69)**.
+**Residual still needing a human call:** the two 'probably' buckets = **182 brands ($42,327.13)** [19 likely-China + 163 likely-not], plus **61 still-unknown ($11,148.69)**.
 
-## 1. Flipped → CHINA (11 — hard records)
+## 0. Money impact
+
+Backlog Wayward owes Project Silk (`sum(ps_claim_owed)` china, floored) went **$13,712.58 → $13,809.71** (+$97.13) with the 12 China flips (11 reconciliation + Nixplay). Modest because the flipped brands' collected revenue is small; the value of this pass is mostly **confirming $37.8k of billing is genuinely NOT owed** (not-China) so it's off the chase list. Proof URLs for every China flip are stored in `ps_nationality_signals.evidence` (source_system `manual:reconciliation_2026_07_18`).
+
+## 1. Flipped → CHINA (12 — hard records)
 
 Each rests on a verifiable China record (CN/HK trademark owner, China seller-of-record, or a Chinese parent), corroborated across sources and NOT dependent on Accio (see §4).
 
@@ -21,6 +25,7 @@ Each rests on a verifiable China record (CN/HK trademark owner, China seller-of-
 | --- | --: | --- |
 | INICAT | $1,098.01 | MINICAT (Shenzhen) Trading Co Ltd trademark + TikTok Shop Shenzhen business address |
 | glocusent | $570.19 | Shenzhen Glocusent Technology Co Ltd (Alibaba + USPTO/Justia trademark; 4 sources agree) |
+| Nixplay | $499.64 | HK-headquartered operating company (Creedon Technologies HK Ltd) — **Tim ruling: HK = China** |
 | Ahava | $296.19 | Owned by Fosun International (mainland-China conglomerate) since 2016 — parent-company rule |
 | Gamakay | $109.05 | Jieke Trading (Shenzhen) Co Ltd trademark + +86 mainland phone on the refund policy |
 | HRYCF | $80.44 | Shenzhen Yahui E-Commerce Co Ltd trademark + Shenzhen seller-of-record |
@@ -57,12 +62,11 @@ Rule: ≥2 of the evidence-grounded sources (Claude / Perplexity / ChatGPT) call
 
 ## 3. Residual — for human review
 
-### 3a. Likely-China watchlist (20) — soft China signals, no hard record yet
+### 3a. Likely-China watchlist (19) — soft China signals, no hard record yet
 
 | Brand | $ | Why still 'likely' |
 | --- | --: | --- |
 | Ryddelighome | $578.05 | No website exists for the brand; payout contact is a free mailbox (mygadgetbox9@gmail.com); brand name is an i |
-| Nixplay | $499.64 | Nixplay is headquartered in Hong Kong (5/F Guangdong Finance Building, 88 Connaught Road West, Sheung Wan) wit |
 | Funcils | $199.81 | Real art/craft-supplies brand: own site funcils.com, Amazon storefront, Instagram @funcils (watercolor sets, a |
 | Itari | $199.30 | Itari (sold as 'Itriace'/'ItriAce') sells portable thermal printers and tattoo-stencil printers that are Phome |
 | Weljoy | $125.60 | Anonymous aromatherapy-diffuser / essential-oil-organizer Amazon brand with no site; only contact is a free ma |

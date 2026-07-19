@@ -38,7 +38,7 @@ rank,brand,usd,final_bucket,flipped,src_claude,src_accio,src_perplexity,src_chat
 37,BigFly,536.55,likely_not_china,,likely_not_china,definitely_not_china,likely_not_china,likely_not_china,unknown,unknown,
 38,PrideSports,513.20,definitely_not_china,not_china,definitely_not_china,definitely_not_china,likely_not_china,likely_not_china,unknown,unknown,
 39,maisonovo,511.39,likely_not_china,,likely_not_china,likely_china,unknown,unknown,unknown,unknown,yes
-40,Nixplay,499.64,likely_china,,likely_china,definitely_china,likely_not_china,likely_not_china,unknown,unknown,yes
+40,Nixplay,499.64,definitely_china,china,likely_china,definitely_china,likely_not_china,likely_not_china,unknown,unknown,yes
 41,Natemia,496.76,likely_not_china,,likely_not_china,definitely_not_china,likely_not_china,unknown,unknown,unknown,
 42,Lebanta,490.72,unknown,,unknown,unknown,unknown,unknown,unknown,unknown,
 43,liuliuby,487.14,likely_not_china,,likely_not_china,likely_china,likely_not_china,likely_china,unknown,unknown,yes

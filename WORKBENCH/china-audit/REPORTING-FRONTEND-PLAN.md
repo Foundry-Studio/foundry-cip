@@ -38,7 +38,38 @@
    send statements (the pattern already running for the CIP syncs / payment reminder).
 9. **Deploy on Railway, in the Project Silk project.** Likely as a service in / alongside
    the `project-silk-website` deployment (evaluate monorepo-app vs separate service).
-10. **Sales is out of scope** — that's Twenty CRM. This tool is **reporting only**.
+10. **Sales is out of scope** — that's Twenty CRM. This tool is **reporting only** (+ the
+    Partners Admin write-surface, §0b).
+
+### 0b. Session-2 answers (Tim, 2026-07-18) — open questions resolved
+
+11. **Data first, and raw.** Start the build by getting **raw revenue/GMV** into CIP — the
+    more granular the better. The funnel should begin at ① (real revenue generated), not at
+    "billed." This is a **prerequisite data-ingest workstream** (P3-adjacent) that feeds
+    stages ①–②. → new open item: identify the raw-revenue source (Wayward/Stripe/HubSpot?)
+    and build the pull.
+12. **New Railway service, in the Project Silk venture** (NOT inside the website monorepo).
+    Claude Code has the Railway CLI and **sets it up automated, structure at build-time
+    discretion** (best-practice service layout).
+13. **All roles get FULL ACCESS initially.** Build the permission **scaffold** (roles exist,
+    data-scoping wired) but default every internal account to see everything; Tim shrinks it
+    back in admin later if needed. (Partners are the exception — always row-isolated, §14.)
+14. **Partners WILL get logins — design for it.** Two partner surfaces:
+    (a) **Partner reporting** — a partner logs in and sees **only their own** brands /
+    performance / payouts (row-isolated — the reason for custom over Metabase-OSS).
+    (b) **Partners Admin page (NEW, a WRITE surface)** — internal: **add a new partner,
+    assign brands to them, set custom affiliate/commission rates** per partner (and per
+    brand×product). This writes to `ps_partner_registry` / `ps_partner_credit` /
+    `ps_partner_aliases`. **A dedicated riff session on the partner design is deferred to
+    build time** (Tim).
+15. **Read role: mint a fresh `ps_reporting_reader`** (PS-tenant-scoped) — do NOT reuse the
+    Metabase role, so the frontend is decoupled and Metabase can be decommissioned later
+    without touching it.
+16. **Metabase retention (Claude's call, per Tim):** keep the Metabase app **running through
+    cutover** as a fallback + for any other CIP dashboards it turns out to serve;
+    **decommission it after the custom frontend is live AND verified nothing else depends on
+    it.** Low-risk, reversible. The new read role (§15) means the kill won't touch the
+    frontend.
 
 ---
 
@@ -167,6 +198,15 @@ Every screen: **purpose · primary role · what you see · source lenses.**
   Bridges to the FAS report jobs (§5).
 - **Lenses:** `lens_ps_claim`, `lens_ps_statement_drift`, `ps_claim_statements`.
 
+### 3.11 Partners Admin  *(NEW — a WRITE surface; internal admin only)*
+- **Do:** add a new partner · assign brands to a partner · set custom **affiliate/commission
+  rates** (per partner, and per brand×product overriding the 5% default) · map odd referral
+  source names (aliases). The one place partner economics are configured.
+- **Writes to:** `ps_partner_registry`, `ps_partner_credit`, `ps_partner_aliases`.
+- **Note:** this is the only write-surface in the app; everything else is read-only on the
+  lenses. Governance applies (it mutates money inputs). **Detailed design = a dedicated riff
+  session at build time** (Tim), together with the partner-login (§3.6 partner-facing) design.
+
 ### Supporting (not front-and-center)
 - **Refunds** (tab in Payments / Brand-360; finance) — `lens_ps_refund_allocation`:
   `usage_refunded` netted, raw, effect on collected.
@@ -222,28 +262,37 @@ Built as **FAS scheduler jobs** off the lenses (same governance as the CIP syncs
 
 ---
 
-## 7. Open questions / decisions still needed (before/at build)
+## 7. Open questions — status
 
-1. **Stage ① data:** do we ingest raw revenue/GMV, or does the funnel start at "billed"?
-2. **Repo:** new app inside the `project-silk-website` monorepo, or a separate repo/service?
-3. **Role mapping:** confirm Samantha/James/Sheila roles → screen access.
-4. **Partner logins:** external partner accounts (row-isolated) vs emailed statements only.
-5. **Retained-Metabase new URL** + exact list of what it keeps serving.
-6. **Read role:** reuse `cip_metabase_project_silk` or mint `ps_reporting_reader`.
-7. **Charting lib + i18n framework** specifics (build-time).
+**RESOLVED 2026-07-18** (see §0b): raw-data-first ✓ · repo = **new Railway service in PS
+venture** ✓ · roles = **full-access default** ✓ · partners = **logins + Partners Admin** ✓ ·
+read role = **mint `ps_reporting_reader`** ✓ · Metabase = **keep through cutover, then
+decommission** ✓.
+
+**STILL OPEN (build-time):**
+1. **Raw-revenue source** — WHERE does raw revenue/GMV live (Wayward's own system / Stripe /
+   HubSpot / Amazon), and can we pull it? Feeds stage ①. **This is the first research task.**
+2. **Partner design riff** — the partner-login reporting (§3.6) + the Partners Admin
+   write-surface (§3.11) get a dedicated design session at build time.
+3. **Retained-Metabase** — its interim URL + the exact list of what it keeps serving (the
+   pre-decommission check).
+4. **Charting lib + i18n framework** specifics.
 
 ---
 
 ## 8. Rough build phases (NOT started — for sequencing only)
 
-- **P0 — Skeleton:** read-only role · Next.js scaffold · Google OAuth + allowlist · i18n
-  (en/zh) · Railway deploy to reports.project-silk.com · one live lens query end-to-end.
+- **Pre — Raw data:** find + ingest **raw revenue/GMV** into CIP (the more granular the
+  better) so the funnel starts at ①. P3-adjacent; can run parallel to P0. *(first research)*
+- **P0 — Skeleton:** mint `ps_reporting_reader` · Next.js scaffold · Google OAuth + allowlist
+  (full-access default) · i18n (en/zh) · **new Railway service in PS venture** →
+  `reports.project-silk.com` · one live lens query end-to-end.
 - **P1 — Core money:** Pipeline Overview · What Wayward Owes Us · Brand 360.
-- **P2 — Operations:** Partners · Brand & Product Performance · Collections · Payments In ·
-  Exceptions.
+- **P2 — Operations:** Partners (perf+payouts) · Brand & Product Performance · Collections ·
+  Payments In · Exceptions.
 - **P3 — Output:** Statements screen + FAS report jobs (Wayward + partner statements).
-- **P4 — External + cutover:** partner logins/isolation · polish · Metabase money-cards
-  cutover + URL move.
+- **P4 — Partners + cutover:** **partner-design riff** → partner logins (row-isolated) +
+  **Partners Admin write-surface** · polish · Metabase money cutover + decommission check.
 
 ---
 

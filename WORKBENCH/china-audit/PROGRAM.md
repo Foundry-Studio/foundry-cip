@@ -46,13 +46,13 @@ current). Live parked discoveries: [PARKING.md](PARKING.md). Phase-1 history: [a
 | # | project | PM id | status | one-liner |
 |---|---------|-------|--------|-----------|
 | P0 | Program Hygiene & Setup | `959a0019` (WCC0) | **done** | Structure built; Phase-1 docs archived; rules re-grounded 2026-07-15 |
-| P1 | Raw Data Confirmation & Schema | `2b81922a` (WCC1) | **active — mostly done** | Overdue + WeChat sheets ingested; WeChat + multi-contact (cip_100); payments reconciled Dec–Jun; hygiene (cip_98/99); partner ledger (cip_101/102); flat-fee labels (cip_103). RESIDUE: identity spine, 549 seller records, HOLDS below |
-| P2 | Math Plan & Money Engine Rebuild | — | **BUILT (cip_104–113), live + self-updating** | Commission engine (cip_104), per-product eligibility (cip_105), Wayward fee rate (cip_106), ledger→per-product (cip_107), reconciliation lens (cip_108), reporting lenses (cip_109), frozen snapshot retired (cip_110), Stripe live-sync + refund/CN tables (cip_111), statement-drift lens (cip_112), **collected = net of refunds (cip_113)**. Recovery ≈$13,713. REMAINING: partner-side reconciliation on Rhea's roster |
+| P1 | Raw Data Confirmation & Schema | `2b81922a` (WCC1) | **done** | Overdue + WeChat sheets ingested; WeChat + multi-contact (cip_100); payments reconciled Dec–Jun; hygiene (cip_98/99); partner ledger (cip_101/102); flat-fee labels (cip_103). Residue folded → P3 Phase C (549), P7 (identity spine), HOLDS resolved |
+| P2 | Math Plan & Money Engine Rebuild | `bfdcc15c` (WCC2) | **done — BUILT (cip_104–113), live + self-updating** | Commission engine (cip_104), per-product eligibility (cip_105), Wayward fee rate (cip_106), ledger→per-product (cip_107), reconciliation lens (cip_108), reporting lenses (cip_109), frozen snapshot retired (cip_110), Stripe live-sync + refund/CN tables (cip_111), statement-drift lens (cip_112), **collected = net of refunds (cip_113)**. Recovery ≈$13,713. REMAINING: partner-side reconciliation on Rhea's roster |
 | P3 | Ingest Automations | `b7978b92` (WCC3) | **active — building** | Plan of record: [AUTOMATIONS-PLAN.md](AUTOMATIONS-PLAN.md) (Opus-reviewed GO-WITH-FIXES, folded). Build = Opus agents, Fable QC (Tim 2026-07-17). **Tim (2026-07-16): automate the missing-info feeds so accuracy stops depending on manual loads.** Concrete streams that arrive by hand today and need pipelines: (1) Amazon **seller-of-record** enrichment (the 549 + 652 unknown-nationality queue); (2) **Wayward client fee rate** per brand×product (feed-first from HubSpot deal props, CRM override) — feeds `wayward_client_fee_rate`; (3) **partner rates** from Rhea's roster → `ps_partner_credit`/`ps_partner_aliases`; (4) **WeChat** contact lists (Jake) → `ps_brand_contacts`; (5) **payment reports** (the Dec–Jun sheets were hand-loaded → `ps_payment_events`). Design source pulls + code-vs-LLM review checkpoints (Tim has ideas); governance gate applies to any MCP write tools |
-| P4 | Metabase Dashboards | — | not created | Layers, permissions, design; Metabase as base + possibly a smoother layer on top (Tim); card inventory first |
-| P5 | Owed vs Paid — Claim & Evidence | — | not created | Live owed-vs-paid; the KNOWN-Chinese-but-uncredited list (their HubSpot flag + payment sheets vs our book); pinned as-of statements |
-| P6 | SOPs & Ongoing Ops (v1: manual via MCP) | — | not created | Health checks; reporting (PS internal, Wayward China, partners); change SOPs (partner rates, brand×product attribution) |
-| P7 | Twenty CRM Integration | — | not created | The CRM becomes the update surface; big design project, planned on its own |
+| P4 | Metabase Dashboards | `b3efe08b` (WCC4) | **backlog (in PM)** | Layers, permissions, design; Metabase as base + possibly a smoother layer on top (Tim); card inventory first. Planning session first |
+| P5 | Owed vs Paid — Claim & Evidence | `53fd8958` (WCC5) | **backlog (in PM)** | Live owed-vs-paid; the KNOWN-Chinese-but-uncredited list (their HubSpot flag + payment sheets vs our book); pinned as-of statements |
+| P6 | SOPs, Ongoing Ops & Automated Reporting | `73daddfa` (WCC6) | **backlog (in PM)** | Health checks; automated reporting (PS internal, Wayward China, partners — design session); change SOPs (partner rates, attribution, rulings) |
+| P7 | Twenty CRM Integration | `1984ad2c` (WCC7) | **backlog (in PM)** | The CRM becomes the update surface + identity spine home; big design project, planned on its own |
 
 **Sequencing:** P0 → P1 → P2 → (P3 ∥ P4) → P5 → P6 → P7.
 P5 can ship a v0 (HubSpot-flag discrepancy list) during P2 — the flag comparison needs no money math.
@@ -104,7 +104,18 @@ applied to prod, verdicts = not_china/human):**
    registered-agent drop). Blocks the A-track ingest. **Review list built 2026-07-16:**
    [SELLER-RECORDS-549.md](SELLER-RECORDS-549.md) — 548 brands, **413 still `unknown` AND billing
    (~$82.7k collected)** = the priority queue. All kept `unknown` (Tim: "think about next step").
-5. **Q1 — `marketing@service908.com`**: one owner or shared service? (4 billing brands ride on it.)
-6. **Q2 — `zhou_yintong@163.com`**: agency or owner? (18 brands; migrations describe it both ways.)
-7. *(Deferred by RULES #9, not waiting:)* Q3/RobKushner (needed a Jake ask) · the 652-unknown
-   seller-of-record enrichment (was the "Jake list").
+**✅ RESOLVED 2026-07-18 (investigation, no ruling needed — both already settled):**
+5. ~~**Q1 `marketing@service908.com`**~~ — 10 brands, **all already `china`** (eric_sheet /
+   exclusion_list / shared_owner_mailbox / tim_batch; one is literally "DongGuanShiHengHengYuMaoYi…
+   GongSi"). No distinct websites → looks like **one Chinese owner** operating several brands. The
+   owner-vs-agency question doesn't change any verdict (all china via independent signals) — it's an
+   identity-grouping nuance for the future identity spine, not a money/claim blocker.
+6. ~~**Q2 `zhou_yintong@163.com`**~~ — 18 brands, **all already `china`** (163.com = Chinese email
+   domain + eric_sheet). **9 distinct Amazon storefronts → it's an AGENCY/service**, not one owner.
+   Same conclusion: nationality settled; grouping is identity-spine only, no money impact.
+
+**Still open:**
+7. **Q0 — the 549 clearance rule** (above) — the real remaining decision + the $94k opportunity queue.
+8. *(Deferred by RULES #9, not waiting:)* Q3/RobKushner · the 652-unknown seller enrichment.
+9. **Identity-spine nuance (parked):** shared-mailbox operators (service908 = owner, 163 = agency) —
+   whether to merge same-owner brands into one company affects headcount only. Fold into P7/identity.

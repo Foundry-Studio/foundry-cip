@@ -4,37 +4,56 @@ Reconciliation of **6 independent passes** — Claude (12 web-research agents) +
 
 | Final bucket | Brands | $ | Action |
 | --- | --: | --: | --- |
-| definitely_china | 12 | $2,799.12 | **flipped → china** |
-| likely_china | 19 | $1,556.58 | residual (human review) |
+| definitely_china | 31 | $4,355.70 | **flipped → china** |
+| likely_china | 0 | $0.00 | residual (human review) |
 | unknown | 61 | $11,148.69 | residual (human review) |
 | likely_not_china | 163 | $40,770.55 | residual (human review) |
 | definitely_not_china | 146 | $37,775.58 | **flipped → not_china** |
 | **total** | **401** | **$94,050.52** | |
 
-**Residual still needing a human call:** the two 'probably' buckets = **182 brands ($42,327.13)** [19 likely-China + 163 likely-not], plus **61 still-unknown ($11,148.69)**.
+**Residual still needing a human call:** the two 'probably' buckets = **163 brands ($40,770.55)** [0 likely-China + 163 likely-not], plus **61 still-unknown ($11,148.69)**.
 
 ## 0. Money impact
 
-Backlog Wayward owes Project Silk (`sum(ps_claim_owed)` china, floored) went **$13,712.58 → $13,809.71** (+$97.13) with the 12 China flips (11 reconciliation + Nixplay). Modest because the flipped brands' collected revenue is small; the value of this pass is mostly **confirming $37.8k of billing is genuinely NOT owed** (not-China) so it's off the chase list. Proof URLs for every China flip are stored in `ps_nationality_signals.evidence` (source_system `manual:reconciliation_2026_07_18`).
+Backlog Wayward owes Project Silk (`sum(ps_claim_owed)` china, floored) went **$13,712.58 → $13,893.42** (+$180.84) with the 31 China flips (12 hard-record + Nixplay + 19 likely-China confirmed by Tim). Modest because the flipped brands' collected revenue is small; the bigger value of this pass is **confirming $37.8k of billing is genuinely NOT owed** (not-China) so it's off the chase list. Proof URLs for every China flip are stored in `ps_nationality_signals.evidence` (source_system `manual:reconciliation_2026_07_18`).
 
-## 1. Flipped → CHINA (12 — hard records)
+## 1. Flipped → CHINA (31)
 
-Each rests on a verifiable China record (CN/HK trademark owner, China seller-of-record, or a Chinese parent), corroborated across sources and NOT dependent on Accio (see §4).
+12 rest on a verifiable China record (CN/HK trademark owner, China seller-of-record, or a Chinese parent), NOT dependent on Accio (see §4). The other 19 were the likely-China watchlist, **ruled China by Tim on 2026-07-18** (soft signals — pinyin contacts, Shenzhen categories, anonymous invented-name Amazon brands).
 
 | Brand | $ | Evidence |
 | --- | --: | --- |
 | INICAT | $1,098.01 | MINICAT (Shenzhen) Trading Co Ltd trademark + TikTok Shop Shenzhen business address |
+| Ryddelighome | $578.05 | No website exists for the brand; payout contact is a free mailbox (mygadgetbox9@gmail.com); brand name is an i — *Tim-ruled from likely-China* |
 | glocusent | $570.19 | Shenzhen Glocusent Technology Co Ltd (Alibaba + USPTO/Justia trademark; 4 sources agree) |
 | Nixplay | $499.64 | HK-headquartered operating company (Creedon Technologies HK Ltd) — **Tim ruling: HK = China** |
 | Ahava | $296.19 | Owned by Fosun International (mainland-China conglomerate) since 2016 — parent-company rule |
+| Funcils | $199.81 | Real art/craft-supplies brand: own site funcils.com, Amazon storefront, Instagram @funcils (watercolor sets, a — *Tim-ruled from likely-China* |
+| Itari | $199.30 | Itari (sold as 'Itriace'/'ItriAce') sells portable thermal printers and tattoo-stencil printers that are Phome — *Tim-ruled from likely-China* |
+| Weljoy | $125.60 | Anonymous aromatherapy-diffuser / essential-oil-organizer Amazon brand with no site; only contact is a free ma — *Tim-ruled from likely-China* |
+| Feculs | $113.49 | Amazon 'FECULS OFFICIAL' trademark is owned by an individual, SHI, YULIAN (a Chinese/pinyin personal name), co — *Tim-ruled from likely-China* |
 | Gamakay | $109.05 | Jieke Trading (Shenzhen) Co Ltd trademark + +86 mainland phone on the refund policy |
 | HRYCF | $80.44 | Shenzhen Yahui E-Commerce Co Ltd trademark + Shenzhen seller-of-record |
+| Loobanipets | $66.96 | LOOBANI's US trademark (Reg. 5483604 / Serial 87269371) is owned by an individual, 'Xuhui, Li' (a Chinese pers — *Tim-ruled from likely-China* |
+| syncgo | $65.97 | SyncGo is a Windows desktop-calendar software product from Desksware (desksware.com); the site exposes no comp — *Tim-ruled from likely-China* |
 | MEOLY | $55.15 | Shantou Meiou Trading Company Ltd (Guangdong) trademark owner (Justia) |
+| fullnow | $42.21 | Seller is FULLNOW LLC, active on Amazon.com, Amazon.co.uk and especially Amazon.es (top-rated in Spain) since  — *Tim-ruled from likely-China* |
+| ResoseseHZH | $39.87 | Brand 'Resosese' on Amazon sells cheap novelty/STEM toys (bathtub race-car tracks, RC robot kits, 'fart blaste — *Tim-ruled from likely-China* |
 | OUFER | $36.18 | Qingdao OUFER Industry Co Ltd (USPTO, 'organized under the laws of China') |
 | kiwinurse | $34.79 | Fanzhida Technology (Shenzhen) Co Ltd trademark owner (Justia) |
+| MatchAiA | $25.07 | matchaia.com states its matcha is 'organically grown in the mountains of China' and that they 'work closely wi — *Tim-ruled from likely-China* |
+| SITFIT Elliptical | $23.40 | Seller of record 'SITFIT Mobility Group, LLC' registered at 19790 W Dixie Hwy Suite #1204, Aventura, FL 33180  — *Tim-ruled from likely-China* |
+| AnyScope | $22.57 | AnyScope is a digital-otoscope / ear-camera with wax-removal tools, launched as a batch of near-identical vari — *Tim-ruled from likely-China* |
+| Celor | $22.05 | celor.co ('Celor Beauty') sells hydrogel under-eye patches and foot-peel masks; homepage/footer shows no legal — *Tim-ruled from likely-China* |
+| Houswise | $13.00 | HOUSWISE trademark and operating entity is Furmia LLC, listed in Flushing, New York (a locale heavily used by  — *Tim-ruled from likely-China* |
 | SHINEFY | $10.28 | Yantai Shanlan Electronic Commerce Co Ltd — Walmart seller-of-record (Yantai, China) |
+| RainbowShow | $9.75 | Only contact is a free mailbox with a pinyin personal name (heguyun@outlook.com — 'He Guyun'), a recognized Ch — *Tim-ruled from likely-China* |
 | vinsguir | $6.60 | HK Benxin Technology E-Commerce Co Ltd trademark owner (Hong Kong) |
+| LOOKNOOK | $4.31 | Listed domain mepurelab.com self-describes as a brand consultancy doing 'ODM/OEM product development, supply c — *Tim-ruled from likely-China* |
+| VZJZHAN | $2.86 | No domain; 'VZJZHAN' is an unpronounceable random-capital string typical of Chinese Amazon private-label trade — *Tim-ruled from likely-China* |
 | Aum Active | $2.60 | Operated/managed by Hooray Commerce (Shenzhen brand accelerator, Chinese principals) |
+| Gemonklee | $2.01 | No domain; Amazon brand 'Gemonklee' (invented, unpronounceable name) sells unrelated multi-category goods — al — *Tim-ruled from likely-China* |
+| Kavguine | $0.30 | Amazon-only herbal-supplement brand (wormwood, sea moss/black seed, turmeric) under the invented name 'Kavguin — *Tim-ruled from likely-China* |
 
 ## 2. Flipped → NOT-China (146)
 
@@ -62,29 +81,10 @@ Rule: ≥2 of the evidence-grounded sources (Claude / Perplexity / ChatGPT) call
 
 ## 3. Residual — for human review
 
-### 3a. Likely-China watchlist (19) — soft China signals, no hard record yet
+### 3a. Likely-China watchlist (0) — soft China signals, no hard record yet
 
 | Brand | $ | Why still 'likely' |
 | --- | --: | --- |
-| Ryddelighome | $578.05 | No website exists for the brand; payout contact is a free mailbox (mygadgetbox9@gmail.com); brand name is an i |
-| Funcils | $199.81 | Real art/craft-supplies brand: own site funcils.com, Amazon storefront, Instagram @funcils (watercolor sets, a |
-| Itari | $199.30 | Itari (sold as 'Itriace'/'ItriAce') sells portable thermal printers and tattoo-stencil printers that are Phome |
-| Weljoy | $125.60 | Anonymous aromatherapy-diffuser / essential-oil-organizer Amazon brand with no site; only contact is a free ma |
-| Feculs | $113.49 | Amazon 'FECULS OFFICIAL' trademark is owned by an individual, SHI, YULIAN (a Chinese/pinyin personal name), co |
-| Loobanipets | $66.96 | LOOBANI's US trademark (Reg. 5483604 / Serial 87269371) is owned by an individual, 'Xuhui, Li' (a Chinese pers |
-| syncgo | $65.97 | SyncGo is a Windows desktop-calendar software product from Desksware (desksware.com); the site exposes no comp |
-| fullnow | $42.21 | Seller is FULLNOW LLC, active on Amazon.com, Amazon.co.uk and especially Amazon.es (top-rated in Spain) since  |
-| ResoseseHZH | $39.87 | Brand 'Resosese' on Amazon sells cheap novelty/STEM toys (bathtub race-car tracks, RC robot kits, 'fart blaste |
-| MatchAiA | $25.07 | matchaia.com states its matcha is 'organically grown in the mountains of China' and that they 'work closely wi |
-| SITFIT Elliptical | $23.40 | Seller of record 'SITFIT Mobility Group, LLC' registered at 19790 W Dixie Hwy Suite #1204, Aventura, FL 33180  |
-| AnyScope | $22.57 | AnyScope is a digital-otoscope / ear-camera with wax-removal tools, launched as a batch of near-identical vari |
-| Celor | $22.05 | celor.co ('Celor Beauty') sells hydrogel under-eye patches and foot-peel masks; homepage/footer shows no legal |
-| Houswise | $13.00 | HOUSWISE trademark and operating entity is Furmia LLC, listed in Flushing, New York (a locale heavily used by  |
-| RainbowShow | $9.75 | Only contact is a free mailbox with a pinyin personal name (heguyun@outlook.com — 'He Guyun'), a recognized Ch |
-| LOOKNOOK | $4.31 | Listed domain mepurelab.com self-describes as a brand consultancy doing 'ODM/OEM product development, supply c |
-| VZJZHAN | $2.86 | No domain; 'VZJZHAN' is an unpronounceable random-capital string typical of Chinese Amazon private-label trade |
-| Gemonklee | $2.01 | No domain; Amazon brand 'Gemonklee' (invented, unpronounceable name) sells unrelated multi-category goods — al |
-| Kavguine | $0.30 | Amazon-only herbal-supplement brand (wormwood, sea moss/black seed, turmeric) under the invented name 'Kavguin |
 
 ### 3b. Likely-NOT-China (163, $40,770.55)
 

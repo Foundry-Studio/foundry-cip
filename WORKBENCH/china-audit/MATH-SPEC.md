@@ -44,11 +44,16 @@ Each layer is a field (or set) at the brand×product×month grain. `→` reads "
 - **Edge:** currency is USD across the spine (confirm in build); credit-note/negative lines net in.
 
 ### L3 · `usage_collected` — what the client actually PAID Wayward *(the commission base)*
-- **Formula:** L2 restricted to `invoice_status = 'paid'`.
-- **Why it's the base:** the deal is "10% of **collected** usage" — we bill Wayward on realized cash,
-  not on what they invoiced but never collected.
+- **Formula:** L2 restricted to `invoice_status = 'paid'`, **NET of succeeded refunds** (cip_113):
+  `gross_paid_is_ps_base − usage_refund_netted` (from `lens_ps_refund_allocation`).
+- **Why it's the base:** the deal is revenue share on **"Usage Fees *actually received* by Company"**
+  (§3.1). Realized cash — not invoiced-but-uncollected, and not collected-then-refunded.
+- **Refund netting (cip_113):** succeeded refunds only, allocated to the `is_ps_base` **share** of
+  their invoice pro-rata (never the raw amount — refunds hit the whole invoice incl. non-base
+  pass-through), minus Wayward's already-booked negative reconciliation lines, capped so a cell can't
+  go below 0. Credit notes = evidence-only. Full rule: [REFUND-NETTING-PLAN.md](REFUND-NETTING-PLAN.md).
 - **OLD vs NEW:** the frozen `ps_monthly_earnings.usage_collected` was this same idea but computed
-  once (2026-07-14) and never refreshed. NEW = recomputed live from Stripe every run.
+  once (2026-07-14) and never refreshed. NEW = recomputed live from Stripe every run, net of refunds.
 
 ### L4 · `ps_mgmt_fee_owed` — **what Wayward owes us** (the core field)
 - **Formula:** `usage_collected × mgmt_rate(brand, product, month)` — but ONLY when the brand is

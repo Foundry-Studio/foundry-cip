@@ -56,8 +56,9 @@ Caveat: the COMPUTED side (owed) is a **frozen snapshot** until P2 rebuilds the 
   distinct stage (Jake's reports), and **owed − paid = the recovery number** — the whole point of
   proactive billing. It is stage 5/6 above; keep it explicit.
 - **Adjustments / refunds / voids / disputes** — money that reverses after billing/collection.
-  Partially captured (`ps_monthly_earnings.usage_voided`, invoice status=void); refunds/chargebacks/
-  credits may need a home.
+  Voids: excluded from billed. **Refunds: HAVE a home now (cip_113)** — succeeded refunds net out of
+  `usage_collected` (is_ps_base share, capped), surfaced in `lens_ps_refund_allocation`. Credit notes
+  ingested as evidence (`ps_stripe_credit_notes`), not netted (would double-count).
 - **Our NET margin** — our income − partner payouts = what PS keeps. The bottom line; worth a layer.
 - **Aging (a dimension, not a layer)** — how old each uncollected/unpaid amount is (30/60/90+) —
   drives which to chase first.

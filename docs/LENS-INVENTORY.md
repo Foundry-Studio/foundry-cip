@@ -42,7 +42,6 @@ tenant UUID (PS-owned lenses) *and* re-checks the GUC, so it yields rows only un
 | `lens_ps_added_current` | cip_75 | GUC-only | cip_query_reader, cip_metabase_project_silk, cip_twenty_project_silk | — |
 | `lens_ps_ar_aging` | cip_109 | GUC-only | cip_query_reader, cip_metabase_project_silk, cip_twenty_project_silk | — |
 | `lens_ps_attribution_at_risk` | cip_77 | GUC-only | cip_query_reader, cip_metabase_project_silk, cip_twenty_project_silk | — |
-| `lens_ps_billed_vs_collected` | cip_49 | GUC-only | cip_query_reader, cip_metabase_project_silk, cip_twenty_project_silk | Stripe usage fees billed vs collected, per brand / month / product. The source of truth for what Wayward invoiced and actually got paid. |
 | `lens_ps_brand_contact_book` | cip_100, cip_76 | GUC-only | cip_query_reader, cip_metabase_project_silk, cip_twenty_project_silk | — |
 | `lens_ps_brand_hubspot` | cip_76 | GUC-only | cip_query_reader, cip_metabase_project_silk, cip_twenty_project_silk | — |
 | `lens_ps_brand_reality` | cip_110, cip_83, cip_85 | GUC-only | cip_query_reader, cip_metabase_project_silk, cip_twenty_project_silk | — |
@@ -53,25 +52,26 @@ tenant UUID (PS-owned lenses) *and* re-checks the GUC, so it yields rows only un
 | `lens_ps_china_brands_producing` | cip_26 | GUC-only | cip_query_reader, cip_metabase_project_silk, cip_twenty_project_silk | PS — brands where companion_data.ps_engagement_health = 'producing' |
 | `lens_ps_china_chase_list` | cip_83, cip_85, cip_86, cip_88, cip_89, cip_95 | GUC-only | cip_query_reader, cip_metabase_project_silk, cip_twenty_project_silk | — |
 | `lens_ps_china_commission` | cip_34 | tenant-pinned + GUC | cip_query_reader, cip_metabase_project_silk | PS — per-brand China attribution + commission: attribution_owner, conditional, lead_source, sales/cs lead, fees billed/paid, AR gap, 10% commission on paid |
-| `lens_ps_china_companies` | cip_110, cip_92, cip_95 | GUC-only | cip_query_reader, cip_metabase_project_silk, cip_twenty_project_silk | — |
+| `lens_ps_china_companies` | cip_110, cip_113, cip_92, cip_95 | GUC-only | cip_query_reader, cip_metabase_project_silk, cip_twenty_project_silk | — |
 | `lens_ps_china_deal_financials` | cip_32 | tenant-pinned + GUC | cip_query_reader, cip_metabase_project_silk, cip_twenty_project_silk | PS — per-deal financial read-surface: total_fees_paid, lifetime_gmv, invoices_paid, overdue_invoices, account_creation_date (already-mirrored cip_deals.properties, exposed for Metabase ASK 5) |
 | `lens_ps_china_evidence_grid` | cip_94 | GUC-only | cip_query_reader, cip_metabase_project_silk, cip_twenty_project_silk | — |
-| `lens_ps_china_verdict` | cip_110, cip_66, cip_67, cip_73, cip_80, cip_88, cip_89, cip_95 | GUC-only | cip_query_reader, cip_metabase_project_silk, cip_twenty_project_silk | — |
+| `lens_ps_china_verdict` | cip_110, cip_113, cip_66, cip_67, cip_73, cip_80, cip_88, cip_89, cip_95 | GUC-only | cip_query_reader, cip_metabase_project_silk, cip_twenty_project_silk | — |
 | `lens_ps_claim` | cip_104 | GUC-only | cip_query_reader, cip_metabase_project_silk, cip_twenty_project_silk | — |
-| `lens_ps_commission_ledger` | cip_104, cip_107 | GUC-only | cip_query_reader, cip_metabase_project_silk, cip_twenty_project_silk | — |
+| `lens_ps_commission_ledger` | cip_104, cip_107, cip_113 | GUC-only | cip_query_reader, cip_metabase_project_silk, cip_twenty_project_silk | — |
 | `lens_ps_deal_timeline` | cip_77 | GUC-only | cip_query_reader, cip_metabase_project_silk, cip_twenty_project_silk | — |
 | `lens_ps_excluded_partner_performance` | cip_109 | GUC-only | cip_query_reader, cip_metabase_project_silk, cip_twenty_project_silk | — |
 | `lens_ps_exclusion_status` | cip_68 | GUC-only | cip_query_reader, cip_metabase_project_silk, cip_twenty_project_silk | — |
 | `lens_ps_identity_health` | cip_54 | GUC-only | cip_query_reader, cip_metabase_project_silk, cip_twenty_project_silk | — |
 | `lens_ps_identity_provenance` | cip_56 | GUC-only | cip_query_reader, cip_metabase_project_silk, cip_twenty_project_silk | — |
-| `lens_ps_monthly_summary` | cip_109 | GUC-only | cip_query_reader, cip_metabase_project_silk, cip_twenty_project_silk | — |
+| `lens_ps_monthly_summary` | cip_109, cip_113 | GUC-only | cip_query_reader, cip_metabase_project_silk, cip_twenty_project_silk | — |
 | `lens_ps_open_questions` | cip_47 | GUC-only | cip_query_reader, cip_metabase_project_silk, cip_twenty_project_silk | Open information gaps grouped by who can answer them — drives questionnaires and Slack outreach. |
 | `lens_ps_partner_payout_summary` | cip_109 | GUC-only | cip_query_reader, cip_metabase_project_silk, cip_twenty_project_silk | — |
-| `lens_ps_partner_performance` | cip_51, cip_55, cip_78, cip_79 | GUC-only | cip_query_reader, cip_metabase_project_silk, cip_twenty_project_silk | Partner performance by month |
 | `lens_ps_product_eligibility` | cip_105, cip_106 | GUC-only | cip_query_reader, cip_metabase_project_silk, cip_twenty_project_silk | — |
 | `lens_ps_rate_clock` | cip_50, cip_53, cip_91 | GUC-only | cip_query_reader, cip_metabase_project_silk, cip_twenty_project_silk | The rate clock per brand x product: productive date, current 10/6/3 tier, and when it steps down. Drives roll-off forecasting. |
 | `lens_ps_rate_schedule` | cip_104 | GUC-only | cip_query_reader, cip_metabase_project_silk, cip_twenty_project_silk | — |
+| `lens_ps_refund_allocation` | cip_113 | GUC-only | cip_query_reader, cip_metabase_project_silk, cip_twenty_project_silk | — |
 | `lens_ps_source_freshness` | cip_78 | GUC-only | cip_query_reader, cip_metabase_project_silk, cip_twenty_project_silk | — |
+| `lens_ps_statement_drift` | cip_112 | GUC-only | cip_query_reader, cip_metabase_project_silk, cip_twenty_project_silk | — |
 | `lens_ps_wayward_reconciliation` | cip_108 | GUC-only | cip_query_reader, cip_metabase_project_silk, cip_twenty_project_silk | — |
 | `lens_ps_wayward_stated` | cip_109 | GUC-only | cip_query_reader, cip_metabase_project_silk, cip_twenty_project_silk | — |
 | `lens_tenant_manifest_properties` | cip_14 | GUC-only | cip_query_reader, cip_metabase_role | — |

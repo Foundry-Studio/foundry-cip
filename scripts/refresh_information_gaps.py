@@ -66,7 +66,12 @@ SHARPEN_REAL = text("""
     WITH billed AS (
         SELECT l.wayward_brand_id,
                round(sum(l.amount), 2)                                        AS billed,
-               round(sum(l.amount) FILTER (WHERE l.invoice_status='paid'), 2) AS collected,
+               -- collected is NET of succeeded refunds (cip_113), like the ledger's usage_collected
+               round(sum(l.amount) FILTER (WHERE l.invoice_status='paid')
+                     - COALESCE((SELECT sum(ra.usage_refund_netted)
+                                 FROM lens_ps_refund_allocation ra
+                                 WHERE ra.wayward_brand_id = l.wayward_brand_id
+                                   AND ra.period_month >= DATE '2025-12-01'), 0), 2) AS collected,
                min(l.billing_month)                                           AS first_month
         FROM ps_stripe_invoice_lines l
         WHERE l.is_ps_base AND l.billing_month >= DATE '2025-12-01'

@@ -19,13 +19,15 @@ current). Live parked discoveries: [PARKING.md](PARKING.md). Phase-1 history: [a
   each flip; don't hard-code). 3-state verdict since cip_95. Grew via the July intake sheets + the
   Amazon seller-of-record / internal-breadcrumb triage (see SUSPECTS-IN-CONTENTION.md); unknowns
   queued in `lens_ps_china_evidence_grid`.
-- **Schema:** alembic head **`cip_110_retire_frozen_earnings`**. Phase-1 = cip_87→94. **Money engine =**
+- **Schema:** alembic head **`cip_113_refund_netting`** (cip_111 Stripe live-sync + refund/CN tables ·
+  cip_112 statement-drift lens · cip_113 collected = net of refunds). Phase-1 = cip_87→94. **Money engine =**
   cip_104 (commission ledger, lens-first) · cip_105 (per-product eligibility) · cip_106 (Wayward
   client fee rate) · cip_107 (ledger→per-product rewire) · cip_108 (Wayward reconciliation lens) ·
   cip_109 (reporting lenses: aging / partner-payout / monthly / excluded-partner / wayward-stated) ·
   cip_110 (**retired the frozen `ps_monthly_earnings` snapshot** — the last tie to the old writer).
 - **Money: LIVE, not frozen.** The engine is `lens_ps_commission_ledger` → `lens_ps_claim`,
-  self-updating off hourly Stripe. **Recovery ≈ $12,035** — the canonical number lives in
+  self-updating off hourly Stripe (LIVE hourly since 2026-07-17). **Recovery ≈ $13,713** (net of
+  refunds; grew from $12,035 as the live sync recovered $254k of truncated usage) — the canonical number lives in
   `lens_ps_claim`; see [LENS-CATALOG.md](LENS-CATALOG.md). **The frozen `ps_monthly_earnings` snapshot
   is GONE (cip_110)** — every lens/invariant/script that touched it was repointed to the live spine or
   retired; recovery + china headcount verified penny/row-identical before and after. The 16,020-row
@@ -34,10 +36,9 @@ current). Live parked discoveries: [PARKING.md](PARKING.md). Phase-1 history: [a
 - **Ownership:** china is the only gate; eligibility is **per product** (cip_105/107) — the pre-PS
   rev-share exclusion is Connect-only, so Boost is ours. Full rules: [OWNERSHIP-RULES.md](OWNERSHIP-RULES.md);
   what-each-lens-answers + glossary: [LENS-CATALOG.md](LENS-CATALOG.md).
-- **Invariants: 21/21 green** (`cip/integration_mesh/ps_invariants.py`, re-run 2026-07-16 post-cip_110
-  on **prod**). Was 25: cip_110 repointed 5 to the live ledger, retired 4 frozen-only checks, and
-  rewrote `claiming_where_someone_else_earns` → `claim_requires_rev_share_eligible` (the old
-  brand-level rule wrongly flagged the intended per-product Boost claims; the new one is per-product).
+- **Invariants: 22/22 green** (`cip/integration_mesh/ps_invariants.py`, re-run 2026-07-18 post-cip_113
+  on **prod**). 21 after cip_110's repoint/retire/rewrite; +1 in cip_113
+  (`refund_alloc_never_exceeds_gross`, guards the refund-netting cap).
 - **Metabase:** the cip_104–109 lenses are the read-surface; wiring cards is the next reporting step.
 
 ## THE PROJECTS
@@ -46,7 +47,7 @@ current). Live parked discoveries: [PARKING.md](PARKING.md). Phase-1 history: [a
 |---|---------|-------|--------|-----------|
 | P0 | Program Hygiene & Setup | `959a0019` (WCC0) | **done** | Structure built; Phase-1 docs archived; rules re-grounded 2026-07-15 |
 | P1 | Raw Data Confirmation & Schema | `2b81922a` (WCC1) | **active — mostly done** | Overdue + WeChat sheets ingested; WeChat + multi-contact (cip_100); payments reconciled Dec–Jun; hygiene (cip_98/99); partner ledger (cip_101/102); flat-fee labels (cip_103). RESIDUE: identity spine, 549 seller records, HOLDS below |
-| P2 | Math Plan & Money Engine Rebuild | — | **BUILT (cip_104–110), live + self-updating** | Commission engine (cip_104), per-product eligibility (cip_105), Wayward client fee rate (cip_106), ledger→per-product rewire (cip_107), Wayward reconciliation lens (cip_108), reporting lenses (cip_109), **frozen `ps_monthly_earnings` retired (cip_110)** — CIP is now clean of the old writer. Ongoing "what's owed this month" tool; lens map = [LENS-CATALOG.md](LENS-CATALOG.md). Recovery $12,035. REMAINING: backfills, partner-side reconciliation on Rhea's roster |
+| P2 | Math Plan & Money Engine Rebuild | — | **BUILT (cip_104–113), live + self-updating** | Commission engine (cip_104), per-product eligibility (cip_105), Wayward fee rate (cip_106), ledger→per-product (cip_107), reconciliation lens (cip_108), reporting lenses (cip_109), frozen snapshot retired (cip_110), Stripe live-sync + refund/CN tables (cip_111), statement-drift lens (cip_112), **collected = net of refunds (cip_113)**. Recovery ≈$13,713. REMAINING: partner-side reconciliation on Rhea's roster |
 | P3 | Ingest Automations | `b7978b92` (WCC3) | **active — building** | Plan of record: [AUTOMATIONS-PLAN.md](AUTOMATIONS-PLAN.md) (Opus-reviewed GO-WITH-FIXES, folded). Build = Opus agents, Fable QC (Tim 2026-07-17). **Tim (2026-07-16): automate the missing-info feeds so accuracy stops depending on manual loads.** Concrete streams that arrive by hand today and need pipelines: (1) Amazon **seller-of-record** enrichment (the 549 + 652 unknown-nationality queue); (2) **Wayward client fee rate** per brand×product (feed-first from HubSpot deal props, CRM override) — feeds `wayward_client_fee_rate`; (3) **partner rates** from Rhea's roster → `ps_partner_credit`/`ps_partner_aliases`; (4) **WeChat** contact lists (Jake) → `ps_brand_contacts`; (5) **payment reports** (the Dec–Jun sheets were hand-loaded → `ps_payment_events`). Design source pulls + code-vs-LLM review checkpoints (Tim has ideas); governance gate applies to any MCP write tools |
 | P4 | Metabase Dashboards | — | not created | Layers, permissions, design; Metabase as base + possibly a smoother layer on top (Tim); card inventory first |
 | P5 | Owed vs Paid — Claim & Evidence | — | not created | Live owed-vs-paid; the KNOWN-Chinese-but-uncredited list (their HubSpot flag + payment sheets vs our book); pinned as-of statements |

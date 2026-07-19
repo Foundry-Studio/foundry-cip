@@ -146,17 +146,18 @@ catch edits; Stripe's list endpoints filter on `created` only, events expire at 
 mutations emit no event — the weekly full is the guarantee the MONEY table can never drift >7 days
 from truth.
 
-**Refunds + credit notes (REFRAMED — review C1, verified on prod):** refund economics are
-**already partially in "collected"**: 777 negative paid `is_ps_base` lines (−$10,543.11; 102
-ledger rows with negative collected months) — Wayward's reconciliation-adjustment lines are
-Stripe-native negative invoice lines, and the ledger already nets them (the
-`net_negative_on_positive_revenue` invariant explicitly tolerates refund months). So the danger
-inverts: naively netting new `ps_stripe_refunds`/`ps_stripe_credit_notes` tables into collected
-would **double-subtract**. Build rule: the new tables land **EVIDENCE-ONLY** (ingest, don't net).
-The verification question is not "are there refunds?" but "**which refund economics are NOT
-already represented as negative `is_ps_base` lines?**" — reconcile Stripe-native
-refunds/credit-notes against the negative-line total; only a proven-uncovered remainder may ever
-enter the derivation, as its own explicit term, with the invariant suite re-baselined.
+**Refunds + credit notes — RESOLVED (cip_113, Tim 2026-07-18: install refunds first-class):**
+the initial evidence-only posture (C1) was correct as a guardrail — a naive full-refund subtraction
+double-counts against the negative reconciliation lines already in collected, and over-nets ~5× by
+including non-base pass-through. cip_113 does it **correctly**: `usage_collected` is now net of
+**succeeded refunds**, allocated to the `is_ps_base` **share** of the invoice pro-rata, minus the
+already-booked negative-line overlap (uncovered remainder only), capped so a cell never goes below 0.
+Its own explicit term — `lens_ps_refund_allocation` at brand×product×month grain (0 fan-out, so
+`ledger_grain_unique` holds) — with a new `refund_alloc_never_exceeds_gross` invariant (22/22 on prod).
+**Credit notes stay EVIDENCE-ONLY** (order_change CNs are pre-payment adjustments already in paid
+amounts; paid-invoice CNs spawn refunds already netted — netting them would double-count). Impact:
+collected −$3,498.03, recovery $13,716.66 → $13,712.58 (−$4.08); principle > amount, and
+self-maintaining off the hourly sync. Full rule: [REFUND-NETTING-PLAN.md](REFUND-NETTING-PLAN.md).
 
 **Monthly full re-sync for HubSpot/Zendesk (Tim, 2026-07-17):** their hourly "modified since"
 increments miss DELETED/MERGED records. Same framework (`sync_mode="full"`), one schedule row each,

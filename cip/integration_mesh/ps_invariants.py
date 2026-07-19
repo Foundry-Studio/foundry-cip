@@ -124,8 +124,8 @@ INVARIANTS: tuple[Invariant, ...] = (
         sql="""SELECT count(*) FROM lens_ps_commission_ledger
                WHERE (mgmt_fee_owed - partner_fee_owed) < 0 AND usage_collected > 0""",
         why="The partner cannot earn more than we do. (A negative net on NEGATIVE collected is "
-            "legitimate — that is a refund month.) cip_110: repointed to the live ledger "
-            "(mgmt_fee_owed - partner_fee_owed).",
+            "legitimate — a refund/reconciliation month; usage_collected is net of refunds since "
+            "cip_113.) cip_110: repointed to the live ledger (mgmt_fee_owed - partner_fee_owed).",
     ),
     # ── provenance: a decision nobody can explain is a decision nobody can defend ──
     Invariant(
@@ -329,6 +329,24 @@ INVARIANTS: tuple[Invariant, ...] = (
         why="The management rate is only ever 10%, 6%, or 3% (the ladder). Any other value means "
             "the rate CASE or the re-anchored ladder dates in lens_ps_rate_schedule produced "
             "something impossible — a mispriced claim.",
+    ),
+    # ── refund netting (cip_113): a refund can never net more than was collected ──
+    Invariant(
+        key="refund_alloc_never_exceeds_gross",
+        sql="""SELECT count(*)
+               FROM lens_ps_refund_allocation ra
+               JOIN (SELECT wayward_brand_id, product_id, billing_month::date AS pm,
+                            sum(amount) FILTER (WHERE invoice_status='paid') AS gross
+                     FROM ps_stripe_invoice_lines WHERE is_ps_base GROUP BY 1,2,3) g
+                 ON g.wayward_brand_id = ra.wayward_brand_id
+                AND g.product_id = ra.product_id AND g.pm = ra.period_month
+               WHERE ra.usage_refund_netted > g.gross + 0.01""",
+        why="cip_113 nets succeeded refunds out of usage_collected. The netted figure is CAPPED at "
+            "the cell's gross collected — a refund can never remove more usage fee than was "
+            "collected in that brand x product x month (over-subtracting would understate what "
+            "Wayward owes us). If this counts >0 the cap in lens_ps_refund_allocation has failed. "
+            "(net_negative_on_positive_revenue already tolerates legitimate refund/reconciliation "
+            "months; this guards the refund term itself.)",
     ),
 )
 

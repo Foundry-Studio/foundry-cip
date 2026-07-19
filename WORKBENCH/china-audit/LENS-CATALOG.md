@@ -2,15 +2,19 @@
 
 **The read-first reference for the Wayward China-commission money system.** If you want a number —
 for an invoice, a report, Metabase, a partner, or Wayward — start here. Current as of the head
-migration **`cip_110_retire_frozen_earnings`** (money engine = cip_104–110; cip_110 dropped the
-frozen `ps_monthly_earnings` snapshot — the whole engine now reads only live Stripe). Live + self-updating; every
+migration **`cip_113_refund_netting`** (money engine = cip_104–113; cip_110 dropped the frozen
+`ps_monthly_earnings` snapshot — the whole engine reads only live Stripe; cip_113 made `usage_collected`
+**net of succeeded refunds**). Live + self-updating; every
 figure recomputes from current data.
 
 ## 📌 THE canonical number (updated on each engine change)
-**Recovery / still-owed to us by Wayward ≈ $12,035** (china, PS-eligible per product, from the 2025-10-01
-anchor, minus what Wayward has paid). This is the one figure to quote; it lives in `lens_ps_claim`
-(`SELECT round(sum(ps_claim_owed),2) FROM lens_ps_claim WHERE verdict='china'`). Older docs cite
-$10.4k / $10.88k / $11,099 — those are superseded first-order / pre-rewire estimates.
+**Recovery / still-owed to us by Wayward ≈ $13,713** (china, PS-eligible per product, from the 2025-10-01
+anchor, minus what Wayward has paid, **net of refunds**). This is the one figure to quote; it lives in
+`lens_ps_claim` (`SELECT round(sum(ps_claim_owed),2) FROM lens_ps_claim WHERE verdict='china'`) — always
+prefer the live query over any number written here. History: it grew from ~$12,035 to $13,716.66 when
+the live Stripe sync recovered $254k of truncated usage lines (2026-07-17), then −$4.08 to $13,712.58
+when refund-netting landed (cip_113 — gross mgmt-fee-owed dropped $33.72, but recovery is floored net
+of Wayward's payments so it moved less). Older docs cite $10.4k / $11,099 / $12,035 — all superseded.
 
 ---
 
@@ -32,6 +36,7 @@ exclusion-list partners direct* (Eric et al. — **not ours**, tracked separatel
 | **lens_ps_commission_ledger** | The detail behind it — per brand × product × month: collected, `mgmt_rate` (10/6/3), `claimable`, `mgmt_fee_owed`, `partner_fee_owed`, `claim_status`. |
 | **lens_ps_rate_schedule** | The 10/6/3 ladder dates per brand × product (re-anchored by a qualifying reactivation). |
 | **lens_ps_ar_aging** | Of what's owed, **how long unpaid** — `months_outstanding` + `aging_bucket`. |
+| **lens_ps_refund_allocation** | Per brand × product × month: the refund netted OUT of collected (`usage_refund_netted`) + the raw pre-cap figure. The transparency surface for the refund-netting — how collected goes gross → net. |
 | **lens_ps_monthly_summary** | The trend line: owed / partner-owed / **net** by month × product. |
 
 ### "Is each brand set up right?"
@@ -72,8 +77,9 @@ exclusion-list partners direct* (Eric et al. — **not ours**, tracked separatel
 *(An older plan doc lists `we_claim_credit_other` / `we_claim_no_ack` / `not_ours` — those are NOT the shipped names.)*
 
 ## Glossary (terms partners/Wayward will hit)
-- **usage fee / `usage_collected`** — the base fee the client actually PAID Wayward (Connect = % of GMV, Boost = % of ad spend). `is_ps_base` lines, status=paid. Our commission is a % of this.
-- **`usage_billed`** — invoiced (paid + open), voids excluded. Billed ≥ collected.
+- **usage fee / `usage_collected`** — the base fee the client actually PAID Wayward (Connect = % of GMV, Boost = % of ad spend). `is_ps_base` lines, status=paid, **NET of succeeded refunds** (cip_113). Our commission is a % of this. This is the contract's **"Usage Fees *actually received* by Company"** (§3.1) — a fee that was collected then refunded was not, in the end, received.
+- **`usage_refunded` / `lens_ps_refund_allocation`** — the refund netted OUT of `usage_collected`, per brand × product × month. Only **succeeded** refunds, allocated to the `is_ps_base` **share** of their invoice pro-rata (a refund hits the whole invoice incl. non-base commission pass-through — we net only the usage part), minus any amount Wayward already booked as a negative reconciliation line (no double-subtract), capped so collected never goes below 0 from a refund. Credit notes are held as **evidence only** (netting them would double-count against paid amounts / their own refunds). See [REFUND-NETTING-PLAN.md](REFUND-NETTING-PLAN.md).
+- **`usage_billed`** — invoiced (paid + open), voids excluded. Billed stays GROSS (a refund doesn't un-bill it). Billed ≥ collected.
 - **`wayward_client_fee_rate`** — what WAYWARD charges the CLIENT (5% GMV Connect / ad-spend rate Boost, negotiated 1–6%). NOT our commission.
 - **our commission / `mgmt_fee_owed`** — what Wayward owes US: `usage_collected × mgmt_rate`, where `mgmt_rate` is the **10/6/3 ladder** (10% first 12mo, 6% next 6mo, 3% after).
 - **`ps_claim_owed`** — `mgmt_fee_owed − wayward_paid`, floored at 0 per brand. The still-owed / invoice number.

@@ -10,6 +10,20 @@
 Head migration: **cip_113** → new work is **cip_114+**. Read the migration-chain hazard
 (§8) before any push.
 
+> ### UPDATE 2026-07-18 — constraints locked (Tim)
+> - **No Amazon API.** The Amazon ingest (F/G, old Sprint 3) is **dropped from this project.**
+>   Seller-of-record for nationality stays a **manual / LLM web-enrichment** (exactly the
+>   opportunity-queue reconciliation method), not a data pipeline here.
+> - **Stripe: use the current key's scopes as-is (no expansion).** Probed live 2026-07-18 — the
+>   restricted key already returns 200 on **invoices, customers, charges, subscriptions,
+>   disputes, products, prices, balance_transactions, payouts, refunds, events.** So all of
+>   B–E is in scope now, plus balance_transactions/payouts for cash reconciliation. **Caveat:**
+>   `subscriptions` returned 0 rows — Wayward likely doesn't bill via Stripe subscriptions, so
+>   MRR/subscription data may be empty; confirm at Sprint 2 and skip if so.
+> - **Revised sprint set:** S1 Raw GMV → S2 Stripe extras (charges+card-country · disputes ·
+>   products/prices · balance_transactions/payouts · subscriptions-if-any) → ~~S3 Amazon~~
+>   (dropped) → S4 HubSpot engagement (optional).
+
 ---
 
 ## 1. What we're capturing (and why it's an asset)

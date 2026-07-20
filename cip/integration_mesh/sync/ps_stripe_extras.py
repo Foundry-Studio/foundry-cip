@@ -1,20 +1,24 @@
 # foundry: kind=connector domain=client-intelligence-platform
 """ps_stripe_extras — sibling Stripe sync for charges / disputes / products / subs.
 
-DELIBERATELY ISOLATED from the money-critical ``ps_stripe_sync`` (ps-stripe-v1):
-this connector (``ps-stripe-extras-v1``) captures the DATA-ASSET extras (cip_115)
-and NEVER touches the money derivation. Keeping it a sibling (the ``sync/`` dir
-already holds several) means a bug here can't break the money feed.
+A SIBLING of the money-critical ``ps_stripe_sync`` (ps-stripe-v1): this connector
+(``ps-stripe-extras-v1``) captures the DATA-ASSET extras (cip_115) and never touches
+the money-critical Stripe SYNC path. Keeping it a sibling (the ``sync/`` dir already
+holds several) means a bug here can't break the money feed.
 
-Full list-and-upsert (backfill style). The objects are append-mostly (a charge/
-dispute is immutable once settled), so a periodic full refresh keeps them fresh
-without the events-cursor machinery the money sync needs. Idempotent
-(``ON CONFLICT DO UPDATE``), advisory-locked (own key), heartbeated via
-``SyncRunRecorder``.
+Full list-and-upsert (page + batch-commit; charges are ~tens of thousands). The
+objects are append-mostly (a charge/dispute is immutable once settled), so a
+periodic full refresh keeps them fresh without the events-cursor machinery the
+money sync needs. Idempotent (``ON CONFLICT DO UPDATE``), advisory-locked (own key),
+heartbeated via ``SyncRunRecorder``.
 
-card_country (the issuing country of the payer's card) is CAPTURED here, but the
-china NATIONALITY SIGNAL it implies is COMPUTED FOR REVIEW elsewhere and never
-written from this sync — it can move money (flip brands to china), so it is gated.
+card_country (the issuing country of the payer's card) is captured AND, after each
+sync, derived into the ``card_country_cn`` / ``card_country_hk`` china nationality
+signals (cip_116, Tim-approved 2026-07-20 — see ``_derive_card_country_signals``).
+This is the one money-adjacent thing the extras do: it can flip an *unknown* brand
+to china. It is deliberately ONE-DIRECTIONAL — it only ever ADDS china evidence; a
+human ``manual_review`` not_china still wins in the verdict lens, so a brand Tim
+ruled not_china stays not_china even paying CN/HK cards (never assume not-china).
 
 Reuses the proven transport + helpers from ps_stripe_sync (no new dependency).
 """
@@ -162,6 +166,55 @@ def shape_sub(s: dict[str, Any], bmap: dict[str, str], tenant: str) -> dict[str,
     }
 
 
+_DERIVE_CARD_SIGNALS = text(
+    """
+    INSERT INTO ps_nationality_signals
+        (id, tenant_id, wayward_brand_id, signal, strength, points_to,
+         evidence, source_system, asserted_by)
+    SELECT gen_random_uuid(), CAST(:t AS uuid), wayward_brand_id,
+           CASE WHEN cn >= hk THEN 'card_country_cn' ELSE 'card_country_hk' END,
+           'strong', 'china',
+           'Pays predominantly with ' || CASE WHEN cn >= hk THEN 'CN' ELSE 'HK' END
+             || '-issued cards (' || cnhk || ' of ' || known
+             || ' located charges) — Stripe payment_method_details.card.country',
+           'stripe:card_country', :who
+      FROM (
+        SELECT wayward_brand_id,
+               count(*) FILTER (WHERE card_country = 'CN') AS cn,
+               count(*) FILTER (WHERE card_country = 'HK') AS hk,
+               count(*) FILTER (WHERE card_country IN ('CN', 'HK')) AS cnhk,
+               count(*) FILTER (WHERE card_country IS NOT NULL) AS known
+          FROM ps_stripe_charges
+         WHERE tenant_id = CAST(:t AS uuid) AND wayward_brand_id IS NOT NULL
+         GROUP BY wayward_brand_id
+      ) x
+     WHERE cnhk > (known - cnhk)
+    """
+)
+
+
+def _derive_card_country_signals(engine: Engine, tenant: str) -> int:
+    """Regenerate the ``card_country_cn`` / ``card_country_hk`` china signals from
+    the charges just synced. A brand paying predominantly (CN+HK > all other located
+    charges) with CN/HK-issued cards gets a china signal (cip_116 promoted these to
+    confirming signals). Delete-then-insert keeps it exactly current (a brand can
+    drop out of dominance or switch CN↔HK). This ONLY ever ADDS china evidence — the
+    verdict lens still lets a human ``manual_review`` not_china override it (checked
+    first), so a Tim-ruled not_china brand stays not_china even paying CN/HK cards.
+    Manual signals (other ``source_system``s, e.g. tim_batch_approval) are untouched.
+    """
+    with engine.begin() as conn:
+        conn.execute(
+            text(
+                "DELETE FROM ps_nationality_signals WHERE tenant_id = CAST(:t AS uuid) "
+                "AND source_system = 'stripe:card_country'"
+            ),
+            {"t": tenant},
+        )
+        res = conn.execute(_DERIVE_CARD_SIGNALS, {"t": tenant, "who": CONNECTOR_ID})
+        return res.rowcount or 0
+
+
 def _run_extras(
     engine: Engine, transport: StripeTransport, tenant_uuid: UUID, tenant: str
 ) -> dict[str, Any]:
@@ -219,9 +272,14 @@ def _run_extras(
         total = sum(counts.values())
         run.counters.rows_received = total
         run.counters.rows_created = total
+
+        # Derive the card_country china signal from the charges just synced
+        # (cip_116). Additive china evidence only — a human manual_review not_china
+        # still overrides it in the verdict lens.
+        card_signals = _derive_card_country_signals(engine, tenant)
     return {
         "status": run.final_status, "sync_run_id": str(run.run_id),
-        "tenant_id": tenant, **counts,
+        "tenant_id": tenant, "card_signals": card_signals, **counts,
     }
 
 

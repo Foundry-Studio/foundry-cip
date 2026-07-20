@@ -100,6 +100,15 @@ def seeded(seeded_engine: Engine) -> Generator[Engine, None, None]:
         _cleanup(seeded_engine)
 
 
+def _purge_brand(engine: Engine, *brand_ids: str) -> None:
+    """Remove a test-local brand + its contacts + signals (undoes an in-test seed) so the
+    count-based assertions on the shared tenant stay deterministic."""
+    with engine.begin() as conn:
+        for b in brand_ids:
+            for tbl in ("ps_nationality_signals", "ps_brand_contacts", "ps_brands"):
+                conn.execute(text(f"DELETE FROM {tbl} WHERE wayward_brand_id = :b"), {"b": b})
+
+
 def _seen_flag(engine: Engine, brand_id: str, column: str) -> bool:
     with engine.connect() as conn:
         return conn.execute(
@@ -212,3 +221,83 @@ def test_heartbeat_row_recorded(seeded: Engine) -> None:
     assert hb["rows_created"] == 2
     assert hb["rows_updated"] == 2
     assert hb["rows_ingested"] == 4
+
+
+# ── (d) contact-derived WeChat / phone signals (cip_121) ────────────────────
+# These seed + remove their OWN brands so they never perturb the count-based
+# assertions above (which pin the shared tenant at exactly the 2 seeded brands).
+
+BRAND_WECHAT = "a7b30000-0000-4000-8000-000000000003"  # generic WeChat handle only
+
+
+@pytest.mark.requires_postgres
+def test_generic_wechat_id_generates_confirming_wechat_handle(seeded: Engine) -> None:
+    """cip_121: a brand whose ONLY China evidence is a generic WeChat handle gets a
+    'wechat_handle' signal (strong, china) and a china verdict — the forward path for
+    Jake's HubSpot WeChat capture. Self-contained: seeds + removes its own brand."""
+    try:
+        with seeded.begin() as conn:
+            conn.execute(text("SELECT set_config('app.current_tenant', :t, true)"), {"t": TENANT})
+            conn.execute(
+                text("INSERT INTO ps_brands (wayward_brand_id, tenant_id, brand_name) "
+                     "VALUES (:b, :t, 'WechatOnlyBrand') ON CONFLICT DO NOTHING"),
+                {"b": BRAND_WECHAT, "t": TENANT},
+            )
+            conn.execute(
+                text("INSERT INTO ps_brand_contacts (tenant_id, wayward_brand_id, name, wechat_id) "
+                     "VALUES (:t, :b, 'Contact', 'lzwws25')"),
+                {"t": TENANT, "b": BRAND_WECHAT},
+            )
+        run = run_signal_harvest(seeded, tenant_id=TENANT, apply=True)
+        assert run["harvested"]["wechat_handle"] >= 1
+
+        with seeded.connect() as conn:
+            sig = conn.execute(
+                text("SELECT points_to, strength FROM ps_nationality_signals "
+                     "WHERE wayward_brand_id = :b AND signal = 'wechat_handle'"),
+                {"b": BRAND_WECHAT},
+            ).mappings().all()
+            assert len(sig) == 1, "exactly one wechat_handle signal"
+            assert sig[0]["points_to"] == "china"
+            assert sig[0]["strength"] == "strong"
+            verdict = conn.execute(
+                text("SELECT verdict FROM lens_ps_china_verdict WHERE wayward_brand_id = :b"),
+                {"b": BRAND_WECHAT},
+            ).scalar()
+            assert verdict == "china", "a generic WeChat handle alone confirms china"
+    finally:
+        _purge_brand(seeded, BRAND_WECHAT)
+
+
+@pytest.mark.requires_postgres
+def test_numeric_wechat_id_partitions_to_mobile_or_qq(seeded: Engine) -> None:
+    """A CN-mobile-shaped wechat_id → cn_mobile_handle; a QQ number → qq_handle; neither
+    falls through to the generic wechat_handle (the partition has no overlap)."""
+    brand_mobile = "a7b40000-0000-4000-8000-000000000004"
+    brand_qq = "a7b50000-0000-4000-8000-000000000005"
+    try:
+        with seeded.begin() as conn:
+            conn.execute(text("SELECT set_config('app.current_tenant', :t, true)"), {"t": TENANT})
+            for bid, wid, nm in ((brand_mobile, "13800138000", "MobileBrand"),
+                                 (brand_qq, "804567", "QQBrand")):
+                conn.execute(
+                    text("INSERT INTO ps_brands (wayward_brand_id, tenant_id, brand_name) "
+                         "VALUES (:b, :t, :n) ON CONFLICT DO NOTHING"),
+                    {"b": bid, "t": TENANT, "n": nm},
+                )
+                conn.execute(
+                    text("INSERT INTO ps_brand_contacts (tenant_id, wayward_brand_id, wechat_id) "
+                         "VALUES (:t, :b, :w)"),
+                    {"t": TENANT, "b": bid, "w": wid},
+                )
+        run_signal_harvest(seeded, tenant_id=TENANT, apply=True)
+        with seeded.connect() as conn:
+            def sigs(b: str) -> set[str]:
+                return {r[0] for r in conn.execute(
+                    text("SELECT signal FROM ps_nationality_signals WHERE wayward_brand_id = :b"),
+                    {"b": b}).all()}
+            mob, qq = sigs(brand_mobile), sigs(brand_qq)
+        assert "cn_mobile_handle" in mob and "wechat_handle" not in mob
+        assert "qq_handle" in qq and "wechat_handle" not in qq
+    finally:
+        _purge_brand(seeded, brand_mobile, brand_qq)

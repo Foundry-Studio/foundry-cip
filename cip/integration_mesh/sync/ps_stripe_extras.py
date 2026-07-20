@@ -1,10 +1,16 @@
 # foundry: kind=connector domain=client-intelligence-platform
-"""ps_stripe_extras — sibling Stripe sync for charges / disputes / products / subs.
+"""ps_stripe_extras — sibling Stripe sync for the DATA-ASSET Stripe surface:
+charges / disputes / products / subscriptions (cip_115) + payouts /
+balance_transactions / prices (cip_118, the cash-recon ledger).
 
 A SIBLING of the money-critical ``ps_stripe_sync`` (ps-stripe-v1): this connector
-(``ps-stripe-extras-v1``) captures the DATA-ASSET extras (cip_115) and never touches
-the money-critical Stripe SYNC path. Keeping it a sibling (the ``sync/`` dir already
+(``ps-stripe-extras-v1``) captures the DATA-ASSET extras and never touches the
+money-critical Stripe SYNC path. Keeping it a sibling (the ``sync/`` dir already
 holds several) means a bug here can't break the money feed.
+
+``ps_stripe_balance_transactions`` is the full money ledger (fee/net per
+charge/refund/payout); charges' fee/net are filled FROM it (source_id = the charge
+id), so the charges pull needs no per-charge expand.
 
 Full list-and-upsert (page + batch-commit; charges are ~tens of thousands). The
 objects are append-mostly (a charge/dispute is immutable once settled), so a
@@ -108,6 +114,52 @@ _UP_SUB = text(
 )
 
 
+_UP_PAYOUT = text(
+    """
+    INSERT INTO ps_stripe_payouts
+        (stripe_payout_id, tenant_id, amount, currency, status, payout_method, payout_type,
+         automatic, balance_txn_id, description, statement_descriptor, arrival_date, payout_created)
+    VALUES (:pid, CAST(:t AS uuid), :amount, :currency, :status, :method, :ptype,
+            :automatic, :btid, :description, :descriptor, :arrival, :created)
+    ON CONFLICT (tenant_id, stripe_payout_id) DO UPDATE SET
+        amount=EXCLUDED.amount, currency=EXCLUDED.currency, status=EXCLUDED.status,
+        payout_method=EXCLUDED.payout_method, payout_type=EXCLUDED.payout_type,
+        automatic=EXCLUDED.automatic, balance_txn_id=EXCLUDED.balance_txn_id,
+        description=EXCLUDED.description, statement_descriptor=EXCLUDED.statement_descriptor,
+        arrival_date=EXCLUDED.arrival_date, payout_created=EXCLUDED.payout_created,
+        ingested_at=now()
+    """
+)
+_UP_BALANCE_TXN = text(
+    """
+    INSERT INTO ps_stripe_balance_transactions
+        (stripe_balance_txn_id, tenant_id, amount, fee, net, currency, txn_type,
+         reporting_category, source_id, status, available_on, txn_created, description)
+    VALUES (:bid, CAST(:t AS uuid), :amount, :fee, :net, :currency, :ttype,
+            :category, :source, :status, :available, :created, :description)
+    ON CONFLICT (tenant_id, stripe_balance_txn_id) DO UPDATE SET
+        amount=EXCLUDED.amount, fee=EXCLUDED.fee, net=EXCLUDED.net, currency=EXCLUDED.currency,
+        txn_type=EXCLUDED.txn_type, reporting_category=EXCLUDED.reporting_category,
+        source_id=EXCLUDED.source_id, status=EXCLUDED.status, available_on=EXCLUDED.available_on,
+        txn_created=EXCLUDED.txn_created, description=EXCLUDED.description, ingested_at=now()
+    """
+)
+_UP_PRICE = text(
+    """
+    INSERT INTO ps_stripe_prices
+        (stripe_price_id, tenant_id, stripe_product_id, unit_amount, currency, price_type,
+         recurring_interval, active, nickname, price_created)
+    VALUES (:pid, CAST(:t AS uuid), :product, :unit, :currency, :ptype,
+            :interval, :active, :nickname, :created)
+    ON CONFLICT (tenant_id, stripe_price_id) DO UPDATE SET
+        stripe_product_id=EXCLUDED.stripe_product_id, unit_amount=EXCLUDED.unit_amount,
+        currency=EXCLUDED.currency, price_type=EXCLUDED.price_type,
+        recurring_interval=EXCLUDED.recurring_interval, active=EXCLUDED.active,
+        nickname=EXCLUDED.nickname, price_created=EXCLUDED.price_created, ingested_at=now()
+    """
+)
+
+
 def _brand_map(conn: Any, tenant: str) -> dict[str, str]:
     """stripe_customer_id -> wayward_brand_id (from the already-synced customers)."""
     rows = conn.execute(
@@ -163,6 +215,41 @@ def shape_sub(s: dict[str, Any], bmap: dict[str, str], tenant: str) -> dict[str,
         "interval": (price.get("recurring") or {}).get("interval"),
         "cps": _ts(s.get("current_period_start")), "cpe": _ts(s.get("current_period_end")),
         "created": _ts(s.get("created")),
+    }
+
+
+def shape_payout(p: dict[str, Any], tenant: str) -> dict[str, Any]:
+    return {
+        "pid": p["id"], "t": tenant, "amount": _money(p.get("amount")),
+        "currency": p.get("currency"), "status": p.get("status"),
+        "method": p.get("method"), "ptype": p.get("type"), "automatic": p.get("automatic"),
+        "btid": p.get("balance_transaction"), "description": p.get("description"),
+        "descriptor": p.get("statement_descriptor"),
+        "arrival": _ts(p.get("arrival_date")), "created": _ts(p.get("created")),
+    }
+
+
+def shape_balance_txn(b: dict[str, Any], tenant: str) -> dict[str, Any]:
+    src = b.get("source")  # a string id by default (ch_/re_/po_…); dict if expanded
+    return {
+        "bid": b["id"], "t": tenant, "amount": _money(b.get("amount")),
+        "fee": _money(b.get("fee")), "net": _money(b.get("net")),
+        "currency": b.get("currency"), "ttype": b.get("type"),
+        "category": b.get("reporting_category"),
+        "source": (src if isinstance(src, str)
+                   else src.get("id") if isinstance(src, dict) else None),
+        "status": b.get("status"), "available": _ts(b.get("available_on")),
+        "created": _ts(b.get("created")), "description": b.get("description"),
+    }
+
+
+def shape_price(p: dict[str, Any], tenant: str) -> dict[str, Any]:
+    return {
+        "pid": p["id"], "t": tenant, "product": p.get("product"),
+        "unit": _money(p.get("unit_amount")), "currency": p.get("currency"),
+        "ptype": p.get("type"), "interval": (p.get("recurring") or {}).get("interval"),
+        "active": p.get("active"), "nickname": p.get("nickname"),
+        "created": _ts(p.get("created")),
     }
 
 
@@ -227,16 +314,14 @@ def _run_extras(
             bmap = _brand_map(conn, tenant)
 
         # charges: PAGE + BATCH-commit per page. Charges are the high-volume table
-        # (tens of thousands on this account). The first build collected the whole
-        # list in memory then upserted row-by-row — a 70k-row single transaction on
-        # top of 100 DB round-trips per page (~20s/page, and one stalled request
-        # hung the run). Here each page is one executemany, committed immediately:
-        # bounded memory, progress persisted, resumable on the next run.
-        # expand=balance_transaction gives fee/net (card_country is inline).
+        # (tens of thousands on this account). Each page is one executemany, committed
+        # immediately: bounded memory, resumable. NO expand — card_country is inline;
+        # fee/net are filled from ps_stripe_balance_transactions below (the ledger),
+        # ~6x cheaper than the per-charge balance_transaction expand.
         n_charges = 0
         after: str | None = None
         while True:
-            params: dict[str, Any] = {"limit": PAGE, "expand[]": ["data.balance_transaction"]}
+            params: dict[str, Any] = {"limit": PAGE}
             if after:
                 params["starting_after"] = after
             page = transport.get("charges", params)
@@ -268,6 +353,52 @@ def _run_extras(
             with engine.begin() as conn:
                 conn.execute(_UP_SUB, [shape_sub(s, bmap, tenant) for s in subs])
         counts["subscriptions"] = len(subs)
+
+        # payouts (Stripe -> Wayward bank cash-out) — low volume, collect + batch.
+        payouts = _paginate(transport, "payouts")
+        if payouts:
+            with engine.begin() as conn:
+                conn.execute(_UP_PAYOUT, [shape_payout(p, tenant) for p in payouts])
+        counts["payouts"] = len(payouts)
+
+        # balance_transactions (the full money ledger) — high volume, page + batch.
+        n_bt = 0
+        after = None
+        while True:
+            bt_params: dict[str, Any] = {"limit": PAGE}
+            if after:
+                bt_params["starting_after"] = after
+            page = transport.get("balance_transactions", bt_params)
+            rows = page.get("data", [])
+            if rows:
+                with engine.begin() as conn:
+                    conn.execute(_UP_BALANCE_TXN, [shape_balance_txn(b, tenant) for b in rows])
+                n_bt += len(rows)
+                after = rows[-1]["id"]
+            if not rows or not page.get("has_more"):
+                break
+        counts["balance_transactions"] = n_bt
+
+        # prices (fee amounts behind the products) — low volume, collect + batch.
+        prices = _paginate(transport, "prices")
+        if prices:
+            with engine.begin() as conn:
+                conn.execute(_UP_PRICE, [shape_price(p, tenant) for p in prices])
+        counts["prices"] = len(prices)
+
+        # fill charges.fee/net from the ledger (bt.source_id = the charge id) — the
+        # authoritative fee/net, so the charges pull skips the expensive expand.
+        with engine.begin() as conn:
+            conn.execute(
+                text(
+                    "UPDATE ps_stripe_charges c SET fee = b.fee, net = b.net "
+                    "FROM ps_stripe_balance_transactions b "
+                    "WHERE b.tenant_id = c.tenant_id AND b.source_id = c.stripe_charge_id "
+                    # 'charge' = legacy ch_ txns, 'payment' = PaymentIntent py_ txns.
+                    "AND b.txn_type IN ('charge', 'payment') "
+                    "AND (c.fee IS DISTINCT FROM b.fee OR c.net IS DISTINCT FROM b.net)"
+                )
+            )
 
         total = sum(counts.values())
         run.counters.rows_received = total

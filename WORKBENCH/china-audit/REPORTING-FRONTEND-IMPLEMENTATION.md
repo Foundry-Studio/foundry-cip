@@ -60,14 +60,25 @@ partner's rows.
   service, env vars, custom domain `reports.project-silk.com`, `next build`/`next start`.
 - Metabase (retained for other CIP) relocated off that domain before DNS cutover.
 
-### 1.4 Data access — the read role
-- **Mint `ps_reporting_reader`** (CIP Alembic migration): `LOGIN`, `GRANT SELECT` on the
-  `lens_ps_*` views + the few supporting tables the screens read (`ps_brands`,
-  `ps_brand_contacts`, `ps_stripe_invoices`, `ps_payment_events`, `ps_partner_*`,
-  `cip_sync_runs`). **No INSERT/UPDATE/DELETE.** Verify it is subject to RLS / can only see
-  PS-tenant rows (it must NOT bypass RLS — unlike the `postgres` superuser).
-- Frontend connects with this role only. The Partners Admin **write** path does NOT use it
-  (§8).
+### 1.4 Data access — the read role  ✅ MINTED (cip_120, applied to prod 2026-07-20; smoke-tested 21/21)
+- **`ps_reporting_reader`** is live: `LOGIN NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE`,
+  `GRANT SELECT` on the **37 `lens_ps_*` views ONLY** — the curated reporting contract. No base
+  tables, no multi-tenant `cip_*` tables, no non-PS lenses, **no INSERT/UPDATE/DELETE**. Lenses
+  run as owner (`postgres`) so they resolve their own base-table/`cip_*` reads; the app reads
+  PS-scoped data through them without holding those grants. This is *tighter* than the original
+  plan (which listed a few base tables) — the 37 lenses cover every screen (e.g.
+  `lens_ps_source_freshness` replaces a raw `cip_sync_runs` grant). If a screen ever needs a
+  base table the lenses don't expose, add ONE targeted `GRANT SELECT` (never broaden to `cip_*`).
+- **Verified 21/21** (smoke test): reads all reporting lenses incl. cip-joining ones via owner
+  views; **denied** on base tables, `cip_*` multi-tenant tables, non-PS lenses, and every write.
+  Consistent with §12 — RLS is belt-and-suspenders; `ps_*` is single-tenant PS by construction,
+  so the lens surface is structurally PS-only.
+- **Build-time credential step (backend, at deploy):** the migration reads the password from
+  `PS_REPORTING_READER_DB_PASSWORD` (idempotent CREATE-or-ALTER). Set that var on the reporting
+  Railway service, re-run `cip_120` (or `ALTER ROLE ps_reporting_reader PASSWORD …`), then
+  `REPORTING_DB_URL = postgresql://ps_reporting_reader:<pw>@<prod-host>/railway`. (Role is minted
+  now with a placeholder secret held out-of-band; it stays dormant until this step.)
+- Frontend connects with this role only. The Partners Admin **write** path does NOT use it (§8).
 
 ---
 
@@ -104,9 +115,10 @@ dependency** (a Wayward/Amazon feed) — flagged, not blocking. → **decision f
 
 Each step: **do · deps · edge cases · acceptance.**
 
-**0.1 Mint `ps_reporting_reader`** — CIP Alembic migration (`cip_114_*`). GRANT SELECT on the
-lens views + supporting tables; no write. *Deps:* none. *Edge:* RLS must apply (test it can't
-see EcomLever rows). *Accept:* role SELECTs a lens; `INSERT` denied; cross-tenant SELECT empty.
+**0.1 Mint `ps_reporting_reader`** — ✅ DONE (`cip_120_reporting_reader_role`, applied to prod
+2026-07-20). GRANT SELECT on the 37 `lens_ps_*` views only (lens-only — see §1.4); no write.
+*Accept (met):* role SELECTs every lens; `INSERT`/`UPDATE`/`DELETE`/`CREATE` denied; base
+tables + multi-tenant `cip_*` + non-PS lenses denied. Smoke test **21/21**.
 
 **0.2 Scaffold Next.js 16 app** — `create-next-app` (TS, App Router, Tailwind); add shadcn;
 copy folder layout from trader-dashboard (`src/app/[locale]/(app)/…`, `src/data`,
@@ -284,6 +296,11 @@ decided:
 ships FIRST; this reporting build resumes after — at which point v1 (internal + RBAC) is the
 first sprint set, on the enriched data. **CTO alignment pass + the coherent rewrite happen
 when we return to the reporting build.**
+
+**Phase-0 progress (2026-07-20):** read role `ps_reporting_reader` **shipped** (cip_120, 21/21
+smoke test — see §1.4 / §3.0.1). The DB security spine is proven and ready. Remaining Phase-0
+(Next.js scaffold, Auth.js/RBAC admin, Railway service) awaits the designer's mockups + the
+Google OAuth credentials. No frontend code written yet — by design.
 
 ---
 *Plan-of-record for the P4 build. Junior-dev entry point = §3 (Phase 0), reading §1–2 first.*

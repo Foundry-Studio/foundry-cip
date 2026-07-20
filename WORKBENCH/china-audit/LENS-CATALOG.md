@@ -43,7 +43,8 @@ exclusion-list partners direct* (Eric et al. — **not ours**, tracked separatel
 | lens | answers |
 |---|---|
 | **lens_ps_product_eligibility** | Per china brand × product: `ps_rev_share_eligible` · `wayward_client_fee_rate` (what Wayward charges the client) · `ps_partner_rev_share_eligible` + `partner_name` + `partner_rate_pct`. The setup view. |
-| **lens_ps_china_verdict** | The nationality call per brand (china / not_china / unknown) + its evidence strength. |
+| **lens_ps_china_verdict** | The nationality call per brand (china / not_china / unknown) + its evidence strength. Signals now include **`card_country_cn`/`_hk`** (cip_116) — a brand paying predominantly with CN/HK-issued cards, derived from `ps_stripe_charges` each extras sync. One-directional: card_country only ADDS china evidence; a human `manual_review` not_china still wins. |
+| **lens_ps_china_contention** (cip_117) | The **contention review queue**: brands whose signals disagree (china evidence AND not_china evidence both present). `review_priority='high'` = a china signal (card_country / partner / slack) overridden by a human/legal not_china on a brand WITH collected revenue ("are we right NOT to claim this?"). Read-only — surfacing never changes a verdict. Separate from the `unknown` "not-sure-yet" queue. |
 | **lens_ps_china_companies** | The book, one row per company (not per brand-row) — for headcounts. |
 | **lens_ps_exclusion_status** | Is a brand on the contract exclusion list, and is it `takeable`. |
 
@@ -100,3 +101,12 @@ exclusion-list partners direct* (Eric et al. — **not ours**, tracked separatel
 overrides) · `ps_partner_credit` (partner + rate per brand×product) · `ps_partner_payouts` (what we
 paid partners) · `ps_payment_events` (what Wayward paid us) · `ps_stripe_invoice_lines` (the money
 spine) · `ps_claim_statements` (pinned as-of claims handed to Wayward).
+
+**Data-asset tables (cip_115/118 — NOT the money engine; captured by `ps-stripe-extras-v1`):**
+`ps_stripe_charges` (the card charges behind the invoices, + `card_country`, fee/net) ·
+`ps_stripe_balance_transactions` (the full Stripe money ledger — fee/net per charge/refund/payout;
+the authoritative fee/net source, charges' fee/net derive from it) · `ps_stripe_payouts`
+(Stripe → Wayward bank cash-out, for cash-recon) · `ps_stripe_disputes` (chargebacks) ·
+`ps_stripe_products` / `ps_stripe_prices` (catalog) · `ps_stripe_subscriptions` (empty — Wayward
+bills by invoice). All amounts in DOLLARS. These feed reporting + CRM/other-venture data products,
+never the commission math.

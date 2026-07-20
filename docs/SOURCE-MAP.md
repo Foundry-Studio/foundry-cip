@@ -1,6 +1,15 @@
 # SOURCE MAP — every source of truth for the Wayward × Project Silk book
 
-**Last verified:** 2026-07-15 against prod (schema head `cip_99`).
+**Last verified:** 2026-07-20 against prod (schema head `cip_119`).
+
+> **UPDATE 2026-07-20 — several "manual / never-ingested" flags below are now STALE.**
+> Stripe is LIVE-SYNCED: `ps-stripe-v1` (the money spine — invoices/lines/customers/
+> refunds, hourly) + `ps-stripe-extras-v1` (charges +card_country, payouts, the
+> `balance_transactions` fee/net ledger, disputes, products, prices — every other day).
+> The derived-GMV + Stripe data-asset surface landed in **cip_114–119** (see
+> `WORKBENCH/china-audit/DATA-EXPANSION-PLAN.md` + `LENS-CATALOG.md`). Row counts and the
+> "❌ manual / no schedule" cells below predate that — for Stripe, trust the migrations +
+> the live `cip_sync_runs` heartbeats over this doc.
 > ⚠️ **Partially stale (2026-07-16).** Head is now `cip_109`; the cip_100–109 wave (WeChat fields,
 > `ps_partner_payouts`, the whole money engine) isn't reflected below, and the book counts have moved.
 > Source-of-truth *buckets* are still valid; for money lenses + live counts see

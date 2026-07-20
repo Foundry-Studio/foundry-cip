@@ -1,13 +1,28 @@
 # CIP Data-Capture Expansion — Plan (WCC "Data Warehouse")
 
-> **Status: PLANNING — nothing built.** Full design for capturing the raw data we have
-> access to but don't store, so CIP becomes a **data asset** (reusable for reporting AND for
-> CRM/data-products on other ventures), not just the commission engine. Authored 2026-07-18
-> (Tim: "store raw GMV… HUGE for CRM on other projects… fold it all in — schema, pulling,
-> calculations, the works, and plan the **blast radius**"). Sequenced BEFORE the reporting
-> build (REPORTING-FRONTEND-*.md) — report on rich data, not thin.
+> **Status: SHIPPED — cip_114–119 live in prod (2026-07-20).** Full design for capturing the
+> raw data we have access to but don't store, so CIP becomes a **data asset** (reusable for
+> reporting AND for CRM/data-products on other ventures), not just the commission engine.
+> Authored 2026-07-18; built 2026-07-20.
+>
+> **What shipped** (the actual chain — supersedes the speculative cip_116/117 numbering below):
+> - **cip_114** — raw GMV/ad-spend: `ps_brand_revenue` + `lens_ps_brand_revenue` (derived live).
+> - **cip_115** — Stripe extras: `ps_stripe_charges` (+card_country), `_disputes`, `_products`,
+>   `_subscriptions`; sibling sync `ps-stripe-extras-v1`.
+> - **cip_116** — `card_country_cn`/`_hk` promoted to CONFIRMING china signals (derived from
+>   charges each sync); flipped 2 unknown brands, recovery unchanged.
+> - **cip_117** — `lens_ps_china_contention`: the china/not-china contention review queue.
+> - **cip_118** — cash-recon: `ps_stripe_payouts`, `ps_stripe_balance_transactions` (the fee/net
+>   ledger), `ps_stripe_prices`; charges' fee/net derived from the ledger. (This is the
+>   "balance_transactions/payouts" piece initially descoped from S2.)
+> - **cip_119** — reporting-label + RLS hardening (product_id 'boosted' comment fix, money-lens
+>   column comments, RLS force on 3 tables).
+> - **Amazon (old S3): DROPPED** — no API. **HubSpot engagement (H):** already captured
+>   (`cip_engagements`). Ongoing capture via `ps-stripe-extras-v1` (every other day).
+>
+> Sequenced BEFORE the reporting build (REPORTING-FRONTEND-*.md) — report on rich data, not thin.
 
-Head migration: **cip_113** → new work is **cip_114+**. Read the migration-chain hazard
+Head migration was **cip_113** at authoring; now **cip_119**. Read the migration-chain hazard
 (§8) before any push.
 
 > ### UPDATE 2026-07-18 — constraints locked (Tim)

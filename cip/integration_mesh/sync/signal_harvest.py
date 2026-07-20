@@ -170,6 +170,52 @@ HARVESTS: list[tuple[str, str]] = [
         WHERE p.tenant_id = CAST(:t AS uuid) AND p.wayward_brand_id IS NOT NULL
           AND p.partner_of_record IN ({", ".join(f"'{x}'" for x in CN_PARTNERS)})
     """),
+    # ── STRONG: contact-derived WeChat / phone / QQ (China ecosystem) ─────────
+    # Generated from ps_brand_contacts so Jake's HubSpot WeChat/phone capture
+    # auto-flags NEW brands within the hour. Corroborating today (blast radius
+    # 0 flips — 869/873 already china); forward-enabling. See cip_121. wechat_id
+    # is partitioned CN-mobile / QQ / generic-handle with no overlap.
+    ("phone_+86", """
+        SELECT DISTINCT CAST(:t AS uuid), c.wayward_brand_id, 'phone_+86', 'strong', 'china',
+               'Chinese mobile / +86 number on the brand contact: '
+               || COALESCE(NULLIF(btrim(c.wechat_phone),''), c.phone),
+               'cip:ps_brand_contacts'
+        FROM ps_brand_contacts c
+        WHERE c.tenant_id = CAST(:t AS uuid) AND c.wayward_brand_id IS NOT NULL
+          AND (
+            regexp_replace(COALESCE(c.wechat_phone,''),'[^0-9]','','g')
+              ~ '^(1[3-9][0-9]{9}$|0*86[1-9])'
+            OR regexp_replace(COALESCE(c.phone,''),'[^0-9]','','g') ~ '^0*86[1-9]'
+          )
+    """),
+    ("cn_mobile_handle", """
+        SELECT DISTINCT CAST(:t AS uuid), c.wayward_brand_id, 'cn_mobile_handle', 'strong', 'china',
+               'Brand contact''s WeChat ID is a Chinese mobile number: ' || c.wechat_id,
+               'cip:ps_brand_contacts'
+        FROM ps_brand_contacts c
+        WHERE c.tenant_id = CAST(:t AS uuid) AND c.wayward_brand_id IS NOT NULL
+          AND btrim(COALESCE(c.wechat_id,'')) ~ '^1[3-9][0-9]{9}$'
+    """),
+    ("qq_handle", """
+        SELECT DISTINCT CAST(:t AS uuid), c.wayward_brand_id, 'qq_handle', 'strong', 'china',
+               'Brand contact''s WeChat/contact ID is a QQ number: ' || c.wechat_id,
+               'cip:ps_brand_contacts'
+        FROM ps_brand_contacts c
+        WHERE c.tenant_id = CAST(:t AS uuid) AND c.wayward_brand_id IS NOT NULL
+          AND btrim(COALESCE(c.wechat_id,'')) ~ '^[0-9]{5,11}$'
+          AND btrim(COALESCE(c.wechat_id,'')) !~ '^1[3-9][0-9]{9}$'
+    """),
+    ("wechat_handle", """
+        SELECT DISTINCT CAST(:t AS uuid), c.wayward_brand_id, 'wechat_handle', 'strong', 'china',
+               'Brand contact communicates via WeChat (handle ' || c.wechat_id || '); '
+               || 'WeChat is China''s dominant business-messaging platform.',
+               'cip:ps_brand_contacts'
+        FROM ps_brand_contacts c
+        WHERE c.tenant_id = CAST(:t AS uuid) AND c.wayward_brand_id IS NOT NULL
+          AND btrim(COALESCE(c.wechat_id,'')) <> ''
+          AND btrim(COALESCE(c.wechat_id,'')) !~ '^1[3-9][0-9]{9}$'
+          AND btrim(COALESCE(c.wechat_id,'')) !~ '^[0-9]{5,11}$'
+    """),
     # ── NEGATIVE ────────────────────────────────────────────────────────────
     # ISO-2 ONLY. Two brands carry HubSpot page furniture in this field — one of them is Tiny
     # Land, which is Chinese, has collected $11,524, and has been paid $0. Treating that string

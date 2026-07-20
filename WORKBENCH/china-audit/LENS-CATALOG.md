@@ -65,6 +65,11 @@ exclusion-list partners direct* (Eric et al. — **not ours**, tracked separatel
 |---|---|
 | **lens_ps_excluded_partner_performance** | The pre-PS rev-share book (Eric / Heavy Producers / etc., paid **direct by Wayward**): brands + collected revenue per bucket × referrer × product. **Walled off from our owed on purpose** — look here to see what Eric's driving; never subtract it from the claim. |
 
+### "How much revenue did a brand generate?" (DATA ASSET — NOT the money engine)
+| lens | answers |
+|---|---|
+| **lens_ps_brand_revenue** (cip_114) | Per brand × product × month: **GMV** (product `connect`) / **ad-spend** (`boosted`) = gross billed usage fee ÷ `wayward_client_fee_rate`, computed LIVE. `revenue_amount` NULL + `rate_missing=true` where no client fee rate exists yet (~7.4k of 16.2k rows pending the P3 fee-rate feed). `source` = derived \| wayward_feed \| amazon (a raw feed row in `ps_brand_revenue` overrides the derived value). `basis='gross_billed'` — NOT net of refunds (that's the money engine's `collected`). **Additive: does not feed the commission math.** The reusable revenue asset (reporting stage ① + CRM/other ventures). |
+
 ---
 
 ## `delta_status` values (from lens_ps_wayward_reconciliation)

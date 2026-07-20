@@ -79,5 +79,7 @@
 | JOS-S60 | SOP Research Standard | trial | tim |
 | JOS-S61 | Work-Packet Completeness Standard | trial | tim |
 | JOS-S62 | Scratchpad Discipline Standard | trial | tim |
+| JOS-S63 | Agent Conduct Rulebook Standard | trial | tim |
+| JOS-S64 | Question Authoring Standard | trial | tim |
 
-_Total: 62_
+_Total: 64_

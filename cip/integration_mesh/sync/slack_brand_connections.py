@@ -50,9 +50,12 @@ SOURCE_SYSTEM = "slack:amazon-brand-connections"
 
 _SLACK = "https://slack.com/api/"
 _BATCH = 1000
-# Token env vars, in preference order (user token proven to see the channel; bot
-# token works only if the bot is in the channel with history scope).
-_TOKEN_ENVS = ("SLACK_USER_TOKEN", "FOUNDRY_SLACK_USER_TOKEN", "SLACK_BOT_TOKEN")
+# Token env vars, in preference order. Bot token FIRST (2026-07-20: the foundry_system
+# bot was added to #amazon-brand-connections with channels:history) — it is tied to the
+# app install, not a person, so it survives the melody778 user account changing.
+# resolve_token probes real channel-read, so if the bot is ever removed the user token
+# still carries the sync.
+_TOKEN_ENVS = ("SLACK_BOT_TOKEN", "SLACK_USER_TOKEN", "FOUNDRY_SLACK_USER_TOKEN")
 
 # label in the message  ->  observation field name
 _FIELDS = {
@@ -145,20 +148,32 @@ _INSERT = text(
 
 
 def resolve_token(token: str | None = None) -> str:
-    """The first present env token whose Slack auth.test succeeds."""
+    """The first present env token that can actually READ the channel.
+
+    auth.test alone only proves a token is valid, not that it can see
+    #amazon-brand-connections — a bot token passes auth.test but errors on history
+    unless the bot is in the channel with channels:history. So probe the real
+    capability (conversations.history limit=1) and fall through on failure. This makes
+    the bot-first order self-healing: if the bot is removed from the channel, the user
+    token still carries the sync.
+    """
     if token:
         return token
     present = [e for e in _TOKEN_ENVS if os.environ.get(e)]
     for env in present:
         try:
-            if _api("auth.test", os.environ[env]).get("ok"):
+            probe = _api("conversations.history", os.environ[env], channel=CHANNEL_ID, limit=1)
+            if probe.get("ok"):
                 logger.info("slack-brand-connections: using token from %s", env)
                 return os.environ[env]
+            logger.warning(
+                "slack-brand-connections: %s cannot read the channel: %s", env, probe.get("error")
+            )
         except Exception as exc:  # noqa: BLE001
-            logger.warning("slack-brand-connections: %s auth failed: %s", env, exc)
+            logger.warning("slack-brand-connections: %s probe failed: %s", env, exc)
     raise RuntimeError(
-        f"No working Slack token (tried {present or _TOKEN_ENVS}). Set SLACK_USER_TOKEN "
-        "(xoxp, must see #amazon-brand-connections) or a bot token in the channel."
+        f"No working Slack token (tried {present or _TOKEN_ENVS}). Set SLACK_BOT_TOKEN "
+        "(bot in #amazon-brand-connections with channels:history) or SLACK_USER_TOKEN (xoxp)."
     )
 
 

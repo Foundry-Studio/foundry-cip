@@ -1,5 +1,10 @@
 # Project Silk Reporting Frontend — Implementation Plan
 
+> ⚠ **SUPERSEDED FOR EXECUTION (2026-07-20)** by
+> [REPORTING-BUILD-PLAN.md](REPORTING-BUILD-PLAN.md) — the executable plan built against the delivered
+> design handoff (`reporting-design-handoff/`) and hardened by a 3-lens QC + CTO pass. Build from that
+> doc. This one is kept for rationale/history.
+>
 > **Junior-dev-executable build plan.** Pairs with the decision-level
 > [REPORTING-FRONTEND-PLAN.md](REPORTING-FRONTEND-PLAN.md) (the *what/why*); this is the
 > *how*. Nothing built yet. Authored 2026-07-18, QC'd (see §12).

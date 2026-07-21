@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Public+Sans:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600;6..72,700&display=swap" rel="stylesheet">
+<style>
+  body{margin:0;background:#e9e7e2;font-family:'Public Sans',system-ui,sans-serif}
+  *{box-sizing:border-box}
+  .wrap{padding:44px 48px 40px}
+  .whd{display:flex;align-items:baseline;gap:10px;margin:0 0 8px}
+  .wtag{font:600 10px ui-monospace,Menlo,monospace;padding:3px 7px;background:#0e5049;color:#fff;border-radius:4px}
+  .wname{font:600 13px/1.2 system-ui,sans-serif;color:#1a1a1a}
+  .wintro{font:400 13px/1.6 system-ui,sans-serif;color:rgba(0,0,0,.6);max-width:820px;margin:0 0 26px}
+  .wintro b{color:#0e5049;font-weight:600}
+  .card{width:1340px;max-width:100%;background:#fff;border-radius:12px;box-shadow:0 12px 40px -12px rgba(0,0,0,.28);overflow:hidden;font-family:'Public Sans',sans-serif;color:#22302d}
+  a{color:#0e7c73}a:hover{color:#0b5f58}
+</style>
+</helmet>
+
+<div class="wrap">
+  <div class="whd"><span class="wtag">SHARED CORE</span><span class="wname">Data Freshness — Ops operates · everyone needs it green to trust the numbers</span></div>
+  <p class="wintro">The surface behind the little "all syncs green" badge in every screen's top bar. Ops watches it; everyone relies on it. Each connector's last success, next run, and failures; coverage of the book; and open exceptions. Data: <b>lens_ps_source_freshness · cip_sync_runs · lens_ps_information_gaps</b>.</p>
+
+  <div class="card">
+    <div style="display:flex;min-height:820px">
+      <!-- Ops sidebar -->
+      <aside style="width:222px;flex:none;background:#0d443f;color:#bcd6d0;padding:18px 0;display:flex;flex-direction:column">
+        <div style="padding:0 18px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(233,217,184,.14)">
+          <div style="width:30px;height:30px;border-radius:7px;background:#e9d9b8;display:flex;align-items:center;justify-content:center;font:700 15px 'Newsreader',serif;color:#0d443f">S</div>
+          <div><div style="font-family:'Newsreader',serif;font-size:16px;font-weight:600;color:#fbf7ee;letter-spacing:.2px">Project Silk</div><div style="font-size:9px;color:#6f9088;letter-spacing:1.4px">REPORTING</div></div>
+        </div>
+        <div style="padding:16px 18px 7px;font-size:9.5px;letter-spacing:1.2px;color:#6f9088;font-weight:700">OPS · DATA &amp; PIPELINE</div>
+        <nav style="display:flex;flex-direction:column;font-size:13px">
+          <div style="padding:9px 18px 9px 15px;background:rgba(233,217,184,.1);color:#fbf7ee;border-left:3px solid #e9d9b8;font-weight:600">Data freshness</div>
+          <div style="padding:9px 18px;color:#95b3ad">Coverage</div>
+          <div style="padding:9px 18px;color:#95b3ad">Exceptions</div>
+          <div style="padding:9px 18px;color:#95b3ad">Sync &amp; automation</div>
+          <div style="padding:9px 18px;color:#95b3ad">Information gaps</div>
+          <div style="padding:9px 18px;color:#95b3ad">Identity health</div>
+        </nav>
+        <div style="margin-top:auto;padding:12px 18px 0;border-top:1px solid rgba(233,217,184,.14);font-size:11px">
+          <div style="display:flex;align-items:center;gap:7px;color:#9fe6cf"><span style="width:7px;height:7px;border-radius:50%;background:#3fd6a8;box-shadow:0 0 0 3px rgba(63,214,168,.18)"></span>All syncs green</div>
+          <div style="color:#6f9088;font-size:10px;margin-top:3px;font-family:'IBM Plex Mono',monospace">as of 2026-07-20 09:14</div>
+        </div>
+      </aside>
+
+      <!-- main -->
+      <div style="flex:1;background:#faf9f6;display:flex;flex-direction:column;min-width:0">
+        <div style="height:52px;flex:none;background:#fdfcf9;border-bottom:1px solid #e6e3da;display:flex;align-items:center;padding:0 20px;gap:14px">
+          <div style="font-size:11.5px;color:#8a8877;font-family:'IBM Plex Mono',monospace">Ops / Data freshness</div>
+          <div style="margin-left:auto;display:flex;align-items:center;gap:9px">
+            <div style="display:flex;align-items:center;gap:6px;font-size:11.5px;background:#e8f2ef;color:#0e5049;border:1px solid #cfe6df;border-radius:20px;padding:5px 11px"><span style="width:6px;height:6px;border-radius:50%;background:#12a37f"></span>Green · data Jul 20</div>
+            <div style="font-size:11.5px;color:#6a7370;border:1px solid #ddd8cc;border-radius:6px;padding:5px 10px">EN</div>
+            <div style="font-size:12.5px;font-weight:600;color:#fbf7ee;background:#0e5049;border-radius:7px;padding:7px 13px">Export ▾</div>
+          </div>
+        </div>
+
+        <div style="padding:24px 28px;display:flex;flex-direction:column;gap:20px">
+          <!-- header + depth -->
+          <div style="display:flex;align-items:flex-end;justify-content:space-between;border-bottom:2px solid #22302d;padding-bottom:16px">
+            <div>
+              <div style="font-size:11px;letter-spacing:2px;color:#a39c86;font-weight:700;margin-bottom:5px">IS THE DATA LIVE, FRESH, COMPLETE?</div>
+              <div style="font-family:'Newsreader',serif;font-size:30px;font-weight:600;letter-spacing:-.3px;line-height:1.02">Data Freshness</div>
+              <div style="font-size:12.5px;color:#6a7370;margin-top:6px">The numbers everywhere else are only as trustworthy as this screen · <b>the badge you see in every top bar reads from here</b></div>
+            </div>
+            <div style="display:flex;gap:2px;font-size:13px;font-weight:600">
+              <div style="padding:7px 15px;color:#0e5049;border-bottom:2px solid #0e5049;margin-bottom:-18px">Glance</div>
+              <div style="padding:7px 15px;color:#8a8877;border-bottom:2px solid transparent;margin-bottom:-18px">Working</div>
+              <div style="padding:7px 15px;color:#8a8877;border-bottom:2px solid transparent;margin-bottom:-18px">Deep</div>
+            </div>
+          </div>
+
+          <!-- glance tiles -->
+          <div style="display:grid;grid-template-columns:1.3fr 1fr 1fr 1fr;gap:0;border:1px solid #e6e3da;border-radius:12px;overflow:hidden">
+            <div style="background:#0e5049;color:#f3ede0;padding:18px 20px">
+              <div style="font-size:11.5px;color:#9cc7bf">Ingestion status</div>
+              <div style="display:flex;align-items:center;gap:9px;margin-top:5px">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#7fe6cf" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                <div style="font-family:'Newsreader',serif;font-size:30px;font-weight:600">All green</div>
+              </div>
+              <div style="font-size:11px;color:#9cc7bf;margin-top:5px">6 / 6 connectors healthy</div>
+            </div>
+            <div style="background:#fffdf8;padding:18px 20px;border-right:1px solid #eee9dc">
+              <div style="font-size:11.5px;color:#8a8877">Data lag</div>
+              <div style="font-family:'Newsreader',serif;font-size:32px;font-weight:600;margin-top:4px">2–22m</div>
+              <div style="font-size:11px;color:#a39c86;margin-top:5px">freshest → oldest connector</div>
+            </div>
+            <div style="background:#fffdf8;padding:18px 20px;border-right:1px solid #eee9dc">
+              <div style="font-size:11.5px;color:#8a8877">Book coverage</div>
+              <div style="font-family:'Newsreader',serif;font-size:32px;font-weight:600;margin-top:4px">87%</div>
+              <div style="font-size:11px;color:#a39c86;margin-top:5px">fully attributed &amp; priced</div>
+            </div>
+            <div style="background:#fffdf8;padding:18px 20px">
+              <div style="font-size:11.5px;color:#8a8877">Open exceptions</div>
+              <div style="display:flex;align-items:baseline;gap:8px;margin-top:4px"><div style="font-family:'Newsreader',serif;font-size:32px;font-weight:600;color:#b8860b">3</div><span style="font-size:11px;color:#b8860b;font-weight:600">needs a look</span></div>
+              <div style="font-size:11px;color:#a39c86;margin-top:5px">0 failures · 3 anomalies</div>
+            </div>
+          </div>
+
+          <!-- connectors + right column -->
+          <div style="display:grid;grid-template-columns:1.55fr 1fr;gap:20px;align-items:start">
+            <!-- connector list -->
+            <div>
+              <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:12px">
+                <div style="font-family:'Newsreader',serif;font-size:18px;font-weight:600">Connectors</div>
+                <div style="font-size:11px;color:#a39c86;font-family:'IBM Plex Mono',monospace">cip_sync_runs</div>
+              </div>
+              <div style="border-top:1.5px solid #22302d">
+                <div style="display:grid;grid-template-columns:1.5fr .85fr .85fr .7fr .55fr;column-gap:12px;padding:9px 4px;font-size:10.5px;letter-spacing:.4px;color:#8a8877;font-weight:700;text-transform:uppercase;border-bottom:1px solid #e6e3da">
+                  <div>Connector</div><div>Last success</div><div>Next run</div><div style="text-align:right">Rows</div><div style="text-align:right">Fail</div>
+                </div>
+                <sc-for list="{{ connectors }}" as="c" hint-placeholder-count="6">
+                  <div style="display:grid;grid-template-columns:1.5fr .85fr .85fr .7fr .55fr;column-gap:12px;padding:11px 4px;font-size:13px;border-bottom:1px solid #eee9dc;align-items:center">
+                    <div style="display:flex;align-items:center;gap:9px">
+                      <span style="width:8px;height:8px;border-radius:50%;flex:none;background:{{ c.dot }};box-shadow:0 0 0 3px {{ c.dotHalo }}"></span>
+                      <div style="min-width:0"><div style="font-weight:600;font-family:'IBM Plex Mono',monospace;font-size:12px">{{ c.name }}</div><div style="font-size:10.5px;color:#a39c86">{{ c.scope }}</div></div>
+                    </div>
+                    <div style="font-size:12px;color:#4a5c58">{{ c.last }}</div>
+                    <div style="font-size:12px;color:#8a8877">{{ c.next }}</div>
+                    <div style="text-align:right;font-family:'IBM Plex Mono',monospace;font-size:12px">{{ c.rows }}</div>
+                    <div style="text-align:right;font-family:'IBM Plex Mono',monospace;font-size:12px;color:#a39c86">{{ c.fail }}</div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+
+            <!-- right: coverage + exceptions -->
+            <div style="display:flex;flex-direction:column;gap:16px">
+              <div style="border:1px solid #e6e3da;border-radius:11px;background:#fffdf8;padding:15px 17px">
+                <div style="font-family:'Newsreader',serif;font-size:16px;font-weight:600;margin-bottom:12px">Coverage of the book</div>
+                <div style="display:flex;flex-direction:column;gap:11px;font-size:12.5px">
+                  <sc-for list="{{ coverage }}" as="k" hint-placeholder-count="4">
+                    <div>
+                      <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="color:#4a5c58">{{ k.label }}</span><span style="font-weight:700;font-family:'IBM Plex Mono',monospace">{{ k.pct }}</span></div>
+                      <div style="height:7px;border-radius:4px;background:#eef1ef"><div style="width:{{ k.w }};height:100%;border-radius:4px;background:{{ k.bar }}"></div></div>
+                    </div>
+                  </sc-for>
+                </div>
+                <div style="font-size:10.5px;color:#a39c86;margin-top:11px;line-height:1.45">Brands missing a fee-rate can't compute GMV — they feed the Information-gaps work queue.</div>
+              </div>
+              <div style="border:1px solid #e6e3da;border-radius:11px;background:#fffdf8;padding:15px 17px">
+                <div style="font-family:'Newsreader',serif;font-size:16px;font-weight:600;margin-bottom:10px">Open exceptions</div>
+                <div style="display:flex;flex-direction:column">
+                  <sc-for list="{{ exceptions }}" as="e" hint-placeholder-count="3">
+                    <div style="display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-top:1px solid #eee9dc">
+                      <span style="margin-top:2px;padding:2px 8px;border-radius:6px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;background:{{ e.bg }};color:{{ e.fg }}">{{ e.sev }}</span>
+                      <div><div style="font-size:12.5px;font-weight:600">{{ e.title }}</div><div style="font-size:11px;color:#8a8877;margin-top:1px">{{ e.note }}</div></div>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  green = { dot:'#12a37f', halo:'rgba(18,163,127,.18)' };
+  connectors = [
+    { name:'ps-stripe-money',      scope:'invoices · the money spine',        last:'4m ago',  next:'in 55m', rows:'18,240', fail:'0', ...this.G() },
+    { name:'ps-stripe-extras-v1',  scope:'charges · balance txns · payouts',  last:'6m ago',  next:'in 54m', rows:'9,610',  fail:'0', ...this.G() },
+    { name:'hubspot-sync',         scope:'deals + contacts',                  last:'12m ago', next:'in 48m', rows:'2,104',  fail:'0', ...this.G() },
+    { name:'zendesk-tickets',      scope:'support tickets',                   last:'9m ago',  next:'in 51m', rows:'431',    fail:'0', ...this.G() },
+    { name:'lens-mirror',          scope:'lens_ps_* refresh',                 last:'2m ago',  next:'in 3m',  rows:'128 vw', fail:'0', ...this.G() },
+    { name:'signal-harvest',       scope:'nationality signals',               last:'22m ago', next:'in 38m', rows:'549',    fail:'0', ...this.G() },
+  ];
+  G(){ return { dot:'#12a37f', dotHalo:'rgba(18,163,127,.18)' }; }
+  coverage = [
+    { label:'Nationality verdict', pct:'92%', w:'92%', bar:'#12a37f' },
+    { label:'Contacts on file',    pct:'81%', w:'81%', bar:'#12a37f' },
+    { label:'Fee-rate set',        pct:'74%', w:'74%', bar:'#b8860b' },
+    { label:'GMV computed',        pct:'68%', w:'68%', bar:'#b8860b' },
+  ];
+  exceptions = [
+    { sev:'Anomaly', bg:'#fbf3e3', fg:'#8a6410', title:'Refund spike · Cloudray', note:'3× the 30-day average — flagged for review' },
+    { sev:'Identity', bg:'#fbf3e3', fg:'#8a6410', title:'Split identity · 2 brands', note:'shared owner mailbox — needs a merge decision' },
+    { sev:'Invariant', bg:'#e8f2ef', fg:'#0b5f58', title:'claim ≥ 0 · all pass', note:'87 / 87 brands satisfy the floor check' },
+  ];
+  renderVals(){ return { connectors:this.connectors, coverage:this.coverage, exceptions:this.exceptions }; }
+}
+</script>
+</body>
+</html>

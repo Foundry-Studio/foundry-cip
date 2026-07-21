@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Public+Sans:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600;6..72,700&display=swap" rel="stylesheet">
+<style>
+  body{margin:0;background:#e9e7e2;font-family:'Public Sans',system-ui,sans-serif}
+  *{box-sizing:border-box}
+  .wrap{padding:44px 48px 40px}
+  .whd{display:flex;align-items:baseline;gap:10px;margin:0 0 8px}
+  .wtag{font:600 10px ui-monospace,Menlo,monospace;padding:3px 7px;background:#0e5049;color:#fff;border-radius:4px}
+  .wname{font:600 13px/1.2 system-ui,sans-serif;color:#1a1a1a}
+  .wintro{font:400 13px/1.6 system-ui,sans-serif;color:rgba(0,0,0,.6);max-width:820px;margin:0 0 26px}
+  .wintro b{color:#0e5049;font-weight:600}
+  .card{width:1340px;max-width:100%;background:#fff;border-radius:12px;box-shadow:0 12px 40px -12px rgba(0,0,0,.28);overflow:hidden;font-family:'Public Sans',sans-serif;color:#22302d}
+  a{color:#0e7c73}a:hover{color:#0b5f58}
+</style>
+</helmet>
+
+<div class="wrap">
+  <div class="whd"><span class="wtag">ROLE HOME · GLANCE</span><span class="wname">Finance Overview — the money, end to end</span></div>
+  <p class="wintro">Finance lands on the whole pipeline in one line: revenue generated → billed → collected → commission earned → paid to us → still owed, with partner payouts carved out. Plus receivables aging and cash this period. Everything opens into the commission ledger, collections, or payments depth. Data: <b>lens_ps_monthly_summary · lens_ps_claim · lens_ps_ar_aging · lens_ps_partner_payout_summary · ps_stripe_balance_transactions</b>. Figures illustrative pending live lens queries.</p>
+
+  <div class="card">
+    <div style="display:flex;min-height:820px">
+      <aside style="width:222px;flex:none;background:#0d443f;color:#bcd6d0;padding:18px 0;display:flex;flex-direction:column">
+        <div style="padding:0 18px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(233,217,184,.14)">
+          <div style="width:30px;height:30px;border-radius:7px;background:#e9d9b8;display:flex;align-items:center;justify-content:center;font:700 15px 'Newsreader',serif;color:#0d443f">S</div>
+          <div><div style="font-family:'Newsreader',serif;font-size:16px;font-weight:600;color:#fbf7ee;letter-spacing:.2px">Project Silk</div><div style="font-size:9px;color:#6f9088;letter-spacing:1.4px">REPORTING</div></div>
+        </div>
+        <div style="padding:16px 18px 7px;font-size:9.5px;letter-spacing:1.2px;color:#6f9088;font-weight:700">FINANCE</div>
+        <nav style="display:flex;flex-direction:column;font-size:13px">
+          <div style="padding:9px 18px 9px 15px;background:rgba(233,217,184,.1);color:#fbf7ee;border-left:3px solid #e9d9b8;font-weight:600">Overview</div>
+          <div style="padding:9px 18px;color:#95b3ad">Commission ledger</div>
+          <div style="padding:9px 18px;color:#95b3ad">Collections queue</div>
+          <div style="padding:9px 18px;color:#95b3ad">Payments in</div>
+          <div style="padding:9px 18px;color:#95b3ad">Partner payouts</div>
+          <div style="padding:9px 18px;color:#95b3ad">Statements</div>
+        </nav>
+        <div style="margin-top:auto;padding:12px 18px 0;border-top:1px solid rgba(233,217,184,.14);font-size:11px">
+          <div style="display:flex;align-items:center;gap:7px;color:#9fe6cf"><span style="width:7px;height:7px;border-radius:50%;background:#3fd6a8;box-shadow:0 0 0 3px rgba(63,214,168,.18)"></span>All syncs green</div>
+          <div style="color:#6f9088;font-size:10px;margin-top:3px;font-family:'IBM Plex Mono',monospace">as of 2026-07-20 09:14</div>
+        </div>
+      </aside>
+
+      <div style="flex:1;background:#faf9f6;display:flex;flex-direction:column;min-width:0">
+        <div style="height:52px;flex:none;background:#fdfcf9;border-bottom:1px solid #e6e3da;display:flex;align-items:center;padding:0 20px;gap:14px">
+          <div style="font-size:11.5px;color:#8a8877;font-family:'IBM Plex Mono',monospace">Finance / Overview</div>
+          <div style="margin-left:auto;display:flex;align-items:center;gap:9px">
+            <div style="display:flex;align-items:center;gap:6px;font-size:11.5px;background:#e8f2ef;color:#0e5049;border:1px solid #cfe6df;border-radius:20px;padding:5px 11px"><span style="width:6px;height:6px;border-radius:50%;background:#12a37f"></span>Green · data Jul 20</div>
+            <div style="font-size:11.5px;color:#6a7370;border:1px solid #ddd8cc;border-radius:6px;padding:5px 10px">EN</div>
+            <div style="font-size:12.5px;font-weight:600;color:#fbf7ee;background:#0e5049;border-radius:7px;padding:7px 13px">Export ▾</div>
+          </div>
+        </div>
+
+        <div style="padding:24px 28px;display:flex;flex-direction:column;gap:20px">
+          <div style="display:flex;align-items:flex-end;justify-content:space-between;border-bottom:2px solid #22302d;padding-bottom:16px">
+            <div>
+              <div style="font-size:11px;letter-spacing:2px;color:#a39c86;font-weight:700;margin-bottom:5px">THE MONEY, END TO END</div>
+              <div style="font-family:'Newsreader',serif;font-size:30px;font-weight:600;letter-spacing:-.3px;line-height:1.02">Finance Overview</div>
+              <div style="font-size:12.5px;color:#6a7370;margin-top:6px">Revenue generated → billed → collected → earned → paid → owed · lifetime, china book</div>
+            </div>
+            <div style="display:flex;gap:2px;font-size:13px;font-weight:600">
+              <div style="padding:7px 15px;color:#0e5049;border-bottom:2px solid #0e5049;margin-bottom:-18px">Glance</div>
+              <div style="padding:7px 15px;color:#8a8877;border-bottom:2px solid transparent;margin-bottom:-18px">Working</div>
+              <div style="padding:7px 15px;color:#8a8877;border-bottom:2px solid transparent;margin-bottom:-18px">Deep</div>
+            </div>
+          </div>
+
+          <!-- the stages -->
+          <div>
+            <div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#a39c86;font-weight:700;margin-bottom:8px">The stages, at a glance</div>
+            <div style="display:flex;align-items:stretch;border:1px solid #e6e3da;border-radius:12px;overflow:hidden">
+              <sc-for list="{{ stages }}" as="s" hint-placeholder-count="6">
+                <div style="flex:1;padding:16px 14px;border-left:1px solid #eee9dc;background:{{ s.bg }}">
+                  <div style="font-size:10.5px;letter-spacing:.03em;color:{{ s.labelColor }};text-transform:uppercase;font-weight:700">{{ s.label }}</div>
+                  <div style="font-family:'Newsreader',serif;font-size:23px;font-weight:600;margin-top:6px;color:{{ s.valColor }}">{{ s.value }}</div>
+                  <div style="font-size:10.5px;color:{{ s.noteColor }};margin-top:5px">{{ s.note }}</div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+
+          <!-- receivables + cash -->
+          <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:14px;align-items:start">
+            <div style="border:1px solid #e6e3da;border-radius:12px;background:#fffdf8;padding:16px 18px">
+              <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:14px">
+                <div style="font-family:'Newsreader',serif;font-size:16px;font-weight:600">Receivables · aging of what's owed</div>
+                <div style="font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600">$13,712.58</div>
+              </div>
+              <div style="display:flex;align-items:flex-end;gap:14px;height:150px;padding:0 4px">
+                <sc-for list="{{ aging }}" as="b" hint-placeholder-count="4">
+                  <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;height:100%;justify-content:flex-end">
+                    <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:{{ b.color }}">{{ b.amt }}</div>
+                    <div style="width:100%;border-radius:5px 5px 0 0;background:{{ b.color }};height:{{ b.h }}"></div>
+                    <div style="font-size:11px;color:#6a7370">{{ b.bucket }}</div>
+                  </div>
+                </sc-for>
+              </div>
+              <div style="font-size:10.5px;color:#a39c86;margin-top:10px">The 90+ bucket is the collections priority — feeds the chase list.</div>
+            </div>
+            <div style="border:1px solid #e6e3da;border-radius:12px;background:#fffdf8;padding:16px 18px">
+              <div style="font-family:'Newsreader',serif;font-size:16px;font-weight:600;margin-bottom:12px">Cash this period</div>
+              <div style="display:flex;flex-direction:column">
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-top:1px solid #eee9dc"><span style="font-size:13px;color:#4a5c58">Net collected</span><span style="font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:600">$28,940</span></div>
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-top:1px solid #eee9dc"><span style="font-size:13px;color:#4a5c58">Stripe fees</span><span style="font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:600;color:#b4553a">−$1,240</span></div>
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-top:1px solid #eee9dc;border-bottom:1px solid #eee9dc"><span style="font-size:13px;color:#4a5c58">Payouts to Wayward's bank</span><span style="font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:600">$27,700</span></div>
+              </div>
+              <div style="margin-top:12px;padding:11px 13px;background:#e8f2ef;border-radius:9px;font-size:12px;color:#0b5f58">Owed to referral partners: <b style="font-family:'IBM Plex Mono',monospace">$4,180</b> still to pay out</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  stages = [
+    { label:'Revenue generated', value:'$8.76M', note:'GMV · Connect',       bg:'#fffdf8', accent:false },
+    { label:'Wayward billed',    value:'$438K',  note:'gross usage fee',      bg:'#fffdf8', accent:false },
+    { label:'Collected',         value:'$412.6K',note:'net of refunds',       bg:'#fffdf8', accent:false },
+    { label:'Commission earned', value:'$34,120',note:'10/6/3 slice',         bg:'#fffdf8', accent:false },
+    { label:'Paid to us',        value:'$20,408',note:'59.8%',                bg:'#fffdf8', accent:false },
+    { label:'Still owed to us',  value:'$13,713',note:'the recovery figure',  bg:'#0e5049', accent:true },
+  ];
+  aging = [
+    { bucket:'0–30d',  amt:'$3,182', h:'52px',  color:'#12a37f' },
+    { bucket:'31–60d', amt:'$2,401', h:'40px',  color:'#7fae4f' },
+    { bucket:'61–90d', amt:'$1,930', h:'32px',  color:'#b8860b' },
+    { bucket:'90+d',   amt:'$6,240', h:'104px', color:'#b4553a' },
+  ];
+  renderVals(){
+    const stages = this.stages.map(s => ({
+      label:s.label, value:s.value, note:s.note,
+      bg:s.bg,
+      labelColor: s.accent ? '#9cc7bf' : '#a39c86',
+      valColor:   s.accent ? '#f3ede0' : '#22302d',
+      noteColor:  s.accent ? '#9cc7bf' : '#a39c86',
+    }));
+    return { stages, aging:this.aging };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Public+Sans:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600;6..72,700&display=swap" rel="stylesheet">
+<style>
+  body{margin:0;background:#e9e7e2;font-family:'Public Sans',system-ui,sans-serif}
+  *{box-sizing:border-box}
+  .wrap{padding:44px 48px 40px}
+  .whd{display:flex;align-items:baseline;gap:10px;margin:0 0 8px}
+  .wtag{font:600 10px ui-monospace,Menlo,monospace;padding:3px 7px;background:#0e5049;color:#fff;border-radius:4px}
+  .wname{font:600 13px/1.2 system-ui,sans-serif;color:#1a1a1a}
+  .wintro{font:400 13px/1.6 system-ui,sans-serif;color:rgba(0,0,0,.6);max-width:820px;margin:0 0 26px}
+  .wintro b{color:#0e5049;font-weight:600}
+  .card{width:1340px;max-width:100%;background:#fff;border-radius:12px;box-shadow:0 12px 40px -12px rgba(0,0,0,.28);overflow:hidden;font-family:'Public Sans',sans-serif;color:#22302d}
+  a{color:#0e7c73}a:hover{color:#0b5f58}
+</style>
+</helmet>
+
+<div class="wrap">
+  <div class="whd"><span class="wtag">ACCESS · ADMIN</span><span class="wname">Admin — People &amp; Permissions (from the admin's chair)</span></div>
+  <p class="wintro">Everyone signs in with <b>Google</b>; only allowlisted accounts get in. The admin (Tim / Van) <b>invites</b> people, <b>removes</b> them, assigns <b>roles</b>, and sets <b>exactly what each person can and can't do</b> in the permission grid. <b>Default-deny</b>: if no rule grants a surface, it's blocked. Internal staff start at full access; external partners are hard-gated to their own rows and can't be granted internal surfaces. Tabs below are live — click <b>People / Permissions / Roles</b>.</p>
+
+  <div class="card">
+    <div style="display:flex;min-height:820px">
+      <!-- admin sidebar -->
+      <aside style="width:222px;flex:none;background:#0d443f;color:#bcd6d0;padding:18px 0;display:flex;flex-direction:column">
+        <div style="padding:0 18px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(233,217,184,.14)">
+          <div style="width:30px;height:30px;border-radius:7px;background:#e9d9b8;display:flex;align-items:center;justify-content:center;font:700 15px 'Newsreader',serif;color:#0d443f">S</div>
+          <div><div style="font-family:'Newsreader',serif;font-size:16px;font-weight:600;color:#fbf7ee;letter-spacing:.2px">Project Silk</div><div style="font-size:9px;color:#6f9088;letter-spacing:1.4px">REPORTING</div></div>
+        </div>
+        <div style="padding:16px 18px 7px;font-size:9.5px;letter-spacing:1.2px;color:#6f9088;font-weight:700">ADMIN</div>
+        <nav style="display:flex;flex-direction:column;font-size:13px">
+          <div style="padding:9px 18px 9px 15px;background:rgba(233,217,184,.1);color:#fbf7ee;border-left:3px solid #e9d9b8;font-weight:600">People &amp; permissions</div>
+          <div style="padding:9px 18px;color:#95b3ad">Partners admin</div>
+          <div style="padding:9px 18px;color:#95b3ad">Audit log</div>
+          <div style="padding:9px 18px;color:#95b3ad">Sign-in allowlist</div>
+        </nav>
+        <div style="margin-top:auto;padding:12px 18px 0;border-top:1px solid rgba(233,217,184,.14);font-size:11px">
+          <div style="display:flex;align-items:center;gap:7px;color:#9fe6cf"><span style="width:7px;height:7px;border-radius:50%;background:#3fd6a8;box-shadow:0 0 0 3px rgba(63,214,168,.18)"></span>Signed in · Tim (Admin)</div>
+          <div style="color:#6f9088;font-size:10px;margin-top:3px;font-family:'IBM Plex Mono',monospace">treckrg@gmail.com</div>
+        </div>
+      </aside>
+
+      <!-- main -->
+      <div style="flex:1;background:#faf9f6;display:flex;flex-direction:column;min-width:0">
+        <div style="height:52px;flex:none;background:#fdfcf9;border-bottom:1px solid #e6e3da;display:flex;align-items:center;padding:0 20px;gap:14px">
+          <div style="font-size:11.5px;color:#8a8877;font-family:'IBM Plex Mono',monospace">Admin / People &amp; permissions</div>
+          <div style="margin-left:auto;display:flex;align-items:center;gap:9px">
+            <div style="font-size:11.5px;color:#6a7370;border:1px solid #ddd8cc;border-radius:6px;padding:5px 10px">Audit log</div>
+            <div style="font-size:12.5px;font-weight:600;color:#fbf7ee;background:#0e5049;border-radius:7px;padding:7px 13px;display:flex;align-items:center;gap:6px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>Invite person</div>
+          </div>
+        </div>
+
+        <div style="padding:24px 28px;display:flex;flex-direction:column;gap:20px">
+          <!-- header + subnav tabs -->
+          <div style="display:flex;align-items:flex-end;justify-content:space-between;border-bottom:2px solid #22302d;padding-bottom:16px">
+            <div>
+              <div style="font-size:11px;letter-spacing:2px;color:#a39c86;font-weight:700;margin-bottom:5px">ACCESS CONTROL · GOOGLE OAUTH</div>
+              <div style="font-family:'Newsreader',serif;font-size:30px;font-weight:600;letter-spacing:-.3px;line-height:1.02">People &amp; Permissions</div>
+              <div style="font-size:12.5px;color:#6a7370;margin-top:6px">Invite, remove, assign roles, and set what each person can do · <b>changes are logged</b></div>
+            </div>
+            <div style="display:flex;gap:2px;font-size:13px;font-weight:600">
+              <div onClick="{{ setPeople }}" style="padding:7px 15px;cursor:pointer;color:{{ pCol }};border-bottom:2px solid {{ pBd }};margin-bottom:-18px">People</div>
+              <div onClick="{{ setPerms }}" style="padding:7px 15px;cursor:pointer;color:{{ permCol }};border-bottom:2px solid {{ permBd }};margin-bottom:-18px">Permissions</div>
+              <div onClick="{{ setRoles }}" style="padding:7px 15px;cursor:pointer;color:{{ rCol }};border-bottom:2px solid {{ rBd }};margin-bottom:-18px">Roles</div>
+            </div>
+          </div>
+
+          <!-- glance -->
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:0;border:1px solid #e6e3da;border-radius:12px;overflow:hidden">
+            <div style="background:#fffdf8;padding:16px 18px;border-right:1px solid #eee9dc"><div style="font-size:11.5px;color:#8a8877">People with access</div><div style="font-family:'Newsreader',serif;font-size:30px;font-weight:600;margin-top:3px">8</div></div>
+            <div style="background:#fffdf8;padding:16px 18px;border-right:1px solid #eee9dc"><div style="font-size:11.5px;color:#8a8877">Active</div><div style="font-family:'Newsreader',serif;font-size:30px;font-weight:600;margin-top:3px">6</div></div>
+            <div style="background:#fffdf8;padding:16px 18px;border-right:1px solid #eee9dc"><div style="font-size:11.5px;color:#8a8877">Pending invites</div><div style="font-family:'Newsreader',serif;font-size:30px;font-weight:600;margin-top:3px;color:#b8860b">1</div></div>
+            <div style="background:#fffdf8;padding:16px 18px"><div style="font-size:11.5px;color:#8a8877">External · gated</div><div style="font-family:'Newsreader',serif;font-size:30px;font-weight:600;margin-top:3px">1</div></div>
+          </div>
+
+          <!-- PEOPLE TAB -->
+          <sc-if value="{{ isPeople }}" hint-placeholder-val="{{ true }}">
+          <div>
+            <!-- invite bar -->
+            <div style="display:flex;align-items:center;gap:10px;background:#f3f6f4;border:1px dashed #cfe0d9;border-radius:10px;padding:12px 14px;margin-bottom:16px">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0e5049" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+              <input placeholder="name@project-silk.com  (Google account)" style="flex:1;border:1px solid #dcd7cb;border-radius:7px;padding:8px 11px;font-size:13px;font-family:'IBM Plex Mono',monospace;background:#fff;color:#22302d" />
+              <div style="border:1px solid #dcd7cb;border-radius:7px;padding:8px 11px;font-size:13px;background:#fff;color:#6a7370;display:flex;align-items:center;gap:8px">Role: Ops <span style="color:#a9b6b2">▾</span></div>
+              <div style="font-size:13px;font-weight:600;color:#fff;background:#0e5049;border-radius:7px;padding:9px 16px">Send invite</div>
+            </div>
+            <!-- people table -->
+            <div style="border-top:1.5px solid #22302d">
+              <div style="display:grid;grid-template-columns:2fr 1.5fr 1fr 1fr .8fr .9fr;column-gap:14px;padding:9px 4px;font-size:10.5px;letter-spacing:.4px;color:#8a8877;font-weight:700;text-transform:uppercase;border-bottom:1px solid #e6e3da">
+                <div>Person</div><div>Roles</div><div>Access</div><div>Status</div><div>Last active</div><div style="text-align:right">Actions</div>
+              </div>
+              <sc-for list="{{ people }}" as="p" hint-placeholder-count="8">
+                <div style="display:grid;grid-template-columns:2fr 1.5fr 1fr 1fr .8fr .9fr;column-gap:14px;padding:11px 4px;font-size:13px;border-bottom:1px solid #eee9dc;align-items:center">
+                  <div style="display:flex;align-items:center;gap:10px;min-width:0">
+                    <div style="width:32px;height:32px;flex:none;border-radius:50%;background:{{ p.avBg }};color:{{ p.avFg }};display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px">{{ p.initials }}</div>
+                    <div style="min-width:0"><div style="font-weight:600">{{ p.name }}</div><div style="font-size:11px;color:#8a8877;font-family:'IBM Plex Mono',monospace;overflow:hidden;text-overflow:ellipsis">{{ p.email }}</div></div>
+                  </div>
+                  <div style="display:flex;flex-wrap:wrap;gap:5px">
+                    <sc-for list="{{ p.roles }}" as="role" hint-placeholder-count="2">
+                      <span style="display:inline-block;padding:2px 8px;border-radius:6px;font-size:11px;background:#eef1ef;color:#4a5c58">{{ role }}</span>
+                    </sc-for>
+                  </div>
+                  <div><span style="display:inline-block;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:600;background:{{ p.scBg }};color:{{ p.scFg }}">{{ p.scope }}</span></div>
+                  <div><span style="display:inline-flex;align-items:center;gap:5px;font-size:12px;color:{{ p.stFg }}"><span style="width:7px;height:7px;border-radius:50%;background:{{ p.stFg }}"></span>{{ p.status }}</span></div>
+                  <div style="font-size:12px;color:#8a8877">{{ p.last }}</div>
+                  <div style="text-align:right;font-size:12px"><span style="color:#0e5049;font-weight:600">Edit ▾</span> <span style="color:#c4c0b4">·</span> <span style="color:#b4553a">Remove</span></div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+          </sc-if>
+
+          <!-- PERMISSIONS TAB -->
+          <sc-if value="{{ isPerms }}" hint-placeholder-val="{{ true }}">
+          <div>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+              <div style="font-family:'Newsreader',serif;font-size:18px;font-weight:600">What each person can do</div>
+              <div style="display:flex;gap:14px;font-size:11.5px;color:#6a7370">
+                <span style="display:flex;align-items:center;gap:5px"><span style="width:16px;height:16px;border-radius:5px;background:#e8f2ef;color:#0b7a68;display:inline-flex;align-items:center;justify-content:center;font-weight:800">●</span>Full</span>
+                <span style="display:flex;align-items:center;gap:5px"><span style="width:16px;height:16px;border-radius:5px;background:#fbf3e3;color:#8a6410;display:inline-flex;align-items:center;justify-content:center;font-weight:800">◐</span>View only</span>
+                <span style="display:flex;align-items:center;gap:5px"><span style="width:16px;height:16px;border-radius:5px;background:#f2f2ef;color:#b6b1a4;display:inline-flex;align-items:center;justify-content:center;font-weight:800">○</span>None</span>
+                <span style="display:flex;align-items:center;gap:5px"><span style="width:16px;height:16px;border-radius:5px;background:#f6ebe6;color:#b4553a;display:inline-flex;align-items:center;justify-content:center;font-weight:800">⊘</span>Locked</span>
+              </div>
+            </div>
+            <div style="border:1px solid #e6e3da;border-radius:11px;overflow:hidden;background:#fffdf8">
+              <div style="display:grid;grid-template-columns:1.9fr repeat(7,1fr);background:#f3f2ee;border-bottom:2px solid #22302d">
+                <div style="padding:11px 14px;font-size:10.5px;letter-spacing:.4px;color:#8a8877;font-weight:700;text-transform:uppercase">Person</div>
+                <sc-for list="{{ cols }}" as="c" hint-placeholder-count="7">
+                  <div style="padding:11px 4px;font-size:10px;letter-spacing:.02em;color:#8a8877;font-weight:700;text-transform:uppercase;text-align:center;border-left:1px solid #e6e3da">{{ c }}</div>
+                </sc-for>
+              </div>
+              <sc-for list="{{ matrix }}" as="p" hint-placeholder-count="7">
+                <div style="display:grid;grid-template-columns:1.9fr repeat(7,1fr);border-bottom:1px solid #eee9dc;align-items:center">
+                  <div style="padding:10px 14px;display:flex;align-items:center;gap:9px;min-width:0">
+                    <div style="width:26px;height:26px;flex:none;border-radius:50%;background:{{ p.avBg }};color:{{ p.avFg }};display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px">{{ p.initials }}</div>
+                    <div style="min-width:0"><div style="font-weight:600;font-size:13px">{{ p.name }}</div><div style="font-size:10.5px;color:#8a8877">{{ p.roleline }}</div></div>
+                  </div>
+                  <sc-for list="{{ p.cells }}" as="cell" hint-placeholder-count="7">
+                    <div style="text-align:center;border-left:1px solid #f0ece2;padding:9px 0">
+                      <span style="display:inline-flex;width:22px;height:22px;border-radius:6px;align-items:center;justify-content:center;font-weight:800;font-size:12px;background:{{ cell.bg }};color:{{ cell.fg }}" title="{{ cell.title }}">{{ cell.sym }}</span>
+                    </div>
+                  </sc-for>
+                </div>
+              </sc-for>
+            </div>
+            <div style="font-size:11.5px;color:#8a8877;margin-top:10px;line-height:1.5">Click any cell to cycle its grant (Full → View → None). External partners are <b style="color:#b4553a">locked</b> out of internal surfaces entirely — they only ever see their own brands through a separate row-isolated gate, never this grid.</div>
+          </div>
+          </sc-if>
+
+          <!-- ROLES TAB -->
+          <sc-if value="{{ isRoles }}" hint-placeholder-val="{{ true }}">
+          <div>
+            <div style="font-family:'Newsreader',serif;font-size:18px;font-weight:600;margin-bottom:4px">Roles &amp; their default surfaces</div>
+            <div style="font-size:12.5px;color:#6a7370;margin-bottom:14px">A person can hold more than one role; their access is the union. These are the starting defaults an admin can then tune per person in <b>Permissions</b>.</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+              <sc-for list="{{ roleCards }}" as="rc" hint-placeholder-count="6">
+                <div style="border:1px solid #e6e3da;border-radius:11px;background:#fffdf8;padding:15px 17px">
+                  <div style="display:flex;align-items:center;justify-content:space-between">
+                    <div style="font-family:'Newsreader',serif;font-size:17px;font-weight:600">{{ rc.name }}</div>
+                    <span style="display:inline-block;padding:2px 9px;border-radius:6px;font-size:11px;font-weight:600;background:{{ rc.tBg }};color:{{ rc.tFg }}">{{ rc.type }}</span>
+                  </div>
+                  <div style="font-size:12.5px;color:#4a5c58;margin-top:7px;line-height:1.5">{{ rc.sees }}</div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+          </sc-if>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { tab:'people' };
+  _people = () => { if(this.state.tab!=='people') this.setState({tab:'people'}); };
+  _perms  = () => { if(this.state.tab!=='permissions') this.setState({tab:'permissions'}); };
+  _roles  = () => { if(this.state.tab!=='roles') this.setState({tab:'roles'}); };
+
+  av = { jade:['#0e5049','#f3ede0'], gold:['#e9d9b8','#5a4718'], slate:['#d9e0dd','#4a5c58'], warm:['#f0e2d6','#7a5c3a'] };
+  people = [
+    { name:'Tim', email:'treckrg@gmail.com',        roles:['Admin','Leadership'],   scope:'Full',                 status:'Active',        last:'now',         av:'jade',  initials:'T'  },
+    { name:'Van', email:'van@project-silk.com',      roles:['Developer','Admin'],    scope:'Full',                 status:'Active',        last:'12m ago',     av:'jade',  initials:'V'  },
+    { name:'Samantha', email:'samantha@project-silk.com', roles:['CS','Ops','Finance'], scope:'Full',            status:'Active',        last:'2h ago',      av:'slate', initials:'Sa' },
+    { name:'Rhea', email:'rhea@project-silk.com',    roles:['Partners'],             scope:'Full',                 status:'Active',        last:'1d ago',      av:'slate', initials:'R'  },
+    { name:'James', email:'james@project-silk.com',  roles:['CS'],                   scope:'Full',                 status:'Active',        last:'4h ago',      av:'slate', initials:'J'  },
+    { name:'Sheila', email:'sheila@project-silk.com',roles:['Finance'],              scope:'Full',                 status:'Active',        last:'3d ago',      av:'slate', initials:'Sh' },
+    { name:'(invited)', email:'ops2@project-silk.com', roles:['Ops'],                scope:'Full',                 status:'Invited',       last:'invite sent', av:'gold',  initials:'?'  },
+    { name:'Acme Referral', email:'partner@acme.com',roles:['Referral partner'],     scope:'Curated · own brands', status:'External · gated', last:'—',        av:'warm',  initials:'A'  },
+  ];
+  scopeColor = { 'Full':['#e8f2ef','#0b5f58'], 'Curated · own brands':['#fbf3e3','#8a6410'] };
+  statusColor = { 'Active':'#0b7a68', 'Invited':'#b8860b', 'External · gated':'#8a6d3a', 'Suspended':'#b4553a' };
+
+  cols = ['Leadership','Finance','CS','Ops','Partners','Statements','Admin'];
+  sym = {
+    F:['●','#e8f2ef','#0b7a68','Full access'],
+    V:['◐','#fbf3e3','#8a6410','View only'],
+    N:['○','#f2f2ef','#b6b1a4','No access'],
+    L:['⊘','#f6ebe6','#b4553a','Locked — external, cannot grant'],
+  };
+  matrixSrc = [
+    { p:'Tim',    role:'Admin · Leadership', caps:['F','F','F','F','F','F','F'] },
+    { p:'Van',    role:'Developer · Admin',  caps:['F','F','F','F','F','F','F'] },
+    { p:'Samantha', role:'CS · Ops · Finance', caps:['V','F','F','F','V','F','N'] },
+    { p:'Rhea',   role:'Partners',           caps:['N','N','N','N','F','N','N'] },
+    { p:'James',  role:'CS',                 caps:['N','N','F','V','N','N','N'] },
+    { p:'Sheila', role:'Finance',            caps:['N','V','F','N','N','N','N'] },
+    { p:'Acme Referral', role:'External partner', caps:['L','L','L','L','L','L','L'] },
+  ];
+  roleCards = [
+    { name:'Leadership', type:'internal', sees:'Top-line money, growth, "what needs me". Owed to us, book size, partnership health, the needs-attention list.' },
+    { name:'Finance',    type:'internal', sees:'The full money pipeline — commission ledger, collections, payouts, statement drift, Wayward reconciliation, per-brand claim detail.' },
+    { name:'CS',         type:'internal', sees:'Brand directory, the nationality review queue, contact book, onboarding pipeline, support, and Brand 360.' },
+    { name:'Ops',        type:'internal', sees:'Data freshness & sync health, coverage, exceptions, information gaps, identity health.' },
+    { name:'Partners',   type:'internal', sees:'Partner performance & payouts across the roster (Rhea owns this); the write-surface lives in Partners Admin.' },
+    { name:'Referral partner', type:'external · gated', sees:'Their OWN referred brands only — revenue, their commission cut, paid vs unpaid. Never the full book, our margin, or Wayward\u2019s numbers.' },
+  ];
+
+  fmtAv(key){ const [bg,fg]=this.av[key]; return {avBg:bg, avFg:fg}; }
+
+  renderVals(){
+    const t = this.state.tab;
+    const on='#0e5049', onBd='#0e5049', off='#8a8877', offBd='transparent';
+    const people = this.people.map(p => {
+      const [sbg,sfg]=this.scopeColor[p.scope]||['#eef1ef','#4a5c58'];
+      return { ...p, ...this.fmtAv(p.av), scBg:sbg, scFg:sfg, stFg:this.statusColor[p.status]||'#4a5c58' };
+    });
+    const matrix = this.matrixSrc.map(m => {
+      const src = this.people.find(x=>x.name===m.p) || this.people.find(x=>m.p.startsWith(x.name));
+      const key = src ? src.av : 'slate';
+      const [abg,afg]=this.av[key];
+      return {
+        name:m.p, roleline:m.role, initials: src?src.initials:m.p[0], avBg:abg, avFg:afg,
+        cells: m.caps.map(c=>{ const [s,bg,fg,title]=this.sym[c]; return {sym:s,bg,fg,title}; }),
+      };
+    });
+    const roleCards = this.roleCards.map(r=>({
+      ...r,
+      tBg: r.type==='internal' ? '#e8f2ef' : '#fbf3e3',
+      tFg: r.type==='internal' ? '#0b5f58' : '#8a6410',
+    }));
+    return {
+      isPeople:t==='people', isPerms:t==='permissions', isRoles:t==='roles',
+      setPeople:this._people, setPerms:this._perms, setRoles:this._roles,
+      pCol:t==='people'?on:off, pBd:t==='people'?onBd:offBd,
+      permCol:t==='permissions'?on:off, permBd:t==='permissions'?onBd:offBd,
+      rCol:t==='roles'?on:off, rBd:t==='roles'?onBd:offBd,
+      people, cols:this.cols, matrix, roleCards,
+    };
+  }
+}
+</script>
+</body>
+</html>

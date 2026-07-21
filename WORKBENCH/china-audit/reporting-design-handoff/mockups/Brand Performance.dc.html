@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Public+Sans:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600;6..72,700&display=swap" rel="stylesheet">
+<style>
+  body{margin:0;background:#e9e7e2;font-family:'Public Sans',system-ui,sans-serif}
+  *{box-sizing:border-box}
+  .wrap{padding:44px 48px 40px}
+  .whd{display:flex;align-items:baseline;gap:10px;margin:0 0 8px}
+  .wtag{font:600 10px ui-monospace,Menlo,monospace;padding:3px 7px;background:#0e5049;color:#fff;border-radius:4px}
+  .wname{font:600 13px/1.2 system-ui,sans-serif;color:#1a1a1a}
+  .wintro{font:400 13px/1.6 system-ui,sans-serif;color:rgba(0,0,0,.6);max-width:820px;margin:0 0 26px}
+  .wintro b{color:#0e5049;font-weight:600}
+  .card{width:1340px;max-width:100%;background:#fff;border-radius:12px;box-shadow:0 12px 40px -12px rgba(0,0,0,.28);overflow:hidden;font-family:'Public Sans',sans-serif;color:#22302d}
+  a{color:#0e7c73}a:hover{color:#0b5f58}
+</style>
+</helmet>
+
+<div class="wrap">
+  <div class="whd"><span class="wtag">SHARED CORE</span><span class="wname">Brand Performance — GMV / revenue by brand × product × month (CS · Finance · Wayward · Leadership)</span></div>
+  <p class="wintro">The reusable revenue asset: how much each brand generates, by product and month. <b>Connect revenue is GMV; Boost revenue is ad spend</b> — different units, deliberately kept in separate columns and <b>never summed across products</b> (the documented lens trap). Data: <b>lens_ps_brand_revenue · lens_ps_monthly_summary · lens_ps_product_eligibility · lens_ps_rate_schedule · lens_ps_china_verdict</b>.</p>
+
+  <div class="card">
+    <div style="display:flex;min-height:820px">
+      <!-- sidebar -->
+      <aside style="width:222px;flex:none;background:#0d443f;color:#bcd6d0;padding:18px 0;display:flex;flex-direction:column">
+        <div style="padding:0 18px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(233,217,184,.14)">
+          <div style="width:30px;height:30px;border-radius:7px;background:#e9d9b8;display:flex;align-items:center;justify-content:center;font:700 15px 'Newsreader',serif;color:#0d443f">S</div>
+          <div><div style="font-family:'Newsreader',serif;font-size:16px;font-weight:600;color:#fbf7ee;letter-spacing:.2px">Project Silk</div><div style="font-size:9px;color:#6f9088;letter-spacing:1.4px">REPORTING</div></div>
+        </div>
+        <div style="padding:16px 18px 7px;font-size:9.5px;letter-spacing:1.2px;color:#6f9088;font-weight:700">PERFORMANCE</div>
+        <nav style="display:flex;flex-direction:column;font-size:13px">
+          <div style="padding:9px 18px 9px 15px;background:rgba(233,217,184,.1);color:#fbf7ee;border-left:3px solid #e9d9b8;font-weight:600">Brand &amp; product</div>
+          <div style="padding:9px 18px;color:#95b3ad">Growth trend</div>
+          <div style="padding:9px 18px;color:#95b3ad">Top &amp; bottom movers</div>
+          <div style="padding:9px 18px;color:#95b3ad">Commission ledger</div>
+          <div style="padding:9px 18px;color:#95b3ad">Brand 360</div>
+        </nav>
+        <div style="margin-top:auto;padding:12px 18px 0;border-top:1px solid rgba(233,217,184,.14);font-size:11px">
+          <div style="display:flex;align-items:center;gap:7px;color:#9fe6cf"><span style="width:7px;height:7px;border-radius:50%;background:#3fd6a8;box-shadow:0 0 0 3px rgba(63,214,168,.18)"></span>All syncs green</div>
+          <div style="color:#6f9088;font-size:10px;margin-top:3px;font-family:'IBM Plex Mono',monospace">as of 2026-07-20 09:14</div>
+        </div>
+      </aside>
+
+      <!-- main -->
+      <div style="flex:1;background:#faf9f6;display:flex;flex-direction:column;min-width:0">
+        <div style="height:52px;flex:none;background:#fdfcf9;border-bottom:1px solid #e6e3da;display:flex;align-items:center;padding:0 20px;gap:14px">
+          <div style="font-size:11.5px;color:#8a8877;font-family:'IBM Plex Mono',monospace">Performance / Brand &amp; product</div>
+          <div style="margin-left:auto;display:flex;align-items:center;gap:9px">
+            <div style="display:flex;align-items:center;gap:6px;font-size:11.5px;background:#e8f2ef;color:#0e5049;border:1px solid #cfe6df;border-radius:20px;padding:5px 11px"><span style="width:6px;height:6px;border-radius:50%;background:#12a37f"></span>Green · data Jul 20</div>
+            <div style="font-size:11.5px;color:#6a7370;border:1px solid #ddd8cc;border-radius:6px;padding:5px 10px">EN</div>
+            <div style="font-size:12.5px;font-weight:600;color:#fbf7ee;background:#0e5049;border-radius:7px;padding:7px 13px">Export ▾</div>
+          </div>
+        </div>
+
+        <div style="padding:24px 28px;display:flex;flex-direction:column;gap:20px">
+          <!-- header + depth -->
+          <div style="display:flex;align-items:flex-end;justify-content:space-between;border-bottom:2px solid #22302d;padding-bottom:16px">
+            <div>
+              <div style="font-size:11px;letter-spacing:2px;color:#a39c86;font-weight:700;margin-bottom:5px">GMV &amp; REVENUE BY BRAND × PRODUCT</div>
+              <div style="font-family:'Newsreader',serif;font-size:30px;font-weight:600;letter-spacing:-.3px;line-height:1.02">Brand Performance</div>
+              <div style="font-size:12.5px;color:#6a7370;margin-top:6px">China book · Connect = GMV · Boost = ad spend · <b>units differ — not summed across products</b></div>
+            </div>
+            <div style="display:flex;gap:2px;font-size:13px;font-weight:600">
+              <div style="padding:7px 15px;color:#8a8877;border-bottom:2px solid transparent;margin-bottom:-18px">Glance</div>
+              <div style="padding:7px 15px;color:#0e5049;border-bottom:2px solid #0e5049;margin-bottom:-18px">Working</div>
+              <div style="padding:7px 15px;color:#8a8877;border-bottom:2px solid transparent;margin-bottom:-18px">Deep</div>
+            </div>
+          </div>
+
+          <!-- glance tiles: GMV and ad-spend deliberately separate -->
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:0;border:1px solid #e6e3da;border-radius:12px;overflow:hidden">
+            <div style="background:#0e5049;color:#f3ede0;padding:18px 20px">
+              <div style="font-size:11.5px;color:#9cc7bf">Connect GMV · lifetime</div>
+              <div style="font-family:'Newsreader',serif;font-size:32px;font-weight:600;margin-top:4px">$2.79M</div>
+              <div style="font-size:11px;color:#e6c98f;margin-top:5px">$312K this month · ▲ 6.4%</div>
+            </div>
+            <div style="background:#fffdf8;padding:18px 20px;border-right:1px solid #eee9dc">
+              <div style="font-size:11.5px;color:#8a8877">Boost ad spend · lifetime</div>
+              <div style="font-family:'Newsreader',serif;font-size:32px;font-weight:600;margin-top:4px">$256.8K</div>
+              <div style="font-size:11px;color:#a39c86;margin-top:5px">separate unit — not added to GMV</div>
+            </div>
+            <div style="background:#fffdf8;padding:18px 20px;border-right:1px solid #eee9dc">
+              <div style="font-size:11.5px;color:#8a8877">Active producing brands</div>
+              <div style="font-family:'Newsreader',serif;font-size:32px;font-weight:600;margin-top:4px">312</div>
+              <div style="font-size:11px;color:#a39c86;margin-top:5px">of 549 · 41 rate-missing</div>
+            </div>
+            <div style="background:#fffdf8;padding:18px 20px">
+              <div style="font-size:11.5px;color:#8a8877">Commission earned</div>
+              <div style="font-family:'Newsreader',serif;font-size:32px;font-weight:600;margin-top:4px">$34,120</div>
+              <div style="font-size:11px;color:#a39c86;margin-top:5px">the 10/6/3 slice of collected</div>
+            </div>
+          </div>
+
+          <!-- chart -->
+          <div style="border:1px solid #e6e3da;border-radius:12px;background:#fffdf8;padding:16px 18px">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+              <div style="font-family:'Newsreader',serif;font-size:16px;font-weight:600">Volume by month · Connect GMV vs Boost ad spend</div>
+              <div style="display:flex;gap:16px;font-size:11.5px;color:#6a7370">
+                <span style="display:flex;align-items:center;gap:6px"><span style="width:11px;height:11px;border-radius:3px;background:#0e5049"></span>Connect GMV</span>
+                <span style="display:flex;align-items:center;gap:6px"><span style="width:14px;height:3px;background:#b8860b"></span>Boost ad spend</span>
+              </div>
+            </div>
+            <svg viewBox="0 0 1180 230" style="width:100%;height:auto;display:block">
+              <defs><linearGradient id="bpg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0e5049" stop-opacity=".22"></stop><stop offset="1" stop-color="#0e5049" stop-opacity="0"></stop></linearGradient></defs>
+              <line x1="54" y1="16" x2="54" y2="186" stroke="#e6e3da"></line>
+              <line x1="54" y1="186" x2="1166" y2="186" stroke="#e6e3da"></line>
+              <line x1="54" y1="144" x2="1166" y2="144" stroke="#f0ece2"></line>
+              <line x1="54" y1="101" x2="1166" y2="101" stroke="#f0ece2"></line>
+              <line x1="54" y1="58" x2="1166" y2="58" stroke="#f0ece2"></line>
+              <text x="46" y="189" text-anchor="end" font-size="10" fill="#a39c86" font-family="'IBM Plex Mono',monospace">0</text>
+              <text x="46" y="147" text-anchor="end" font-size="10" fill="#a39c86" font-family="'IBM Plex Mono',monospace">150K</text>
+              <text x="46" y="104" text-anchor="end" font-size="10" fill="#a39c86" font-family="'IBM Plex Mono',monospace">250K</text>
+              <text x="46" y="61" text-anchor="end" font-size="10" fill="#a39c86" font-family="'IBM Plex Mono',monospace">350K</text>
+              <path d="M70,150 L226,138 L382,120 L538,128 L694,96 L850,78 L1006,66 L1150,52 L1150,186 L70,186 Z" fill="url(#bpg)"></path>
+              <path d="M70,150 L226,138 L382,120 L538,128 L694,96 L850,78 L1006,66 L1150,52" fill="none" stroke="#0e5049" stroke-width="2.5"></path>
+              <path d="M70,172 L226,168 L382,170 L538,160 L694,158 L850,150 L1006,152 L1150,146" fill="none" stroke="#b8860b" stroke-width="2.25"></path>
+              <g font-size="10" fill="#8a8877" text-anchor="middle" font-family="'Public Sans',sans-serif"><text x="70" y="204">Dec</text><text x="226" y="204">Jan</text><text x="382" y="204">Feb</text><text x="538" y="204">Mar</text><text x="694" y="204">Apr</text><text x="850" y="204">May</text><text x="1006" y="204">Jun</text><text x="1150" y="204">Jul</text></g>
+            </svg>
+          </div>
+
+          <!-- filter chips + table -->
+          <div>
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+              <div style="font-family:'Newsreader',serif;font-size:18px;font-weight:600;margin-right:6px">By brand &amp; product</div>
+              <div style="display:flex;gap:6px;font-size:12px">
+                <span style="padding:5px 12px;border-radius:999px;background:#0e5049;color:#fff;font-weight:600">All</span>
+                <span style="padding:5px 12px;border-radius:999px;background:#fff;border:1px solid #e6e3da;color:#6a7370">Connect</span>
+                <span style="padding:5px 12px;border-radius:999px;background:#fff;border:1px solid #e6e3da;color:#6a7370">Boost</span>
+                <span style="padding:5px 12px;border-radius:999px;background:#fff;border:1px solid #e6e3da;color:#6a7370">China only</span>
+                <span style="padding:5px 12px;border-radius:999px;background:#fff;border:1px solid #e6e3da;color:#6a7370">Top movers</span>
+              </div>
+              <div style="margin-left:auto;font-size:11px;color:#a39c86;font-family:'IBM Plex Mono',monospace">lens_ps_brand_revenue · 8 of 312</div>
+            </div>
+            <div style="border-top:1.5px solid #22302d">
+              <div style="display:grid;grid-template-columns:1.5fr .85fr .8fr 1.1fr .95fr .95fr .55fr .7fr;column-gap:14px;padding:9px 4px;font-size:10.5px;letter-spacing:.4px;color:#8a8877;font-weight:700;text-transform:uppercase;border-bottom:1px solid #e6e3da">
+                <div>Brand</div><div>Product</div><div>Nationality</div><div style="text-align:right">Volume</div><div style="text-align:right">Collected</div><div style="text-align:right">Earned</div><div style="text-align:center">Rung</div><div style="text-align:right">MoM</div>
+              </div>
+              <sc-for list="{{ rows }}" as="r" hint-placeholder-count="8">
+                <div style="display:grid;grid-template-columns:1.5fr .85fr .8fr 1.1fr .95fr .95fr .55fr .7fr;column-gap:14px;padding:11px 4px;font-size:13.5px;border-bottom:1px solid #eee9dc;align-items:center">
+                  <div style="font-weight:600">{{ r.brand }}</div>
+                  <div style="color:#6a7370">{{ r.prod }}</div>
+                  <div><span style="display:inline-block;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:600;background:{{ r.natBg }};color:{{ r.natFg }}">{{ r.nat }}</span></div>
+                  <div style="text-align:right;font-family:'IBM Plex Mono',monospace;font-size:12.5px">{{ r.vol }} <span style="color:#a39c86;font-size:10.5px">{{ r.volUnit }}</span></div>
+                  <div style="text-align:right;font-family:'IBM Plex Mono',monospace;font-size:12.5px">{{ r.collected }}</div>
+                  <div style="text-align:right;font-family:'IBM Plex Mono',monospace;font-size:12.5px;font-weight:600">{{ r.earned }}</div>
+                  <div style="text-align:center"><span style="display:inline-block;min-width:34px;padding:2px 6px;border-radius:6px;font-size:11px;font-weight:700;background:{{ r.rungBg }};color:{{ r.rungFg }}">{{ r.rung }}</span></div>
+                  <div style="text-align:right;font-family:'IBM Plex Mono',monospace;font-size:12.5px;font-weight:600;color:{{ r.momColor }}">{{ r.mom }}</div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  base = [
+    { brand:'Oritek',            product:'connect', collected:46110, rung:3,  mom:+2 },
+    { brand:'Everbright Kitchen',product:'connect', collected:33200, rung:6,  mom:+5 },
+    { brand:'Meilan Home',       product:'connect', collected:21030, rung:6,  mom:+8 },
+    { brand:'Sunvalley Digital', product:'connect', collected:18450, rung:10, mom:+7 },
+    { brand:'Baishun Outdoor',   product:'connect', collected:12240, rung:10, mom:+31 },
+    { brand:'Cloudray',          product:'boosted', collected:9870,  rung:6,  mom:-4 },
+    { brand:'INICAT',            product:'connect', collected:8420,  rung:10, mom:+12 },
+    { brand:'Zhonghe Pet',       product:'boosted', collected:5540,  rung:10, mom:+19 },
+  ];
+  FEE = 0.05; // wayward_client_fee_rate — GMV = collected / fee
+  prodMap = { connect:'Connect', boosted:'Boost' };
+  rungColor = { 10:['#e7f6f2','#0b6b5f'], 6:['#eaf2fb','#2563a8'], 3:['#f3eefc','#6b46c1'] };
+  fmtUSD(n){ return '$'+Number(n).toLocaleString('en-US',{maximumFractionDigits:0}); }
+  fmtK(n){ return n>=1e6 ? '$'+(n/1e6).toFixed(2)+'M' : '$'+(n/1e3).toFixed(1)+'K'; }
+  earned(collected,rung){ return collected*(rung/100); }
+  _rows=null;
+  buildRows(){
+    if (this._rows) return this._rows;
+    this._rows = this.base.map(r => {
+      const vol = r.product==='connect' ? r.collected/this.FEE : r.collected/this.FEE; // ad-spend also = collected/fee
+      const [rbg,rfg] = this.rungColor[r.rung];
+      return {
+        brand:r.brand, prod:this.prodMap[r.product],
+        nat:'china', natBg:'#e8f2ef', natFg:'#0b5f58',
+        vol:this.fmtK(vol), volUnit: r.product==='connect' ? 'GMV' : 'ad',
+        collected:this.fmtUSD(r.collected), earned:'$'+this.earned(r.collected,r.rung).toLocaleString('en-US',{maximumFractionDigits:0}),
+        rung:r.rung+'%', rungBg:rbg, rungFg:rfg,
+        mom:(r.mom>0?'▲ ':'▼ ')+Math.abs(r.mom)+'%', momColor: r.mom>0 ? '#0b7a68' : '#b4553a',
+      };
+    });
+    return this._rows;
+  }
+  renderVals(){ return { rows: this.buildRows() }; }
+}
+</script>
+</body>
+</html>

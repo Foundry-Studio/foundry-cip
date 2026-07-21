@@ -1,0 +1,224 @@
+{
+ "lens_ps_commission_ledger": {
+  "rows": 16297,
+  "cols": [
+   "wayward_brand_id:uuid",
+   "product_id:text",
+   "period_month:date",
+   "usage_billed:numeric",
+   "usage_collected:numeric",
+   "verdict:text",
+   "ownership:text",
+   "ours_revenue_from:date",
+   "mgmt_rate:numeric",
+   "claimable:boolean",
+   "mgmt_fee_owed:numeric",
+   "partner_of_record:text",
+   "partner_rate_pct:numeric",
+   "partner_fee_owed:numeric",
+   "claim_status:text"
+  ]
+ },
+ "lens_ps_claim": {
+  "rows": 1962,
+  "cols": [
+   "wayward_brand_id:uuid",
+   "brand_name:text",
+   "verdict:text",
+   "ownership:text",
+   "mgmt_fee_owed:numeric",
+   "wayward_paid:numeric",
+   "ps_claim_owed:numeric",
+   "partner_of_record:text",
+   "partner_fee_owed:numeric",
+   "partner_paid:numeric",
+   "partner_claim_owed:numeric"
+  ]
+ },
+ "lens_ps_wayward_reconciliation": {
+  "rows": 1167,
+  "cols": [
+   "wayward_brand_id:uuid",
+   "brand_name:text",
+   "verdict:text",
+   "ps_mgmt_fee_owed:numeric",
+   "ps_claim_owed:numeric",
+   "wayward_paid:numeric",
+   "wayward_credits_ps:boolean",
+   "wayward_attribution_source:text",
+   "wayward_attribution_active:boolean",
+   "wayward_ack_commission:numeric",
+   "wayward_ack_rate:numeric",
+   "wayward_ack_gmv:numeric",
+   "delta_status:text"
+  ]
+ },
+ "lens_ps_statement_drift": {
+  "rows": 0,
+  "cols": [
+   "wayward_brand_id:uuid",
+   "brand_name:text",
+   "statement_label:text",
+   "statement_generated_at:timestamp with time zone",
+   "verdict:text",
+   "ownership:text",
+   "stated_claim_owed:numeric",
+   "live_claim_owed:numeric",
+   "drift_amount:numeric",
+   "drift_direction:text",
+   "as_of_note:text",
+   "source_ref:text"
+  ]
+ },
+ "lens_ps_china_contention": {
+  "rows": 123,
+  "cols": [
+   "wayward_brand_id:uuid",
+   "brand_name:text",
+   "verdict:text",
+   "verdict_strength:text",
+   "china_evidence:text",
+   "not_china_evidence:text",
+   "manual_rationale:text",
+   "manual_by:text",
+   "usage_collected:numeric",
+   "contention_type:text",
+   "review_priority:text"
+  ]
+ },
+ "lens_ps_china_verdict": {
+  "rows": 5385,
+  "cols": [
+   "wayward_brand_id:uuid",
+   "brand_name:text",
+   "signup_date:date",
+   "verdict:text",
+   "verdict_strength:text",
+   "china_evidence:text",
+   "not_china_evidence:text",
+   "corroborates_not_china:boolean",
+   "manual_rationale:text",
+   "manual_by:text",
+   "has_conflict:boolean",
+   "is_excluded:boolean",
+   "excluded_buckets:text",
+   "ever_billed:boolean",
+   "usage_collected:numeric",
+   "ps_owed_claimable:numeric",
+   "ps_paid:numeric",
+   "shortfall:numeric",
+   "hypothetical_if_all_claimable:numeric"
+  ]
+ },
+ "lens_ps_brand_revenue": {
+  "rows": 16249,
+  "cols": [
+   "wayward_brand_id:uuid",
+   "brand_name:text",
+   "product_id:text",
+   "period_month:date",
+   "revenue_type:text",
+   "revenue_amount:numeric",
+   "usage_fee_billed:numeric",
+   "rate_used:numeric",
+   "source:text",
+   "basis:text",
+   "rate_missing:boolean"
+  ]
+ },
+ "lens_ps_monthly_summary": {
+  "rows": 31,
+  "cols": [
+   "period_month:date",
+   "product_id:text",
+   "collected_claimable:numeric",
+   "mgmt_fee_owed:numeric",
+   "partner_fee_owed:numeric",
+   "net_owed:numeric",
+   "claimable_brands:bigint",
+   "usage_refunded:numeric"
+  ]
+ },
+ "lens_ps_product_eligibility": {
+  "rows": 4694,
+  "cols": [
+   "wayward_brand_id:uuid",
+   "brand_name:text",
+   "product_id:text",
+   "ps_rev_share_eligible:boolean",
+   "basis:text",
+   "wayward_client_fee_rate:numeric",
+   "wayward_fee_rate_basis:text",
+   "ps_partner_rev_share_eligible:boolean",
+   "partner_name:text",
+   "partner_rate_pct:numeric"
+  ]
+ },
+ "lens_ps_rate_schedule": {
+  "rows": 2833,
+  "cols": [
+   "wayward_brand_id:uuid",
+   "product_id:text",
+   "productive_date:date",
+   "reactivated_at:date",
+   "reactivation_qualifies:boolean",
+   "effective_anchor:date",
+   "rate_10_until:date",
+   "rate_6_until:date"
+  ]
+ },
+ "lens_ps_source_freshness": {
+  "rows": 13,
+  "cols": [
+   "source:text",
+   "mode:text",
+   "last_success:timestamp with time zone",
+   "rows_ingested:bigint",
+   "status:text",
+   "hours_since:numeric",
+   "freshness:text"
+  ]
+ },
+ "lens_ps_information_gaps": {
+  "rows": "MISSING",
+  "cols": []
+ },
+ "lens_ps_ar_aging": {
+  "rows": 387,
+  "cols": [
+   "wayward_brand_id:uuid",
+   "brand_name:text",
+   "ps_claim_owed:numeric",
+   "wayward_paid:numeric",
+   "oldest_owed_month:date",
+   "months_outstanding:integer",
+   "aging_bucket:text"
+  ]
+ },
+ "lens_ps_partner_payout_summary": {
+  "rows": 10,
+  "cols": [
+   "partner:text",
+   "partner_owed:numeric",
+   "partner_paid:numeric",
+   "partner_still_owed:numeric",
+   "brands:bigint"
+  ]
+ },
+ "lens_ps_brand_reality": {
+  "rows": 5385,
+  "cols": [
+   "wayward_brand_id:uuid",
+   "brand_name:text",
+   "ever_billed:boolean",
+   "wayward_onboarded_them:boolean",
+   "has_subscription:boolean",
+   "has_contact:boolean",
+   "on_a_frozen_list:boolean",
+   "on_eric_sheet:boolean",
+   "staff_mailbox:boolean",
+   "placeholder_name:boolean",
+   "reality:text"
+  ]
+ }
+}

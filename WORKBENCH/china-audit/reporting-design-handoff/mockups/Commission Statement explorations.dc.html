@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=Public+Sans:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600;6..72,700&display=swap" rel="stylesheet">
+<style>
+  body{margin:0;background:#e9e7e2;font-family:'Public Sans',system-ui,sans-serif}
+  *{box-sizing:border-box}
+  .dv-turn{padding:44px 48px 40px;border-bottom:1px solid rgba(0,0,0,.08);scroll-margin-top:16px}
+  .dv-thd{display:flex;align-items:baseline;gap:10px;margin:0 0 8px}
+  .dv-tid{font:600 10px ui-monospace,Menlo,monospace;padding:3px 7px;background:#12403b;color:#fff;border-radius:4px;text-decoration:none}
+  .dv-tname{font:600 13px/1.2 system-ui,sans-serif;color:#1a1a1a}
+  .dv-intro{font:400 13px/1.6 system-ui,sans-serif;color:rgba(0,0,0,.6);max-width:760px;margin:0 0 26px}
+  .dv-intro b{color:#12403b;font-weight:600}
+  .dv-opts{display:flex;flex-wrap:wrap;gap:34px;align-items:flex-start}
+  .dv-opt{flex:none;display:flex;flex-direction:column;gap:11px;scroll-margin-top:16px}
+  .dv-oid{font:600 10.5px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(0,0,0,.08);color:#1a1a1a;border-radius:5px;text-decoration:none}
+  .dv-olabel{display:flex;align-items:baseline;gap:8px;font:400 11.5px/1.3 system-ui,sans-serif;color:rgba(0,0,0,.55)}
+  .dv-olabel b{color:#1a1a1a;font-weight:600;font-size:12.5px}
+  .dv-card{max-width:100%;background:#fff;border-radius:12px;box-shadow:0 12px 40px -12px rgba(0,0,0,.28);overflow:hidden;content-visibility:auto;contain-intrinsic-size:1340px 800px}
+  .dv-opt:target .dv-oid{background:#0e7c73;color:#fff}
+  .dv-next{margin:26px 0 0;font:13px/1.6 system-ui,sans-serif;color:rgba(0,0,0,.5)}
+  .dv-next a{color:#0e7c73;text-decoration:none;font-weight:600}
+  a{color:#0e7c73}
+  a:hover{color:#0b5f58}
+</style>
+</helmet>
+
+<section class="dv-turn" id="t2">
+  <div class="dv-thd"><a class="dv-tid" href="#t2">2</a><span class="dv-tname">Merge — <a class="dv-oid" href="#1a">1a</a> layout &amp; data + <a class="dv-oid" href="#1c">1c</a> editorial vibe</span></div>
+  <p class="dv-intro">The <b>information architecture of <a class="dv-oid" href="#1a">1a</a></b> — role sidebar, depth tabs, four KPI tiles, the dense ledger with a totals row, the reconciliation + drift strip — rendered in the <b>editorial skin of <a class="dv-oid" href="#1c">1c</a></b>: Newsreader serif headlines &amp; big numbers, warm cream + jade/gold, thin document rules. The ledger keeps a monospaced column for scannability. This is the candidate house language for the rest of the app.</p>
+  <div class="dv-opts">
+    <div class="dv-opt" id="2a">
+      <div class="dv-olabel"><a class="dv-oid" href="#2a">2a</a><b>Editorial terminal</b> · serif headline · mono ledger · jade rail + depth tabs</div>
+      <div class="dv-card" style="width:1340px;font-family:'Public Sans',sans-serif;color:#22302d">
+        <div style="display:flex;min-height:790px">
+          <!-- jade role sidebar -->
+          <aside style="width:222px;flex:none;background:#0d443f;color:#bcd6d0;padding:18px 0;display:flex;flex-direction:column">
+            <div style="padding:0 18px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(233,217,184,.14)">
+              <div style="width:30px;height:30px;border-radius:7px;background:#e9d9b8;display:flex;align-items:center;justify-content:center;font:700 15px 'Newsreader',serif;color:#0d443f">S</div>
+              <div><div style="font-family:'Newsreader',serif;font-size:16px;font-weight:600;color:#fbf7ee;letter-spacing:.2px">Project Silk</div><div style="font-size:9px;color:#6f9088;letter-spacing:1.4px">REPORTING</div></div>
+            </div>
+            <div style="padding:16px 18px 7px;font-size:9.5px;letter-spacing:1.2px;color:#6f9088;font-weight:700">FINANCE</div>
+            <nav style="display:flex;flex-direction:column;font-size:13px">
+              <div style="padding:9px 18px;color:#95b3ad">Pipeline overview</div>
+              <div style="padding:9px 18px 9px 15px;background:rgba(233,217,184,.1);color:#fbf7ee;border-left:3px solid #e9d9b8;font-weight:600">Commission ledger</div>
+              <div style="padding:9px 18px;color:#95b3ad">Collections queue</div>
+              <div style="padding:9px 18px;color:#95b3ad">Partner payouts</div>
+              <div style="padding:9px 18px;color:#95b3ad">Statement drift</div>
+              <div style="padding:9px 18px;color:#95b3ad">Wayward reconciliation</div>
+              <div style="padding:9px 18px;color:#95b3ad">Brand 360</div>
+            </nav>
+            <div style="margin-top:auto;padding:12px 18px 0;border-top:1px solid rgba(233,217,184,.14);font-size:11px">
+              <div style="display:flex;align-items:center;gap:7px;color:#9fe6cf"><span style="width:7px;height:7px;border-radius:50%;background:#3fd6a8;box-shadow:0 0 0 3px rgba(63,214,168,.18)"></span>All syncs green</div>
+              <div style="color:#6f9088;font-size:10px;margin-top:3px;font-family:'IBM Plex Mono',monospace">as of 2026-07-20 09:14</div>
+            </div>
+          </aside>
+          <!-- main -->
+          <div style="flex:1;background:#faf9f6;display:flex;flex-direction:column">
+            <div style="height:52px;flex:none;background:#fdfcf9;border-bottom:1px solid #e6e3da;display:flex;align-items:center;padding:0 20px;gap:14px">
+              <div style="font-size:11.5px;color:#8a8877;font-family:'IBM Plex Mono',monospace">Finance / Commission ledger</div>
+              <div style="margin-left:auto;display:flex;align-items:center;gap:9px">
+                <div style="display:flex;align-items:center;gap:6px;font-size:11.5px;background:#e8f2ef;color:#0e5049;border:1px solid #cfe6df;border-radius:20px;padding:5px 11px"><span style="width:6px;height:6px;border-radius:50%;background:#12a37f"></span>Green · data Jul 20</div>
+                <div style="font-size:11.5px;color:#6a7370;border:1px solid #ddd8cc;border-radius:6px;padding:5px 10px">EN</div>
+                <div style="font-size:12.5px;font-weight:600;color:#fbf7ee;background:#0e5049;border-radius:7px;padding:7px 13px">Export ▾</div>
+              </div>
+            </div>
+            <div style="padding:24px 28px;display:flex;flex-direction:column;gap:20px;overflow:hidden">
+              <!-- header + depth tabs -->
+              <div style="display:flex;align-items:flex-end;justify-content:space-between;border-bottom:2px solid #22302d;padding-bottom:16px">
+                <div>
+                  <div style="font-size:11px;letter-spacing:2px;color:#a39c86;font-weight:700;margin-bottom:5px">WHAT WAYWARD OWES PROJECT SILK</div>
+                  <div style="font-family:'Newsreader',serif;font-size:30px;font-weight:600;letter-spacing:-.3px;line-height:1.02">Commission Statement</div>
+                  <div style="font-size:12.5px;color:#6a7370;margin-top:6px">China book · through <b>July 20, 2026</b> · 87 brands</div>
+                </div>
+                <div style="display:flex;gap:2px;font-size:13px;font-weight:600">
+                  <div style="padding:7px 15px;color:#8a8877;border-bottom:2px solid transparent;margin-bottom:-18px">Glance</div>
+                  <div style="padding:7px 15px;color:#0e5049;border-bottom:2px solid #0e5049;margin-bottom:-18px">Working</div>
+                  <div style="padding:7px 15px;color:#8a8877;border-bottom:2px solid transparent;margin-bottom:-18px">Deep</div>
+                </div>
+              </div>
+              <!-- KPI tiles -->
+              <div style="display:grid;grid-template-columns:1.3fr 1fr 1fr 1fr;gap:0;border:1px solid #e6e3da;border-radius:12px;overflow:hidden">
+                <div style="background:#0e5049;color:#f3ede0;padding:20px 22px">
+                  <div style="font-size:12px;color:#9cc7bf;letter-spacing:.3px">Still owed to us</div>
+                  <div style="font-family:'Newsreader',serif;font-size:38px;font-weight:600;margin-top:5px;letter-spacing:-.5px">$13,712.58</div>
+                  <div style="font-size:12px;color:#e6c98f;margin-top:7px">▲ $212.40 since last statement</div>
+                </div>
+                <div style="background:#fffdf8;padding:20px 22px;border-right:1px solid #eee9dc">
+                  <div style="font-size:11.5px;color:#8a8877">Commission earned</div>
+                  <div style="font-family:'Newsreader',serif;font-size:26px;font-weight:600;margin-top:5px">$34,120</div>
+                  <div style="font-size:11px;color:#a39c86;margin-top:6px">lifetime · 10/6/3 ladder</div>
+                </div>
+                <div style="background:#fffdf8;padding:20px 22px;border-right:1px solid #eee9dc">
+                  <div style="font-size:11.5px;color:#8a8877">Collected this period</div>
+                  <div style="font-family:'Newsreader',serif;font-size:26px;font-weight:600;margin-top:5px">$28,940</div>
+                  <div style="font-size:11px;color:#a39c86;margin-top:6px">net of refunds</div>
+                </div>
+                <div style="background:#fffdf8;padding:20px 22px">
+                  <div style="font-size:11.5px;color:#8a8877">Paid by Wayward</div>
+                  <div style="font-family:'Newsreader',serif;font-size:26px;font-weight:600;margin-top:5px">$20,408</div>
+                  <div style="font-size:11px;color:#a39c86;margin-top:6px">59.8% of earned</div>
+                </div>
+              </div>
+              <!-- ledger -->
+              <div>
+                <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:10px">
+                  <div style="font-family:'Newsreader',serif;font-size:18px;font-weight:600">Itemised by brand</div>
+                  <div style="font-size:11px;color:#a39c86;font-family:'IBM Plex Mono',monospace">lens_ps_commission_ledger · top 8 of 87</div>
+                </div>
+                <div style="border-top:1.5px solid #22302d">
+                  <div style="display:grid;grid-template-columns:1.6fr 1fr .9fr .55fr .9fr .9fr 1fr 1.15fr;column-gap:14px;padding:9px 4px;font-size:10.5px;letter-spacing:.4px;color:#8a8877;font-weight:700;text-transform:uppercase;border-bottom:1px solid #e6e3da">
+                    <div>Brand</div><div>Product</div><div style="text-align:right">Collected</div><div style="text-align:center">Rate</div><div style="text-align:right">Fee owed</div><div style="text-align:right">Paid</div><div style="text-align:right">Balance</div><div>Status</div>
+                  </div>
+                  <sc-for list="{{ rows }}" as="r" hint-placeholder-count="8">
+                    <div style="display:grid;grid-template-columns:1.6fr 1fr .9fr .55fr .9fr .9fr 1fr 1.15fr;column-gap:14px;padding:11px 4px;font-size:13.5px;border-bottom:1px solid #eee9dc;align-items:center">
+                      <div style="font-weight:600">{{ r.brand }}</div>
+                      <div style="color:#6a7370">{{ r.prod }} <span style="color:#b3b8ac;font-size:11.5px">{{ r.prodSub }}</span></div>
+                      <div style="text-align:right;font-family:'IBM Plex Mono',monospace;font-size:12.5px">{{ r.collected }}</div>
+                      <div style="text-align:center"><span style="display:inline-block;min-width:34px;padding:2px 6px;border-radius:6px;font-size:11px;font-weight:700;background:{{ r.rateBg }};color:{{ r.rateFg }}">{{ r.rate }}</span></div>
+                      <div style="text-align:right;font-family:'IBM Plex Mono',monospace;font-size:12.5px">{{ r.owed }}</div>
+                      <div style="text-align:right;font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:#9a9482">{{ r.paid }}</div>
+                      <div style="text-align:right;font-family:'IBM Plex Mono',monospace;font-size:12.5px;font-weight:600;color:{{ r.balColor }}">{{ r.balance }}</div>
+                      <div><span style="display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600;background:{{ r.stBg }};color:{{ r.stFg }};white-space:nowrap">{{ r.stLabel }}</span></div>
+                    </div>
+                  </sc-for>
+                  <div style="display:grid;grid-template-columns:1.6fr 1fr .9fr .55fr .9fr .9fr 1fr 1.15fr;column-gap:14px;padding:13px 4px;font-size:13.5px;font-weight:700;border-top:1.5px solid #22302d">
+                    <div style="font-family:'Newsreader',serif;font-size:15px">Total · 87 brands</div><div></div><div style="text-align:right;font-family:'IBM Plex Mono',monospace">$28,940</div><div></div><div style="text-align:right;font-family:'IBM Plex Mono',monospace">$34,120</div><div style="text-align:right;font-family:'IBM Plex Mono',monospace;color:#9a9482">$20,408</div><div style="text-align:right;font-family:'IBM Plex Mono',monospace;color:#0e5049">$13,712.58</div><div></div>
+                  </div>
+                </div>
+              </div>
+              <!-- recon + drift -->
+              <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:14px">
+                <div style="background:#fffdf8;border:1px solid #e6e3da;border-radius:11px;padding:14px 16px">
+                  <div style="font-family:'Newsreader',serif;font-size:15px;font-weight:600;margin-bottom:10px">Reconciliation · delta status</div>
+                  <div style="display:flex;flex-direction:column;gap:8px;font-size:12.5px">
+                    <div style="display:flex;align-items:center;gap:9px"><span style="width:9px;height:9px;border-radius:2px;background:#b8860b"></span>Acknowledged · unpaid <span style="color:#a39c86">— strongest ask</span><span style="margin-left:auto;font-family:'IBM Plex Mono',monospace;font-weight:600">$6,240</span></div>
+                    <div style="display:flex;align-items:center;gap:9px"><span style="width:9px;height:9px;border-radius:2px;background:#6b5fd6"></span>Credited other · unpaid <span style="color:#a39c86">— negotiation</span><span style="margin-left:auto;font-family:'IBM Plex Mono',monospace;font-weight:600">$4,182</span></div>
+                    <div style="display:flex;align-items:center;gap:9px"><span style="width:9px;height:9px;border-radius:2px;background:#607080"></span>Unacknowledged · unpaid<span style="margin-left:auto;font-family:'IBM Plex Mono',monospace;font-weight:600">$2,100</span></div>
+                    <div style="display:flex;align-items:center;gap:9px"><span style="width:9px;height:9px;border-radius:2px;background:#0b7a68"></span>Paid partial · balance<span style="margin-left:auto;font-family:'IBM Plex Mono',monospace;font-weight:600">$1,190</span></div>
+                  </div>
+                </div>
+                <div style="background:#fbf3e3;border:1px solid #ecdcb8;border-radius:11px;padding:14px 16px;display:flex;flex-direction:column">
+                  <div style="font-family:'Newsreader',serif;font-size:15px;font-weight:600;color:#8a6410;display:flex;align-items:center;gap:7px">⚑ Statement drift</div>
+                  <div style="font-size:12.5px;color:#7a5c1a;margin-top:6px;line-height:1.5">Live figure moved <b>+$212.40</b> since the last statement pinned to Wayward. Review before the next send.</div>
+                  <div style="margin-top:auto;padding-top:9px;font-size:11px;font-weight:700;color:#b45309;font-family:'IBM Plex Mono',monospace">3 brands drifted · flag, don't block</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p class="dv-next">Try next: "build the shared cores in <a class="dv-oid" href="#2a">2a</a>" · "now the Wayward external version of <a class="dv-oid" href="#2a">2a</a>" · "show <a class="dv-oid" href="#2a">2a</a> in dark" · "tighten the ledger row height"</p>
+</section>
+<section class="dv-turn" id="t1">
+  <div class="dv-thd"><a class="dv-tid" href="#t1">1</a><span class="dv-tname">Commission Statement — 3 visual directions</span></div>
+  <p class="dv-intro">The shared-core <b>Commission Statement</b> (Finance's full view of "what Wayward owes us"), shown three ways. Same content &amp; data, same jade accent — different aesthetic + navigation model. <b>1b</b> has a live <b>EN / 中文</b> toggle to prove the layout tolerates Chinese. All light-theme for now; freshness badge is global (top bar) + per-report (as-of date). Pick a direction and I'll build the other cores + per-audience screens in that language.</p>
+  <div class="dv-opts">
+
+    <!-- ============ 1a — DENSE FINANCIAL TERMINAL ============ -->
+    <div class="dv-opt" id="1a">
+      <div class="dv-olabel"><a class="dv-oid" href="#1a">1a</a><b>Financial terminal</b> · dense rows, mono numbers · sidebar + depth tabs</div>
+      <div class="dv-card" style="width:1340px;font-family:'IBM Plex Sans',sans-serif;color:#12211f">
+        <div style="display:flex;min-height:760px">
+          <!-- sidebar -->
+          <aside style="width:212px;flex:none;background:#0c1a18;color:#c7d6d3;padding:16px 0;display:flex;flex-direction:column">
+            <div style="padding:0 16px 16px;display:flex;align-items:center;gap:9px;border-bottom:1px solid rgba(255,255,255,.08)">
+              <div style="width:26px;height:26px;border-radius:6px;background:linear-gradient(135deg,#16a394,#0b4f4a);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:#fff">S</div>
+              <div><div style="font-size:12.5px;font-weight:600;color:#fff;letter-spacing:.2px">Project Silk</div><div style="font-size:9.5px;color:#5f7a76;letter-spacing:.4px">REPORTING</div></div>
+            </div>
+            <div style="padding:14px 16px 6px;font-size:9.5px;letter-spacing:.9px;color:#4d6763;font-weight:600">FINANCE</div>
+            <nav style="display:flex;flex-direction:column;font-size:12.5px">
+              <div style="padding:8px 16px;color:#7f9591">Pipeline overview</div>
+              <div style="padding:8px 16px;background:#16302c;color:#fff;border-left:2px solid #16a394;font-weight:600">Commission ledger</div>
+              <div style="padding:8px 16px;color:#7f9591">Collections queue</div>
+              <div style="padding:8px 16px;color:#7f9591">Partner payouts</div>
+              <div style="padding:8px 16px;color:#7f9591">Statement drift</div>
+              <div style="padding:8px 16px;color:#7f9591">Wayward reconciliation</div>
+              <div style="padding:8px 16px;color:#7f9591">Brand 360</div>
+            </nav>
+            <div style="margin-top:auto;padding:12px 16px;border-top:1px solid rgba(255,255,255,.08);font-size:11px">
+              <div style="display:flex;align-items:center;gap:7px;color:#9fe6cf"><span style="width:7px;height:7px;border-radius:50%;background:#34d399;box-shadow:0 0 0 3px rgba(52,211,153,.18)"></span>All syncs green</div>
+              <div style="color:#4d6763;font-size:10px;margin-top:3px;font-family:'IBM Plex Mono',monospace">as of 2026-07-20 09:14</div>
+            </div>
+          </aside>
+          <!-- main -->
+          <div style="flex:1;background:#f5f6f4;display:flex;flex-direction:column">
+            <!-- top bar -->
+            <div style="height:52px;flex:none;background:#fff;border-bottom:1px solid #e2e6e3;display:flex;align-items:center;padding:0 18px;gap:14px">
+              <div style="font-size:11px;color:#7a8a86;font-family:'IBM Plex Mono',monospace">Finance / Commission ledger</div>
+              <div style="margin-left:auto;display:flex;align-items:center;gap:9px">
+                <div style="display:flex;align-items:center;gap:6px;font-size:11px;background:#eafaf5;color:#0b6b5f;border:1px solid #bfe9de;border-radius:6px;padding:5px 9px"><span style="width:6px;height:6px;border-radius:50%;background:#12b886"></span>Green · data 2026-07-20</div>
+                <div style="font-size:11px;color:#5b6b67;border:1px solid #dfe3e0;border-radius:6px;padding:5px 9px">EN</div>
+                <div style="font-size:11.5px;font-weight:600;color:#fff;background:#0e7c73;border-radius:6px;padding:6px 12px;display:flex;align-items:center;gap:6px">Export ▾</div>
+              </div>
+            </div>
+            <div style="padding:18px 20px;display:flex;flex-direction:column;gap:16px;overflow:hidden">
+              <!-- title + depth tabs -->
+              <div style="display:flex;align-items:flex-end;justify-content:space-between">
+                <div>
+                  <div style="font-size:20px;font-weight:700;letter-spacing:-.2px">Commission Statement</div>
+                  <div style="font-size:12px;color:#6d7d79;margin-top:2px">What Wayward owes Project Silk · china book · as of Jul 20, 2026</div>
+                </div>
+                <div style="display:flex;background:#e7ebe8;border-radius:8px;padding:3px;font-size:12px;font-weight:600">
+                  <div style="padding:6px 14px;border-radius:6px;color:#6d7d79">Glance</div>
+                  <div style="padding:6px 14px;border-radius:6px;background:#fff;color:#12403b;box-shadow:0 1px 2px rgba(0,0,0,.08)">Working</div>
+                  <div style="padding:6px 14px;border-radius:6px;color:#6d7d79">Deep</div>
+                </div>
+              </div>
+              <!-- KPI strip -->
+              <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px">
+                <div style="background:#0c1a18;border-radius:10px;padding:14px 15px;color:#fff">
+                  <div style="font-size:10.5px;letter-spacing:.5px;color:#8fb8b1;text-transform:uppercase">Still owed to us</div>
+                  <div style="font-family:'IBM Plex Mono',monospace;font-size:26px;font-weight:600;margin-top:6px;letter-spacing:-.5px">$13,712.58</div>
+                  <div style="font-size:11px;color:#4ade80;margin-top:4px">▲ $212.40 since last stmt</div>
+                </div>
+                <div style="background:#fff;border:1px solid #e4e8e5;border-radius:10px;padding:14px 15px">
+                  <div style="font-size:10.5px;letter-spacing:.5px;color:#8a9a96;text-transform:uppercase">Commission earned</div>
+                  <div style="font-family:'IBM Plex Mono',monospace;font-size:24px;font-weight:600;margin-top:6px;color:#12211f">$34,120.11</div>
+                  <div style="font-size:11px;color:#8a9a96;margin-top:4px">lifetime · 10/6/3 ladder</div>
+                </div>
+                <div style="background:#fff;border:1px solid #e4e8e5;border-radius:10px;padding:14px 15px">
+                  <div style="font-size:10.5px;letter-spacing:.5px;color:#8a9a96;text-transform:uppercase">Collected this period</div>
+                  <div style="font-family:'IBM Plex Mono',monospace;font-size:24px;font-weight:600;margin-top:6px;color:#12211f">$28,940.00</div>
+                  <div style="font-size:11px;color:#8a9a96;margin-top:4px">net of refunds</div>
+                </div>
+                <div style="background:#fff;border:1px solid #e4e8e5;border-radius:10px;padding:14px 15px">
+                  <div style="font-size:10.5px;letter-spacing:.5px;color:#8a9a96;text-transform:uppercase">Paid by Wayward</div>
+                  <div style="font-family:'IBM Plex Mono',monospace;font-size:24px;font-weight:600;margin-top:6px;color:#12211f">$20,407.53</div>
+                  <div style="font-size:11px;color:#8a9a96;margin-top:4px">59.8% of earned</div>
+                </div>
+              </div>
+              <!-- ledger table -->
+              <div style="background:#fff;border:1px solid #e4e8e5;border-radius:10px;overflow:hidden">
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid #eef1ef">
+                  <div style="font-size:13px;font-weight:600">Commission ledger · brand × product × period</div>
+                  <div style="font-size:11px;color:#8a9a96;font-family:'IBM Plex Mono',monospace">lens_ps_commission_ledger · top 8 of 87</div>
+                </div>
+                <div style="font-family:'IBM Plex Mono',monospace;font-size:11.5px">
+                  <div style="display:grid;grid-template-columns:1.5fr .9fr .9fr .5fr .9fr .9fr 1fr 1.15fr;column-gap:14px;padding:8px 14px;background:#f7f8f7;color:#7a8a86;font-size:10px;letter-spacing:.4px;text-transform:uppercase;border-bottom:1px solid #eef1ef">
+                    <div>Brand</div><div>Product</div><div style="text-align:right">Collected</div><div style="text-align:center">Rate</div><div style="text-align:right">Fee owed</div><div style="text-align:right">Paid</div><div style="text-align:right">Balance</div><div>Status</div>
+                  </div>
+                  <sc-for list="{{ rows }}" as="r" hint-placeholder-count="8">
+                    <div style="display:grid;grid-template-columns:1.5fr .9fr .9fr .5fr .9fr .9fr 1fr 1.15fr;column-gap:14px;padding:9px 14px;border-bottom:1px solid #f2f4f2;align-items:center">
+                      <div style="font-family:'IBM Plex Sans',sans-serif;font-weight:600;color:#12211f">{{ r.brand }}</div>
+                      <div style="color:#5b6b67">{{ r.prod }} <span style="color:#a9b6b2">{{ r.prodSub }}</span></div>
+                      <div style="text-align:right;color:#12211f">{{ r.collected }}</div>
+                      <div style="text-align:center"><span style="display:inline-block;min-width:34px;padding:2px 6px;border-radius:6px;font-size:11px;font-weight:700;background:{{ r.rateBg }};color:{{ r.rateFg }}">{{ r.rate }}</span></div>
+                      <div style="text-align:right;color:#12211f">{{ r.owed }}</div>
+                      <div style="text-align:right;color:#8a9a96">{{ r.paid }}</div>
+                      <div style="text-align:right;font-weight:600;color:{{ r.balColor }}">{{ r.balance }}</div>
+                      <div><span style="display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600;background:{{ r.stBg }};color:{{ r.stFg }};white-space:nowrap">{{ r.stLabel }}</span></div>
+                    </div>
+                  </sc-for>
+                  <div style="display:grid;grid-template-columns:1.5fr .9fr .9fr .5fr .9fr .9fr 1fr 1.15fr;column-gap:14px;padding:11px 14px;background:#0c1a18;color:#fff;font-weight:600">
+                    <div style="font-family:'IBM Plex Sans',sans-serif">Total · 87 brands</div><div></div><div style="text-align:right">$28,940</div><div></div><div style="text-align:right">$34,120</div><div style="text-align:right;color:#8fb8b1">$20,408</div><div style="text-align:right;color:#4ade80">$13,712.58</div><div></div>
+                  </div>
+                </div>
+              </div>
+              <!-- recon + drift strip -->
+              <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:12px">
+                <div style="background:#fff;border:1px solid #e4e8e5;border-radius:10px;padding:12px 14px">
+                  <div style="font-size:12px;font-weight:600;margin-bottom:9px">Reconciliation · delta status <span style="color:#a9b6b2;font-weight:400;font-family:'IBM Plex Mono',monospace;font-size:10.5px">lens_ps_wayward_reconciliation</span></div>
+                  <div style="display:flex;flex-direction:column;gap:7px;font-size:11.5px">
+                    <div style="display:flex;align-items:center;gap:8px"><span style="width:9px;height:9px;border-radius:2px;background:#f59e0b"></span>Acknowledged · unpaid <span style="color:#8a9a96">— strongest ask</span><span style="margin-left:auto;font-family:'IBM Plex Mono',monospace;font-weight:600">$6,240</span></div>
+                    <div style="display:flex;align-items:center;gap:8px"><span style="width:9px;height:9px;border-radius:2px;background:#7c6df2"></span>Credited other · unpaid <span style="color:#8a9a96">— negotiation</span><span style="margin-left:auto;font-family:'IBM Plex Mono',monospace;font-weight:600">$4,182</span></div>
+                    <div style="display:flex;align-items:center;gap:8px"><span style="width:9px;height:9px;border-radius:2px;background:#94a3b8"></span>Unacknowledged · unpaid<span style="margin-left:auto;font-family:'IBM Plex Mono',monospace;font-weight:600">$2,100</span></div>
+                    <div style="display:flex;align-items:center;gap:8px"><span style="width:9px;height:9px;border-radius:2px;background:#14b8a6"></span>Paid partial · balance<span style="margin-left:auto;font-family:'IBM Plex Mono',monospace;font-weight:600">$1,190</span></div>
+                  </div>
+                </div>
+                <div style="background:#fffaf0;border:1px solid #f5e2bf;border-radius:10px;padding:12px 14px;display:flex;flex-direction:column">
+                  <div style="font-size:12px;font-weight:600;color:#92600a;display:flex;align-items:center;gap:7px"><span style="font-size:14px">⚑</span>Statement drift</div>
+                  <div style="font-size:11.5px;color:#7a5a12;margin-top:6px;line-height:1.5">Live number moved <b>+$212.40</b> since the last statement pinned to Wayward. Review before the next send.</div>
+                  <div style="margin-top:auto;padding-top:10px;font-size:11px;font-weight:600;color:#b45309;font-family:'IBM Plex Mono',monospace">3 brands drifted · flag, don't block</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ 1b — CALM MODERN SAAS (with EN/中文 toggle) ============ -->
+    <div class="dv-opt" id="1b">
+      <div class="dv-olabel"><a class="dv-oid" href="#1b">1b</a><b>Calm modern SaaS</b> · roomy cards, soft neutrals · top-bar + breadcrumb · <b style="color:#0e7c73">live EN/中文</b></div>
+      <div class="dv-card" style="width:1340px;font-family:{{ fontStack }};color:#1b2b28;background:#f7f9f8">
+        <!-- top bar -->
+        <div style="height:60px;background:#fff;border-bottom:1px solid #e8ecea;display:flex;align-items:center;padding:0 22px;gap:16px">
+          <div style="display:flex;align-items:center;gap:10px">
+            <div style="width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,#16a394,#0b4f4a);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;color:#fff">S</div>
+            <div style="font-weight:700;font-size:15px;letter-spacing:-.2px">Project Silk <span style="color:#9aa8a4;font-weight:500">Reporting</span></div>
+          </div>
+          <nav style="display:flex;gap:4px;margin-left:20px;font-size:13px;color:#5f716d;font-weight:500">
+            <div style="padding:7px 12px;border-radius:8px">{{ L.navPipeline }}</div>
+            <div style="padding:7px 12px;border-radius:8px;background:#e7f6f2;color:#0b6b5f;font-weight:600">{{ L.navCommission }}</div>
+            <div style="padding:7px 12px;border-radius:8px">{{ L.navPartners }}</div>
+            <div style="padding:7px 12px;border-radius:8px">{{ L.navBrands }}</div>
+          </nav>
+          <div style="margin-left:auto;display:flex;align-items:center;gap:10px">
+            <div style="display:flex;align-items:center;gap:7px;font-size:12px;background:#effaf6;color:#0b6b5f;border:1px solid #cbeee2;border-radius:20px;padding:6px 12px"><span style="width:7px;height:7px;border-radius:50%;background:#12b886;box-shadow:0 0 0 3px rgba(18,184,134,.16)"></span>{{ L.allGreen }}</div>
+            <div style="display:flex;background:#eef2f0;border-radius:8px;padding:3px;font-size:12px;font-weight:600;cursor:pointer">
+              <div onClick="{{ setEn }}" style="padding:5px 12px;border-radius:6px;background:{{ enBg }};color:{{ enFg }};box-shadow:{{ enShadow }}">EN</div>
+              <div onClick="{{ setZh }}" style="padding:5px 12px;border-radius:6px;background:{{ zhBg }};color:{{ zhFg }};box-shadow:{{ zhShadow }}">中文</div>
+            </div>
+            <div style="width:30px;height:30px;border-radius:50%;background:#d9e5e1;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:#4a5c58">SR</div>
+          </div>
+        </div>
+        <div style="padding:24px 26px;display:flex;flex-direction:column;gap:18px">
+          <!-- breadcrumb + title + depth -->
+          <div>
+            <div style="font-size:12px;color:#9aa8a4;margin-bottom:8px">{{ L.crumb }}</div>
+            <div style="display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:12px">
+              <div>
+                <div style="font-size:24px;font-weight:700;letter-spacing:-.4px">{{ L.title }}</div>
+                <div style="font-size:13.5px;color:#6d7d79;margin-top:3px">{{ L.subtitle }}</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px">
+                <div style="font-size:12px;color:#8a9a96;display:flex;align-items:center;gap:6px"><span style="width:6px;height:6px;border-radius:50%;background:#12b886"></span>{{ L.asOf }} Jul 20, 2026</div>
+                <div style="font-size:13px;font-weight:600;color:#fff;background:#0e7c73;border-radius:9px;padding:9px 16px">{{ L.export }} ▾</div>
+              </div>
+            </div>
+            <div style="display:flex;gap:6px;margin-top:14px">
+              <div style="padding:7px 16px;border-radius:9px;font-size:13px;font-weight:600;color:#6d7d79;background:#eef2f0">{{ L.glance }}</div>
+              <div style="padding:7px 16px;border-radius:9px;font-size:13px;font-weight:600;background:#0e7c73;color:#fff">{{ L.working }}</div>
+              <div style="padding:7px 16px;border-radius:9px;font-size:13px;font-weight:600;color:#6d7d79;background:#eef2f0">{{ L.deep }}</div>
+            </div>
+          </div>
+          <!-- KPI tiles -->
+          <div style="display:grid;grid-template-columns:1.3fr 1fr 1fr 1fr;gap:14px">
+            <div style="background:linear-gradient(135deg,#0e7c73,#0b4f4a);border-radius:14px;padding:18px 20px;color:#fff;box-shadow:0 10px 24px -10px rgba(14,124,115,.6)">
+              <div style="font-size:12.5px;color:#a9ded5">{{ L.kpiOwed }}</div>
+              <div style="font-size:34px;font-weight:700;margin-top:8px;letter-spacing:-1px">$13,712<span style="font-size:20px;color:#a9ded5">.58</span></div>
+              <div style="font-size:12px;color:#7fe6cf;margin-top:6px">▲ $212.40 {{ L.sinceStmt }}</div>
+            </div>
+            <div style="background:#fff;border:1px solid #e8ecea;border-radius:14px;padding:18px 20px">
+              <div style="font-size:12.5px;color:#8a9a96">{{ L.kpiEarned }}</div>
+              <div style="font-size:26px;font-weight:700;margin-top:8px;color:#1b2b28">$34,120</div>
+              <div style="font-size:12px;color:#8a9a96;margin-top:6px">{{ L.lifetime }}</div>
+            </div>
+            <div style="background:#fff;border:1px solid #e8ecea;border-radius:14px;padding:18px 20px">
+              <div style="font-size:12.5px;color:#8a9a96">{{ L.kpiCollected }}</div>
+              <div style="font-size:26px;font-weight:700;margin-top:8px;color:#1b2b28">$28,940</div>
+              <div style="font-size:12px;color:#8a9a96;margin-top:6px">{{ L.netRefunds }}</div>
+            </div>
+            <div style="background:#fff;border:1px solid #e8ecea;border-radius:14px;padding:18px 20px">
+              <div style="font-size:12.5px;color:#8a9a96">{{ L.kpiPaid }}</div>
+              <div style="font-size:26px;font-weight:700;margin-top:8px;color:#1b2b28">$20,408</div>
+              <div style="font-size:12px;color:#8a9a96;margin-top:6px">59.8%</div>
+            </div>
+          </div>
+          <!-- chart + recon -->
+          <div style="display:grid;grid-template-columns:1.55fr 1fr;gap:14px">
+            <div style="background:#fff;border:1px solid #e8ecea;border-radius:14px;padding:16px 18px">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+                <div style="font-size:14px;font-weight:600">{{ L.trendTitle }}</div>
+                <div style="display:flex;gap:14px;font-size:11.5px;color:#6d7d79">
+                  <span style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:3px;background:#0e7c73"></span>{{ L.legOwed }}</span>
+                  <span style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:2px;background:#f59e0b"></span>{{ L.legCollected }}</span>
+                  <span style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:2px;background:#94a3b8"></span>{{ L.legPaid }}</span>
+                </div>
+              </div>
+              <svg viewBox="0 0 560 210" style="width:100%;height:auto;display:block">
+                <defs><linearGradient id="ar1b" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0e7c73" stop-opacity=".28"></stop><stop offset="1" stop-color="#0e7c73" stop-opacity="0"></stop></linearGradient></defs>
+                <line x1="42" y1="20" x2="42" y2="168" stroke="#e8ecea"></line>
+                <line x1="42" y1="168" x2="548" y2="168" stroke="#e8ecea"></line>
+                <line x1="42" y1="131" x2="548" y2="131" stroke="#f1f4f2"></line>
+                <line x1="42" y1="94" x2="548" y2="94" stroke="#f1f4f2"></line>
+                <line x1="42" y1="57" x2="548" y2="57" stroke="#f1f4f2"></line>
+                <text x="34" y="171" text-anchor="end" font-size="9" fill="#a9b6b2">0</text>
+                <text x="34" y="97" text-anchor="end" font-size="9" fill="#a9b6b2">7k</text>
+                <text x="34" y="60" text-anchor="end" font-size="9" fill="#a9b6b2">10k</text>
+                <path d="M52,150 L136,138 L220,116 L304,92 L388,74 L472,52 L540,44 L540,168 L52,168 Z" fill="url(#ar1b)"></path>
+                <path d="M52,150 L136,138 L220,116 L304,92 L388,74 L472,52 L540,44" fill="none" stroke="#0e7c73" stroke-width="2.5"></path>
+                <path d="M52,120 L136,108 L220,100 L304,84 L388,72 L472,60 L540,56" fill="none" stroke="#f59e0b" stroke-width="2" stroke-dasharray="1 0"></path>
+                <path d="M52,158 L136,146 L220,138 L304,124 L388,112 L472,104 L540,98" fill="none" stroke="#94a3b8" stroke-width="2"></path>
+                <g font-size="9.5" fill="#8a9a96" text-anchor="middle"><text x="52" y="184">Jan</text><text x="136" y="184">Feb</text><text x="220" y="184">Mar</text><text x="304" y="184">Apr</text><text x="388" y="184">May</text><text x="472" y="184">Jun</text><text x="540" y="184">Jul</text></g>
+              </svg>
+            </div>
+            <div style="background:#fff;border:1px solid #e8ecea;border-radius:14px;padding:16px 18px">
+              <div style="font-size:14px;font-weight:600;margin-bottom:12px">{{ L.reconTitle }}</div>
+              <div style="display:flex;flex-direction:column;gap:11px;font-size:12.5px">
+                <div><div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="color:#5f716d">{{ L.ackUnpaid }}</span><span style="font-weight:700">$6,240</span></div><div style="height:7px;border-radius:4px;background:#eef2f0"><div style="width:46%;height:100%;border-radius:4px;background:#f59e0b"></div></div></div>
+                <div><div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="color:#5f716d">{{ L.creditedOther }}</span><span style="font-weight:700">$4,182</span></div><div style="height:7px;border-radius:4px;background:#eef2f0"><div style="width:31%;height:100%;border-radius:4px;background:#7c6df2"></div></div></div>
+                <div><div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="color:#5f716d">{{ L.unack }}</span><span style="font-weight:700">$2,100</span></div><div style="height:7px;border-radius:4px;background:#eef2f0"><div style="width:15%;height:100%;border-radius:4px;background:#94a3b8"></div></div></div>
+                <div><div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="color:#5f716d">{{ L.partial }}</span><span style="font-weight:700">$1,190</span></div><div style="height:7px;border-radius:4px;background:#eef2f0"><div style="width:9%;height:100%;border-radius:4px;background:#14b8a6"></div></div></div>
+              </div>
+            </div>
+          </div>
+          <!-- table -->
+          <div style="background:#fff;border:1px solid #e8ecea;border-radius:14px;overflow:hidden">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid #eef2f0">
+              <div style="font-size:14px;font-weight:600">{{ L.ledgerTitle }}</div>
+              <div style="font-size:12px;color:#9aa8a4;background:#f2f5f4;border-radius:6px;padding:4px 9px">{{ L.top8 }}</div>
+            </div>
+            <div style="display:grid;grid-template-columns:1.6fr 1fr .9fr .6fr .9fr .9fr .9fr 1.2fr;padding:11px 18px;font-size:11px;letter-spacing:.3px;color:#9aa8a4;font-weight:600;text-transform:uppercase;background:#fafbfa">
+              <div>{{ L.thBrand }}</div><div>{{ L.thProduct }}</div><div style="text-align:right">{{ L.thCollected }}</div><div style="text-align:center">{{ L.thRate }}</div><div style="text-align:right">{{ L.thOwed }}</div><div style="text-align:right">{{ L.thPaid }}</div><div style="text-align:right">{{ L.thBalance }}</div><div>{{ L.thStatus }}</div>
+            </div>
+            <sc-for list="{{ rowsB }}" as="r" hint-placeholder-count="8">
+              <div style="display:grid;grid-template-columns:1.6fr 1fr .9fr .6fr .9fr .9fr .9fr 1.2fr;padding:12px 18px;font-size:13px;border-top:1px solid #f2f5f4;align-items:center">
+                <div style="font-weight:600">{{ r.brand }}</div>
+                <div style="color:#5f716d">{{ r.prod }} <span style="color:#a9b6b2;font-size:11.5px">{{ r.prodSub }}</span></div>
+                <div style="text-align:right;font-variant-numeric:tabular-nums">{{ r.collected }}</div>
+                <div style="text-align:center"><span style="display:inline-block;min-width:34px;padding:2px 6px;border-radius:6px;font-size:11px;font-weight:700;background:{{ r.rateBg }};color:{{ r.rateFg }}">{{ r.rate }}</span></div>
+                <div style="text-align:right;font-variant-numeric:tabular-nums">{{ r.owed }}</div>
+                <div style="text-align:right;font-variant-numeric:tabular-nums;color:#8a9a96">{{ r.paid }}</div>
+                <div style="text-align:right;font-variant-numeric:tabular-nums;font-weight:700;color:{{ r.balColor }}">{{ r.balance }}</div>
+                <div><span style="display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600;background:{{ r.stBg }};color:{{ r.stFg }};white-space:nowrap">{{ r.stLabel }}</span></div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ 1c — EDITORIAL / PREMIUM STATEMENT ============ -->
+    <div class="dv-opt" id="1c">
+      <div class="dv-olabel"><a class="dv-oid" href="#1c">1c</a><b>Editorial statement</b> · serif headings, document feel · sidebar where depth is the nav</div>
+      <div class="dv-card" style="width:1300px;font-family:'Public Sans',sans-serif;color:#22302d;background:#faf9f6">
+        <div style="display:flex;min-height:770px">
+          <!-- sidebar: depth is the nav -->
+          <aside style="width:236px;flex:none;background:#faf9f6;border-right:1px solid #e6e3da;padding:22px 20px;display:flex;flex-direction:column">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:26px">
+              <div style="width:30px;height:30px;border-radius:7px;background:#0e5049;display:flex;align-items:center;justify-content:center;font:700 14px 'Newsreader',serif;color:#e9d9b8">S</div>
+              <div style="font-family:'Newsreader',serif;font-weight:600;font-size:17px;letter-spacing:.2px">Project Silk</div>
+            </div>
+            <div style="font-size:10px;letter-spacing:1.2px;color:#a39c86;font-weight:600;margin-bottom:10px">COMMISSION STATEMENT</div>
+            <nav style="display:flex;flex-direction:column;gap:2px">
+              <div style="padding:11px 14px;border-radius:9px;font-size:14px;color:#6a7370">Glance <span style="color:#b3b8ac;font-size:12px">· the 5-second read</span></div>
+              <div style="padding:11px 14px;border-radius:9px;font-size:14px;background:#0e5049;color:#f3ede0;font-weight:600">Working <span style="color:#8fb3ac;font-size:12px;font-weight:400">· the ledger</span></div>
+              <div style="padding:11px 14px;border-radius:9px;font-size:14px;color:#6a7370">Deep <span style="color:#b3b8ac;font-size:12px">· per-brand invoice</span></div>
+            </nav>
+            <div style="margin-top:22px;padding-top:18px;border-top:1px solid #e6e3da;font-size:11px;letter-spacing:1px;color:#a39c86;font-weight:600;margin-bottom:8px">RELATED</div>
+            <nav style="display:flex;flex-direction:column;font-size:13.5px;color:#6a7370;gap:9px">
+              <div>Collections queue</div><div>Partner payouts</div><div>Wayward reconciliation</div>
+            </nav>
+            <div style="margin-top:auto;background:#f0eee4;border:1px solid #e6e3da;border-radius:10px;padding:12px 13px">
+              <div style="display:flex;align-items:center;gap:7px;font-size:12px;font-weight:600;color:#0e5049"><span style="width:7px;height:7px;border-radius:50%;background:#12a37f"></span>All syncs green</div>
+              <div style="font-size:11px;color:#9a9482;margin-top:4px">Data as of Jul 20, 2026 · 09:14</div>
+            </div>
+          </aside>
+          <!-- main: statement document -->
+          <div style="flex:1;padding:34px 40px;overflow:hidden">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;border-bottom:2px solid #22302d;padding-bottom:18px;margin-bottom:24px">
+              <div>
+                <div style="font-size:12px;letter-spacing:2px;color:#a39c86;font-weight:600;margin-bottom:6px">WHAT WAYWARD OWES PROJECT SILK</div>
+                <div style="font-family:'Newsreader',serif;font-size:34px;font-weight:600;letter-spacing:-.3px;line-height:1.05">Commission Statement</div>
+                <div style="font-size:13.5px;color:#6a7370;margin-top:8px">China book · statement period through <b>July 20, 2026</b> · 87 brands</div>
+              </div>
+              <div style="display:flex;flex-direction:column;align-items:flex-end;gap:9px">
+                <div style="display:flex;align-items:center;gap:7px;font-size:12px;color:#0e5049;background:#e8f2ef;border:1px solid #cfe6df;border-radius:20px;padding:6px 13px"><span style="width:6px;height:6px;border-radius:50%;background:#12a37f"></span>Green · as of Jul 20</div>
+                <div style="display:flex;gap:8px">
+                  <div style="font-size:13px;font-weight:600;color:#0e5049;border:1.5px solid #0e5049;border-radius:8px;padding:8px 14px">Download PDF</div>
+                  <div style="font-size:13px;font-weight:600;color:#fff;background:#0e5049;border-radius:8px;padding:8px 14px">Export CSV</div>
+                </div>
+              </div>
+            </div>
+            <!-- headline number as a statement -->
+            <div style="display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:0;border:1px solid #e6e3da;border-radius:12px;overflow:hidden;margin-bottom:26px">
+              <div style="background:#0e5049;color:#f3ede0;padding:22px 24px">
+                <div style="font-size:12.5px;color:#9cc7bf;letter-spacing:.3px">Still owed to us</div>
+                <div style="font-family:'Newsreader',serif;font-size:40px;font-weight:600;margin-top:6px;letter-spacing:-.5px">$13,712.58</div>
+                <div style="font-size:12.5px;color:#e6c98f;margin-top:8px">▲ $212.40 since last statement</div>
+              </div>
+              <div style="padding:22px 22px;border-right:1px solid #eee9dc">
+                <div style="font-size:12px;color:#8a8877">Commission earned</div>
+                <div style="font-family:'Newsreader',serif;font-size:27px;font-weight:600;margin-top:6px">$34,120</div>
+                <div style="font-size:11.5px;color:#a39c86;margin-top:6px">lifetime · 10/6/3</div>
+              </div>
+              <div style="padding:22px 22px;border-right:1px solid #eee9dc">
+                <div style="font-size:12px;color:#8a8877">Collected</div>
+                <div style="font-family:'Newsreader',serif;font-size:27px;font-weight:600;margin-top:6px">$28,940</div>
+                <div style="font-size:11.5px;color:#a39c86;margin-top:6px">net of refunds</div>
+              </div>
+              <div style="padding:22px 22px">
+                <div style="font-size:12px;color:#8a8877">Paid by Wayward</div>
+                <div style="font-family:'Newsreader',serif;font-size:27px;font-weight:600;margin-top:6px">$20,408</div>
+                <div style="font-size:11.5px;color:#a39c86;margin-top:6px">59.8% of earned</div>
+              </div>
+            </div>
+            <!-- ledger as a statement table -->
+            <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:12px">
+              <div style="font-family:'Newsreader',serif;font-size:19px;font-weight:600">Itemised by brand</div>
+              <div style="font-size:11.5px;color:#a39c86">lens_ps_commission_ledger · showing top 8 of 87</div>
+            </div>
+            <div style="border-top:1.5px solid #22302d">
+              <div style="display:grid;grid-template-columns:1.7fr 1fr .9fr .55fr .9fr .9fr .95fr 1.15fr;padding:9px 4px;font-size:11px;letter-spacing:.4px;color:#8a8877;font-weight:600;text-transform:uppercase;border-bottom:1px solid #e6e3da">
+                <div>Brand</div><div>Product</div><div style="text-align:right">Collected</div><div style="text-align:center">Rate</div><div style="text-align:right">Fee owed</div><div style="text-align:right">Paid</div><div style="text-align:right">Balance</div><div>Status</div>
+              </div>
+              <sc-for list="{{ rowsC }}" as="r" hint-placeholder-count="8">
+                <div style="display:grid;grid-template-columns:1.7fr 1fr .9fr .55fr .9fr .9fr .95fr 1.15fr;padding:12px 4px;font-size:13.5px;border-bottom:1px solid #eee9dc;align-items:center">
+                  <div style="font-weight:600">{{ r.brand }}</div>
+                  <div style="color:#6a7370">{{ r.prod }} <span style="color:#b3b8ac;font-size:11.5px">{{ r.prodSub }}</span></div>
+                  <div style="text-align:right;font-variant-numeric:tabular-nums">{{ r.collected }}</div>
+                  <div style="text-align:center"><span style="display:inline-block;min-width:34px;padding:2px 6px;border-radius:6px;font-size:11px;font-weight:700;background:{{ r.rateBg }};color:{{ r.rateFg }}">{{ r.rate }}</span></div>
+                  <div style="text-align:right;font-variant-numeric:tabular-nums">{{ r.owed }}</div>
+                  <div style="text-align:right;font-variant-numeric:tabular-nums;color:#9a9482">{{ r.paid }}</div>
+                  <div style="text-align:right;font-variant-numeric:tabular-nums;font-weight:700;color:{{ r.balColor }}">{{ r.balance }}</div>
+                  <div><span style="display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600;background:{{ r.stBg }};color:{{ r.stFg }};white-space:nowrap">{{ r.stLabel }}</span></div>
+                </div>
+              </sc-for>
+              <div style="display:grid;grid-template-columns:1.7fr 1fr .9fr .55fr .9fr .9fr .95fr 1.15fr;padding:14px 4px;font-size:14px;font-weight:700;border-top:1.5px solid #22302d">
+                <div style="font-family:'Newsreader',serif">Total · 87 brands</div><div></div><div style="text-align:right;font-variant-numeric:tabular-nums">$28,940</div><div></div><div style="text-align:right;font-variant-numeric:tabular-nums">$34,120</div><div style="text-align:right;font-variant-numeric:tabular-nums;color:#9a9482">$20,408</div><div style="text-align:right;font-variant-numeric:tabular-nums;color:#0e5049">$13,712.58</div><div></div>
+              </div>
+            </div>
+            <div style="margin-top:22px;display:flex;gap:14px;align-items:stretch">
+              <div style="flex:1;background:#fff;border:1px solid #e6e3da;border-radius:11px;padding:15px 17px">
+                <div style="font-family:'Newsreader',serif;font-size:15px;font-weight:600;margin-bottom:10px">Reconciliation with Wayward</div>
+                <div style="display:flex;gap:16px;font-size:12.5px">
+                  <div style="flex:1"><div style="color:#8a8877;margin-bottom:3px">Acknowledged · unpaid</div><div style="font-family:'Newsreader',serif;font-size:19px;font-weight:600;color:#b8860b">$6,240</div><div style="font-size:11px;color:#a39c86">strongest ask</div></div>
+                  <div style="flex:1"><div style="color:#8a8877;margin-bottom:3px">Credited other</div><div style="font-family:'Newsreader',serif;font-size:19px;font-weight:600;color:#6b5fd6">$4,182</div><div style="font-size:11px;color:#a39c86">negotiation</div></div>
+                  <div style="flex:1"><div style="color:#8a8877;margin-bottom:3px">Unack · unpaid</div><div style="font-family:'Newsreader',serif;font-size:19px;font-weight:600;color:#607080">$2,100</div><div style="font-size:11px;color:#a39c86">no attribution</div></div>
+                </div>
+              </div>
+              <div style="width:280px;flex:none;background:#fbf3e3;border:1px solid #ecdcb8;border-radius:11px;padding:15px 17px">
+                <div style="font-family:'Newsreader',serif;font-size:15px;font-weight:600;color:#8a6410;display:flex;align-items:center;gap:7px">⚑ Drift check</div>
+                <div style="font-size:12.5px;color:#7a5c1a;margin-top:7px;line-height:1.55">Live figure is <b>+$212.40</b> above the last pinned statement. Checked before any send — flags, never blocks.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <p class="dv-next">Try next: "build the rest in <a class="dv-oid" href="#1b">1b</a>" · "make <a class="dv-oid" href="#1a">1a</a> the ledger but with <a class="dv-oid" href="#1c">1c</a>'s headline number" · "show <a class="dv-oid" href="#1b">1b</a> in dark" · "now do the Wayward external version of this"</p>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { lang: 'en' };
+  _rowCache = {};
+  _setEn = () => { if (this.state.lang !== 'en') this.setState({ lang: 'en' }); };
+  _setZh = () => { if (this.state.lang !== 'zh') this.setState({ lang: 'zh' }); };
+
+  base = [
+    { brand:'INICAT',            product:'connect', collected:8420,  rate:10, owed:842.00,  paid:0,    balance:842.00,  st:'ack' },
+    { brand:'Meilan Home',       product:'connect', collected:21030, rate:6,  owed:1261.80, paid:400,  balance:861.80,  st:'ack' },
+    { brand:'Zhonghe Pet',       product:'boosted', collected:5540,  rate:10, owed:554.00,  paid:0,    balance:554.00,  st:'unack' },
+    { brand:'Oritek',            product:'connect', collected:46110, rate:3,  owed:1383.30, paid:800,  balance:583.30,  st:'credited' },
+    { brand:'Baishun Outdoor',   product:'connect', collected:12240, rate:10, owed:1224.00, paid:1224, balance:0,       st:'settled' },
+    { brand:'Cloudray',          product:'boosted', collected:9870,  rate:6,  owed:592.20,  paid:200,  balance:392.20,  st:'partial' },
+    { brand:'Everbright Kitchen',product:'connect', collected:33200, rate:6,  owed:1992.00, paid:900,  balance:1092.00, st:'credited' },
+    { brand:'Sunvalley Digital', product:'connect', collected:18450, rate:10, owed:1845.00, paid:0,    balance:1845.00, st:'ack' },
+  ];
+
+  L_en = {
+    navPipeline:'Pipeline', navCommission:'Commission', navPartners:'Partners', navBrands:'Brands',
+    allGreen:'All syncs green', crumb:'Finance / Commission ledger',
+    title:'Commission Statement', subtitle:'What Wayward owes Project Silk · china book',
+    asOf:'as of', export:'Export', glance:'Glance', working:'Working', deep:'Deep',
+    kpiOwed:'Still owed to us', kpiEarned:'Commission earned', kpiCollected:'Collected this period', kpiPaid:'Paid by Wayward',
+    sinceStmt:'since last statement', lifetime:'lifetime · 10/6/3 ladder', netRefunds:'net of refunds',
+    trendTitle:'Owed · collected · paid, by month', legOwed:'Owed', legCollected:'Collected', legPaid:'Paid',
+    reconTitle:'Reconciliation with Wayward', ackUnpaid:'Acknowledged · unpaid', creditedOther:'Credited other · unpaid', unack:'Unacknowledged', partial:'Paid partial',
+    ledgerTitle:'Commission ledger · brand × product × period', top8:'Top 8 of 87',
+    thBrand:'Brand', thProduct:'Product', thCollected:'Collected', thRate:'Rate', thOwed:'Fee owed', thPaid:'Paid', thBalance:'Balance', thStatus:'Status',
+  };
+  L_zh = {
+    navPipeline:'资金流', navCommission:'佣金', navPartners:'合作方', navBrands:'品牌',
+    allGreen:'同步正常', crumb:'财务 / 佣金明细',
+    title:'佣金结算单', subtitle:'Wayward 应付 Project Silk 的款项 · 中国品牌',
+    asOf:'数据截至', export:'导出', glance:'概览', working:'工作台', deep:'明细',
+    kpiOwed:'尚欠我方', kpiEarned:'累计佣金', kpiCollected:'本期已收', kpiPaid:'Wayward 已付',
+    sinceStmt:'较上次结算单', lifetime:'累计 · 10/6/3 阶梯', netRefunds:'已扣退款',
+    trendTitle:'应收 · 已收 · 已付（按月）', legOwed:'应收', legCollected:'已收', legPaid:'已付',
+    reconTitle:'与 Wayward 对账', ackUnpaid:'已确认 · 未付', creditedOther:'归属他方 · 未付', unack:'未确认', partial:'部分已付',
+    ledgerTitle:'佣金明细 · 品牌 × 产品 × 周期', top8:'前 8 / 共 87',
+    thBrand:'品牌', thProduct:'产品', thCollected:'已收', thRate:'费率', thOwed:'应收佣金', thPaid:'已付', thBalance:'结余', thStatus:'状态',
+  };
+
+  prodMap = {
+    en: { connect:['Connect','GMV'], boosted:['Boost','ad spend'] },
+    zh: { connect:['Connect','GMV'], boosted:['Boost','广告支出'] },
+  };
+  stMap = {
+    en: { ack:'Ack · unpaid', unack:'Unack · unpaid', credited:'Credited other', partial:'Partial', settled:'Settled' },
+    zh: { ack:'已确认·未付', unack:'未确认·未付', credited:'归属他方', partial:'部分已付', settled:'已结清' },
+  };
+  stColor = {
+    ack:      ['#fef3c7','#92600a'],
+    unack:    ['#eef1f5','#5b6b80'],
+    credited: ['#efe9fd','#5a49c9'],
+    partial:  ['#d6f5ec','#0b7a68'],
+    settled:  ['#dcfce7','#15803d'],
+  };
+  rateColor = { 10:['#e7f6f2','#0b6b5f'], 6:['#eaf2fb','#2563a8'], 3:['#f3eefc','#6b46c1'] };
+
+  fmt(n){ return '$'+Number(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+
+  chip(bg,fg){ return `display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600;background:${bg};color:${fg};white-space:nowrap`; }
+  rateChip(rate){ const [bg,fg]=this.rateColor[rate]; return `display:inline-block;min-width:34px;padding:2px 6px;border-radius:6px;font-size:11px;font-weight:700;background:${bg};color:${fg}`; }
+
+  buildRows(lang){
+    if (this._rowCache[lang]) return this._rowCache[lang];
+    const pm = this.prodMap[lang], sm = this.stMap[lang];
+    const out = this.base.map(r => {
+      const [prod,prodSub] = pm[r.product];
+      const [sbg,sfg] = this.stColor[r.st];
+      const [rbg,rfg] = this.rateColor[r.rate];
+      return {
+        brand:r.brand, prod, prodSub,
+        rate:r.rate+'%', rateBg:rbg, rateFg:rfg,
+        collected:this.fmt(r.collected), owed:this.fmt(r.owed), paid:r.paid?this.fmt(r.paid):'—',
+        balance:this.fmt(r.balance), balColor: r.balance===0 ? '#94a3b8' : '#12403b',
+        stLabel: sm[r.st], stBg:sbg, stFg:sfg,
+      };
+    });
+    this._rowCache[lang] = out;
+    return out;
+  }
+
+  renderVals(){
+    const lang = this.state.lang;
+    const zh = lang==='zh';
+    return {
+      rows: this.buildRows('en'),          // 1a — always English
+      rowsB: this.buildRows(lang),         // 1b — follows toggle
+      rowsC: this.buildRows('en'),         // 1c — always English
+      L: zh ? this.L_zh : this.L_en,
+      fontStack: zh ? "'Public Sans','PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif" : "'Public Sans',system-ui,sans-serif",
+      setEn: this._setEn,
+      setZh: this._setZh,
+      enBg: zh ? 'transparent' : '#fff', enFg: zh ? '#6d7d79' : '#0e7c73', enShadow: zh ? 'none' : '0 1px 2px rgba(0,0,0,.1)',
+      zhBg: zh ? '#fff' : 'transparent', zhFg: zh ? '#0e7c73' : '#6d7d79', zhShadow: zh ? '0 1px 2px rgba(0,0,0,.1)' : 'none',
+    };
+  }
+}
+</script>
+</body>
+</html>

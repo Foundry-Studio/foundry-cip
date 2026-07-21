@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Public+Sans:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600;6..72,700&display=swap" rel="stylesheet">
+<style>
+  body{margin:0;background:#e9e7e2;font-family:'Public Sans',system-ui,sans-serif;color:#22302d}
+  *{box-sizing:border-box}
+  .sheet{width:1000px;max-width:100%;margin:40px auto;background:#faf9f6;border-radius:14px;box-shadow:0 16px 50px -18px rgba(0,0,0,.32);overflow:hidden}
+  .pad{padding:40px 46px}
+  h2.sec{font-family:'Newsreader',serif;font-size:23px;font-weight:600;margin:0 0 3px;letter-spacing:-.2px}
+  .kick{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:#b8860b;font-weight:700;margin-bottom:16px}
+  .rule{height:2px;background:#22302d;opacity:.15;margin:0}
+  .mono{font-family:'IBM Plex Mono',monospace}
+  .lens{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:#0b5f58}
+  p.body{font-size:13.5px;line-height:1.6;color:#3a4a45;margin:0 0 12px}
+  a{color:#0e7c73}a:hover{color:#0b5f58}
+</style>
+</helmet>
+
+<div class="sheet">
+  <!-- masthead -->
+  <div style="background:#0d443f;color:#f1f5f2;padding:36px 46px">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
+      <div style="width:34px;height:34px;border-radius:8px;background:#e9d9b8;display:flex;align-items:center;justify-content:center;font:700 17px 'Newsreader',serif;color:#0d443f">S</div>
+      <div><div style="font-family:'Newsreader',serif;font-size:19px;font-weight:600">Project Silk Reporting</div><div style="font-size:10px;letter-spacing:.18em;color:#7fa89f">DESIGN HANDOFF SPEC</div></div>
+    </div>
+    <div style="font-family:'Newsreader',serif;font-size:30px;font-weight:600;line-height:1.1;max-width:640px">The house language, screen map &amp; build contract</div>
+    <p style="font-size:13px;color:#a9c7c0;margin:12px 0 0;max-width:680px;line-height:1.6">Read this first. It captures the locked visual system, the screen→lens→role→depth map, the shared chrome, states, i18n and dark palettes, and the data traps — everything needed to implement the Next.js 16 / React 19 / Tailwind / shadcn app from the mockups. Figures in the mockups are illustrative; the canonical <span class="mono" style="color:#e6c98f">$13,712.58</span> comes live from <span class="mono" style="color:#e6c98f">lens_ps_claim</span>.</p>
+    <div style="display:flex;gap:22px;margin-top:20px;font-size:11.5px;color:#7fa89f">
+      <div>Locked direction · <span style="color:#f1f5f2;font-weight:600">Jade editorial (2a)</span></div>
+      <div>Deployed · <span style="color:#f1f5f2;font-weight:600">reports.project-silk.com</span></div>
+      <div>Themes · <span style="color:#f1f5f2;font-weight:600">light + dark</span></div>
+      <div>Locales · <span style="color:#f1f5f2;font-weight:600">en · 中文</span></div>
+    </div>
+  </div>
+
+  <!-- 1 · principles -->
+  <div class="pad">
+    <div class="kick">01 · Direction &amp; principles</div>
+    <h2 class="sec">Jade editorial — calm, trustworthy, money-serious</h2>
+    <p class="body" style="margin-top:10px">Warm cream surfaces, deep jade rails, gold for statement emphasis, Newsreader serif headlines over a Public Sans UI, and a monospaced column wherever numbers must line up. Note this <b>intentionally overrides the bound "Modernist" design system</b> — the DS-adherence linter will flag every file; that's expected. Four rules to keep it coherent:</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:6px">
+      <div style="background:#fffdf8;border:1px solid #e6e3da;border-radius:10px;padding:14px 16px"><div style="font-weight:700;font-size:13px;margin-bottom:3px">Depth is the spine</div><div style="font-size:12.5px;color:#6a7370;line-height:1.5">Every surface is Glance → Working → Deep, shown as underline tabs. Homes are Glance; cores are Working; drill-downs are Deep.</div></div>
+      <div style="background:#fffdf8;border:1px solid #e6e3da;border-radius:10px;padding:14px 16px"><div style="font-weight:700;font-size:13px;margin-bottom:3px">Trust is visible</div><div style="font-size:12.5px;color:#6a7370;line-height:1.5">A freshness badge sits in every top bar; every report carries an as-of date and an Export. Numbers you can't trust are worse than none.</div></div>
+      <div style="background:#fffdf8;border:1px solid #e6e3da;border-radius:10px;padding:14px 16px"><div style="font-weight:700;font-size:13px;margin-bottom:3px">Accent = attention</div><div style="font-size:12.5px;color:#6a7370;line-height:1.5">Jade carries the page; gold/amber flags the ask and drift; red is reserved for aged/error. Green dots mean healthy.</div></div>
+      <div style="background:#fffdf8;border:1px solid #e6e3da;border-radius:10px;padding:14px 16px"><div style="font-weight:700;font-size:13px;margin-bottom:3px">Default-deny</div><div style="font-size:12.5px;color:#6a7370;line-height:1.5">If no role grants a surface, it's blocked — enforced server-side in the DAL, not just hidden in the UI. External partners never touch internal grids.</div></div>
+    </div>
+  </div>
+  <div class="rule"></div>
+
+  <!-- 2 · tokens -->
+  <div class="pad">
+    <div class="kick">02 · Design tokens</div>
+    <h2 class="sec">Color, type, spacing</h2>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:26px;margin-top:16px">
+      <div>
+        <div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#a39c86;font-weight:700;margin-bottom:10px">Light palette</div>
+        <div style="display:flex;flex-direction:column;gap:7px">
+          <sc-for list="{{ light }}" as="c" hint-placeholder-count="8">
+            <div style="display:flex;align-items:center;gap:11px">
+              <span style="width:26px;height:26px;border-radius:6px;flex:none;background:{{ c.hex }};border:1px solid rgba(0,0,0,.1)"></span>
+              <span style="font-size:12.5px;font-weight:600;width:120px">{{ c.name }}</span>
+              <span class="mono" style="font-size:11.5px;color:#6a7370;width:78px">{{ c.hex }}</span>
+              <span style="font-size:11.5px;color:#8a8877">{{ c.use }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#a39c86;font-weight:700;margin-bottom:10px">Dark palette</div>
+        <div style="display:flex;flex-direction:column;gap:7px">
+          <sc-for list="{{ dark }}" as="c" hint-placeholder-count="6">
+            <div style="display:flex;align-items:center;gap:11px">
+              <span style="width:26px;height:26px;border-radius:6px;flex:none;background:{{ c.hex }};border:1px solid rgba(255,255,255,.14)"></span>
+              <span style="font-size:12.5px;font-weight:600;width:120px">{{ c.name }}</span>
+              <span class="mono" style="font-size:11.5px;color:#6a7370;width:78px">{{ c.hex }}</span>
+              <span style="font-size:11.5px;color:#8a8877">{{ c.use }}</span>
+            </div>
+          </sc-for>
+        </div>
+        <div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#a39c86;font-weight:700;margin:20px 0 10px">Status ramp (both themes)</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px">
+          <sc-for list="{{ status }}" as="s" hint-placeholder-count="5">
+            <span style="display:inline-block;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:600;background:{{ s.bg }};color:{{ s.fg }}">{{ s.name }}</span>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-top:22px">
+      <div style="background:#fffdf8;border:1px solid #e6e3da;border-radius:10px;padding:14px 16px">
+        <div style="font-weight:700;font-size:12.5px;margin-bottom:8px">Type</div>
+        <div style="font-family:'Newsreader',serif;font-size:22px">Newsreader</div><div style="font-size:11px;color:#8a8877;margin-bottom:8px">headlines · big numbers · card titles</div>
+        <div style="font-size:15px;font-weight:600">Public Sans</div><div style="font-size:11px;color:#8a8877;margin-bottom:8px">UI · body · labels</div>
+        <div class="mono" style="font-size:13px">IBM Plex Mono</div><div style="font-size:11px;color:#8a8877">money · IDs · lens names · timestamps</div>
+      </div>
+      <div style="background:#fffdf8;border:1px solid #e6e3da;border-radius:10px;padding:14px 16px">
+        <div style="font-weight:700;font-size:12.5px;margin-bottom:8px">Spacing &amp; shape</div>
+        <div style="font-size:12.5px;color:#4a5c58;line-height:1.7">Card radius <b>12px</b> · controls <b>6–9px</b> · chips <b>999px</b><br>Content pad <b>24–28px</b> · gaps <b>12–20px</b><br>Section rule <b>2px</b> ink · row rule <b>1px</b></div>
+      </div>
+      <div style="background:#fffdf8;border:1px solid #e6e3da;border-radius:10px;padding:14px 16px">
+        <div style="font-weight:700;font-size:12.5px;margin-bottom:8px">Charts</div>
+        <div style="font-size:12.5px;color:#4a5c58;line-height:1.7">chart.js · filled area for volume, thin lines for compare, clear axes + legend. Jade = primary series, gold = secondary. No 3D, no gradients beyond a soft area fill.</div>
+      </div>
+    </div>
+  </div>
+  <div class="rule"></div>
+
+  <!-- 3 · chrome -->
+  <div class="pad">
+    <div class="kick">03 · The shared chrome (every screen)</div>
+    <h2 class="sec">One shell, filled per role</h2>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px">
+      <sc-for list="{{ chrome }}" as="c" hint-placeholder-count="6">
+        <div style="background:#fffdf8;border:1px solid #e6e3da;border-radius:10px;padding:13px 16px;display:flex;gap:12px">
+          <span class="mono" style="font-size:11px;color:#b8860b;font-weight:600;flex:none;width:96px">{{ c.part }}</span>
+          <span style="font-size:12.5px;color:#4a5c58;line-height:1.5">{{ c.spec }}</span>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+  <div class="rule"></div>
+
+  <!-- 4 · screen map -->
+  <div class="pad">
+    <div class="kick">04 · Screen → role → depth → lens map</div>
+    <h2 class="sec">What to build, wired to the data</h2>
+    <div style="margin-top:14px;border-top:1.5px solid #22302d">
+      <div style="display:grid;grid-template-columns:1.5fr 1.2fr .8fr 2fr;column-gap:14px;padding:9px 2px;font-size:10.5px;letter-spacing:.4px;color:#8a8877;font-weight:700;text-transform:uppercase;border-bottom:1px solid #e6e3da">
+        <div>Screen · file</div><div>Role(s)</div><div>Depth</div><div>Key lenses</div>
+      </div>
+      <sc-for list="{{ screens }}" as="s" hint-placeholder-count="10">
+        <div style="display:grid;grid-template-columns:1.5fr 1.2fr .8fr 2fr;column-gap:14px;padding:11px 2px;border-bottom:1px solid #eee9dc;align-items:start">
+          <div><div style="font-size:13px;font-weight:600">{{ s.name }}</div><div class="mono" style="font-size:10.5px;color:#a39c86">{{ s.file }}</div></div>
+          <div style="font-size:12px;color:#4a5c58">{{ s.roles }}</div>
+          <div style="font-size:12px;color:#4a5c58">{{ s.depth }}</div>
+          <div class="lens" style="line-height:1.5">{{ s.lenses }}</div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+  <div class="rule"></div>
+
+  <!-- 5 · roles + i18n + traps -->
+  <div class="pad">
+    <div class="kick">05 · Roles, i18n, dark &amp; data traps</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:26px">
+      <div>
+        <h2 class="sec" style="font-size:18px">Roles → access</h2>
+        <div style="margin-top:12px;display:flex;flex-direction:column;gap:8px">
+          <sc-for list="{{ roles }}" as="r" hint-placeholder-count="6">
+            <div style="display:flex;gap:10px;align-items:baseline">
+              <span style="display:inline-block;padding:2px 9px;border-radius:6px;font-size:11px;font-weight:600;flex:none;background:{{ r.bg }};color:{{ r.fg }}">{{ r.name }}</span>
+              <span style="font-size:12px;color:#4a5c58;line-height:1.5">{{ r.sees }}</span>
+            </div>
+          </sc-for>
+        </div>
+        <p class="body" style="margin-top:14px;font-size:12.5px">Internal staff start at <b>full access</b>; the admin can shrink it in the permission grid. External roles are hard-gated to their own rows. Admin (Tim, Van) invites/removes and sets per-person grants; all changes are logged.</p>
+      </div>
+      <div>
+        <h2 class="sec" style="font-size:18px">i18n · dark · traps</h2>
+        <div style="margin-top:12px;background:#fffdf8;border:1px solid #e6e3da;border-radius:10px;padding:13px 16px;font-size:12.5px;color:#4a5c58;line-height:1.6">
+          <b style="color:#22302d">Bilingual (next-intl).</b> All copy from message catalogs; en + 中文. Layouts must flex — Chinese runs shorter; keep tabular numbers LTR. Proven on the explorations toggle.
+        </div>
+        <div style="margin-top:10px;background:#fffdf8;border:1px solid #e6e3da;border-radius:10px;padding:13px 16px;font-size:12.5px;color:#4a5c58;line-height:1.6">
+          <b style="color:#22302d">Dark.</b> Palette pinned in <span class="mono" style="font-size:11px">Commission Statement Dark</span>. Brighten jade/gold on dark; drop rules to low-opacity light.
+        </div>
+        <div style="margin-top:10px;background:#fbeee6;border:1px solid #eccbb8;border-radius:10px;padding:13px 16px;font-size:12.5px;color:#7a4a2f;line-height:1.6">
+          <b style="color:#b4553a">Data traps.</b> Connect <span class="mono" style="font-size:11px">revenue_amount</span> = GMV; Boost = ad-spend — <b>never sum across products</b>. Product ids are <span class="mono" style="font-size:11px">'connect'</span> / <span class="mono" style="font-size:11px">'boosted'</span> (never 'boost'). All amounts in <b>dollars</b>. Quote the canonical owed figure live from <span class="mono" style="font-size:11px">lens_ps_claim</span>.
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="rule"></div>
+
+  <!-- 6 · manifest + not yet -->
+  <div class="pad" style="padding-bottom:44px">
+    <div class="kick">06 · What's in the package &amp; what's next</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:26px">
+      <div>
+        <h2 class="sec" style="font-size:18px">Delivered mockups</h2>
+        <div style="margin-top:12px;display:flex;flex-direction:column;gap:6px;font-size:12.5px">
+          <sc-for list="{{ files }}" as="f" hint-placeholder-count="10">
+            <div style="display:flex;gap:10px;align-items:baseline;padding:6px 0;border-bottom:1px solid #eee9dc">
+              <span style="color:#0b7a68;flex:none">●</span>
+              <span class="mono" style="font-size:11.5px;color:#0b5f58;flex:1">{{ f.file }}</span>
+              <span style="font-size:11.5px;color:#8a8877">{{ f.what }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+      <div>
+        <h2 class="sec" style="font-size:18px">Not designed yet (by decision)</h2>
+        <div style="margin-top:12px;display:flex;flex-direction:column;gap:9px">
+          <sc-for list="{{ todo }}" as="t" hint-placeholder-count="4">
+            <div style="background:#fffdf8;border:1px solid #e6e3da;border-radius:9px;padding:11px 14px">
+              <div style="font-size:13px;font-weight:600">{{ t.name }}</div>
+              <div style="font-size:11.5px;color:#8a8877;margin-top:2px;line-height:1.5">{{ t.why }}</div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  light = [
+    { name:'Ground',      hex:'#e9e7e2', use:'app backdrop' },
+    { name:'Surface',     hex:'#faf9f6', use:'main content' },
+    { name:'Card',        hex:'#fffdf8', use:'tiles, panels' },
+    { name:'Rail (jade)', hex:'#0d443f', use:'sidebar' },
+    { name:'Accent jade', hex:'#0e5049', use:'primary, active' },
+    { name:'Jade bright', hex:'#12a37f', use:'healthy dots' },
+    { name:'Gold',        hex:'#b8860b', use:'the ask, drift' },
+    { name:'Ink',         hex:'#22302d', use:'text, 2px rules' },
+    { name:'Muted',       hex:'#6a7370', use:'secondary text' },
+    { name:'Border',      hex:'#e6e3da', use:'hairlines' },
+  ];
+  dark = [
+    { name:'Ground',      hex:'#0f1a17', use:'app backdrop' },
+    { name:'Surface',     hex:'#16241f', use:'tiles' },
+    { name:'Rail',        hex:'#0a1512', use:'sidebar' },
+    { name:'Accent jade', hex:'#2dd4bf', use:'primary, active' },
+    { name:'Gold',        hex:'#e6c98f', use:'the ask, drift' },
+    { name:'Text',        hex:'#e6ece9', use:'body text' },
+  ];
+  status = [
+    { name:'Ack · unpaid', bg:'#fef3c7', fg:'#92600a' },
+    { name:'Credited other', bg:'#efe9fd', fg:'#5a49c9' },
+    { name:'Unacknowledged', bg:'#eef1f5', fg:'#5b6b80' },
+    { name:'Paid partial', bg:'#d6f5ec', fg:'#0b7a68' },
+    { name:'Settled', bg:'#dcfce7', fg:'#15803d' },
+  ];
+  chrome = [
+    { part:'Sidebar',   spec:'222px jade rail. Role label + nav; active item = cream text, gold 3px left border. Freshness + signed-in identity pinned to the bottom.' },
+    { part:'Top bar',   spec:'52px. Left: breadcrumb (mono). Right: freshness pill, EN/中 toggle, Export ▾ (jade).' },
+    { part:'Header',    spec:'Gold uppercase kicker, Newsreader title, muted subtitle. A 2px ink rule under it; depth tabs (underline) sit on that rule.' },
+    { part:'KPI grid',  spec:'Flat cells inside one 1px-bordered, 12px-radius container; the hero cell is jade-filled with a serif number.' },
+    { part:'Tables',    spec:'1.5px ink top rule, uppercase 10.5px headers, 1px row rules, mono right-aligned numbers, a totals row with a 2px top rule.' },
+    { part:'Export + freshness', spec:'Export ▾ opens CSV (data) / PDF (statement). The freshness pill opens a per-connector popover; both are shared components.' },
+  ];
+  screens = [
+    { name:'Commission Statement', file:'Commission Statement.dc.html', roles:'Finance · (Wayward curated)', depth:'Working · Deep', lenses:'lens_ps_commission_ledger · lens_ps_claim · lens_ps_wayward_reconciliation · lens_ps_statement_drift' },
+    { name:'Nationality Review Queue', file:'Nationality Review Queue.dc.html', roles:'CS · Ops · Leadership', depth:'Working', lenses:'lens_ps_china_contention · lens_ps_china_verdict' },
+    { name:'Brand Performance', file:'Brand Performance.dc.html', roles:'CS · Finance · Wayward · Leadership', depth:'Glance · Working', lenses:'lens_ps_brand_revenue · lens_ps_monthly_summary · lens_ps_product_eligibility · lens_ps_rate_schedule' },
+    { name:'Data Freshness (= Ops home)', file:'Data Freshness.dc.html', roles:'Ops · (all, badge)', depth:'Glance · Working', lenses:'lens_ps_source_freshness · cip_sync_runs · lens_ps_information_gaps' },
+    { name:'Leadership Home', file:'Leadership Home.dc.html', roles:'Leadership', depth:'Glance', lenses:'lens_ps_claim · lens_ps_monthly_summary · lens_ps_china_verdict · lens_ps_wayward_reconciliation' },
+    { name:'Finance Home', file:'Finance Home.dc.html', roles:'Finance', depth:'Glance', lenses:'lens_ps_monthly_summary · lens_ps_ar_aging · lens_ps_partner_payout_summary · ps_stripe_balance_transactions' },
+    { name:'CS Home', file:'CS Home.dc.html', roles:'CS', depth:'Glance', lenses:'lens_ps_china_verdict · lens_ps_brand_reality · lens_ps_china_contention · cip_tickets' },
+    { name:'Login & Access', file:'Login & Access.dc.html', roles:'all (unauth)', depth:'—', lenses:'Auth.js Google · email allowlist → role' },
+    { name:'Admin · People & Permissions', file:'Admin People and Permissions.dc.html', roles:'Admin (Tim, Van)', depth:'—', lenses:'allowlist · role grants (server action, logged)' },
+    { name:'UI States', file:'UI States.dc.html', roles:'all (shared)', depth:'—', lenses:'loading · empty · error · export · freshness · no-access' },
+    { name:'Commission Statement · Dark', file:'Commission Statement Dark.dc.html', roles:'theme reference', depth:'—', lenses:'dark palette for the theme toggle' },
+  ];
+  roles = [
+    { name:'Leadership', bg:'#e8f2ef', fg:'#0b5f58', sees:'Top-line money, growth, "what needs me", needs-attention rollup.' },
+    { name:'Finance', bg:'#e8f2ef', fg:'#0b5f58', sees:'Full money pipeline, ledger, collections, payouts, reconciliation, statements.' },
+    { name:'CS', bg:'#e8f2ef', fg:'#0b5f58', sees:'Brand directory, review queue, contact book, onboarding, support, Brand 360.' },
+    { name:'Ops', bg:'#e8f2ef', fg:'#0b5f58', sees:'Data freshness, coverage, exceptions, information gaps, identity health.' },
+    { name:'Partners', bg:'#e8f2ef', fg:'#0b5f58', sees:'Partner performance & payouts (Rhea); Partners Admin write-surface.' },
+    { name:'Referral partner', bg:'#fbf3e3', fg:'#8a6410', sees:'EXTERNAL · gated — their own referred brands only, row-isolated.' },
+  ];
+  files = [
+    { file:'Commission Statement.dc.html', what:'shared core · Finance' },
+    { file:'Nationality Review Queue.dc.html', what:'shared core · CS' },
+    { file:'Brand Performance.dc.html', what:'shared core · all' },
+    { file:'Data Freshness.dc.html', what:'shared core · Ops home' },
+    { file:'Leadership Home.dc.html', what:'glance home' },
+    { file:'Finance Home.dc.html', what:'glance home' },
+    { file:'CS Home.dc.html', what:'glance home' },
+    { file:'Admin People and Permissions.dc.html', what:'access control' },
+    { file:'Login & Access.dc.html', what:'entry + default-deny' },
+    { file:'UI States.dc.html', what:'shared states' },
+    { file:'Commission Statement Dark.dc.html', what:'dark palette' },
+    { file:'Commission Statement explorations.dc.html', what:'archive · 1a/1b/1c + EN/中 toggle' },
+  ];
+  todo = [
+    { name:'Wayward external portal', why:'Deferred until the CRM lands — better source data then. Curated commission statement + partnership scorecard, distinct framing, no internal columns.' },
+    { name:'Brand 360 (Deep)', why:'The per-brand drill-down every role links into — verdict + evidence, financials, contacts, support, timeline. Spec\u2019d in words; build iteratively.' },
+    { name:'Partners Admin (write-surface)', why:'Add partner, assign brands, set commission rates. Its own design riff at build time (mutates money inputs — governed).' },
+    { name:'Scheduled reports & delivery', why:'FAS-scheduled generate + send (email/Slack): monthly statement, weekly collections & review queue, daily sync digest.' },
+  ];
+  renderVals(){ return { light:this.light, dark:this.dark, status:this.status, chrome:this.chrome, screens:this.screens, roles:this.roles, files:this.files, todo:this.todo }; }
+}
+</script>
+</body>
+</html>

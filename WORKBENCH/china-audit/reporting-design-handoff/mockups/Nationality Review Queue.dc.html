@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Public+Sans:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600;6..72,700&display=swap" rel="stylesheet">
+<style>
+  body{margin:0;background:#e9e7e2;font-family:'Public Sans',system-ui,sans-serif}
+  *{box-sizing:border-box}
+  .wrap{padding:44px 48px 40px}
+  .whd{display:flex;align-items:baseline;gap:10px;margin:0 0 8px}
+  .wtag{font:600 10px ui-monospace,Menlo,monospace;padding:3px 7px;background:#0e5049;color:#fff;border-radius:4px}
+  .wname{font:600 13px/1.2 system-ui,sans-serif;color:#1a1a1a}
+  .wintro{font:400 13px/1.6 system-ui,sans-serif;color:rgba(0,0,0,.6);max-width:820px;margin:0 0 26px}
+  .wintro b{color:#0e5049;font-weight:600}
+  .card{width:1340px;max-width:100%;background:#fff;border-radius:12px;box-shadow:0 12px 40px -12px rgba(0,0,0,.28);overflow:hidden;font-family:'Public Sans',sans-serif;color:#22302d}
+  a{color:#0e7c73}a:hover{color:#0b5f58}
+</style>
+</helmet>
+
+<div class="wrap">
+  <div class="whd"><span class="wtag">SHARED CORE</span><span class="wname">Nationality Review Queue — CS decides · Ops ensures worked · Leadership watches high-$</span></div>
+  <p class="wintro">The human-in-the-loop surface: brands whose nationality signals <b>disagree</b> — a china signal (card country, +86, WeChat, partner) sitting against a human/legal not-china call, or a still-unknown brand with revenue. CS makes the call from the evidence; <b>the system never auto-flips a verdict</b>. Data: <b>lens_ps_china_contention · lens_ps_china_verdict</b>. Six-model signal spread shown per brand.</p>
+
+  <div class="card">
+    <div style="display:flex;min-height:820px">
+      <!-- CS sidebar -->
+      <aside style="width:222px;flex:none;background:#0d443f;color:#bcd6d0;padding:18px 0;display:flex;flex-direction:column">
+        <div style="padding:0 18px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(233,217,184,.14)">
+          <div style="width:30px;height:30px;border-radius:7px;background:#e9d9b8;display:flex;align-items:center;justify-content:center;font:700 15px 'Newsreader',serif;color:#0d443f">S</div>
+          <div><div style="font-family:'Newsreader',serif;font-size:16px;font-weight:600;color:#fbf7ee;letter-spacing:.2px">Project Silk</div><div style="font-size:9px;color:#6f9088;letter-spacing:1.4px">REPORTING</div></div>
+        </div>
+        <div style="padding:16px 18px 7px;font-size:9.5px;letter-spacing:1.2px;color:#6f9088;font-weight:700">CS · CHINA TEAM</div>
+        <nav style="display:flex;flex-direction:column;font-size:13px">
+          <div style="padding:9px 18px;color:#95b3ad">My brands</div>
+          <div style="padding:9px 18px 9px 15px;background:rgba(233,217,184,.1);color:#fbf7ee;border-left:3px solid #e9d9b8;font-weight:600">Review queue</div>
+          <div style="padding:9px 18px;color:#95b3ad">Contact book</div>
+          <div style="padding:9px 18px;color:#95b3ad">Onboarding pipeline</div>
+          <div style="padding:9px 18px;color:#95b3ad">Support by brand</div>
+          <div style="padding:9px 18px;color:#95b3ad">Brand 360</div>
+        </nav>
+        <div style="margin-top:auto;padding:12px 18px 0;border-top:1px solid rgba(233,217,184,.14);font-size:11px">
+          <div style="display:flex;align-items:center;gap:7px;color:#9fe6cf"><span style="width:7px;height:7px;border-radius:50%;background:#3fd6a8;box-shadow:0 0 0 3px rgba(63,214,168,.18)"></span>All syncs green</div>
+          <div style="color:#6f9088;font-size:10px;margin-top:3px;font-family:'IBM Plex Mono',monospace">as of 2026-07-20 09:14</div>
+        </div>
+      </aside>
+
+      <!-- main -->
+      <div style="flex:1;background:#faf9f6;display:flex;flex-direction:column;min-width:0">
+        <div style="height:52px;flex:none;background:#fdfcf9;border-bottom:1px solid #e6e3da;display:flex;align-items:center;padding:0 20px;gap:14px">
+          <div style="font-size:11.5px;color:#8a8877;font-family:'IBM Plex Mono',monospace">CS / Nationality review queue</div>
+          <div style="margin-left:auto;display:flex;align-items:center;gap:9px">
+            <div style="display:flex;align-items:center;gap:6px;font-size:11.5px;background:#e8f2ef;color:#0e5049;border:1px solid #cfe6df;border-radius:20px;padding:5px 11px"><span style="width:6px;height:6px;border-radius:50%;background:#12a37f"></span>Green · data Jul 20</div>
+            <div style="font-size:11.5px;color:#6a7370;border:1px solid #ddd8cc;border-radius:6px;padding:5px 10px">EN</div>
+            <div style="font-size:12.5px;font-weight:600;color:#fbf7ee;background:#0e5049;border-radius:7px;padding:7px 13px">Export ▾</div>
+          </div>
+        </div>
+
+        <div style="padding:24px 28px;display:flex;flex-direction:column;gap:20px">
+          <!-- header + depth -->
+          <div style="display:flex;align-items:flex-end;justify-content:space-between;border-bottom:2px solid #22302d;padding-bottom:16px">
+            <div>
+              <div style="font-size:11px;letter-spacing:2px;color:#a39c86;font-weight:700;margin-bottom:5px">SIGNALS DISAGREE — YOU DECIDE</div>
+              <div style="font-family:'Newsreader',serif;font-size:30px;font-weight:600;letter-spacing:-.3px;line-height:1.02">Nationality Review Queue</div>
+              <div style="font-size:12.5px;color:#6a7370;margin-top:6px">China? is the only gate for whether we earn Wayward's commission · <b>never auto-flips — CS confirms</b></div>
+            </div>
+            <div style="display:flex;gap:2px;font-size:13px;font-weight:600">
+              <div style="padding:7px 15px;color:#8a8877;border-bottom:2px solid transparent;margin-bottom:-18px">Glance</div>
+              <div style="padding:7px 15px;color:#0e5049;border-bottom:2px solid #0e5049;margin-bottom:-18px">Working</div>
+              <div style="padding:7px 15px;color:#8a8877;border-bottom:2px solid transparent;margin-bottom:-18px">Deep</div>
+            </div>
+          </div>
+
+          <!-- glance tiles -->
+          <div style="display:grid;grid-template-columns:1.2fr 1.4fr 1fr 1fr;gap:0;border:1px solid #e6e3da;border-radius:12px;overflow:hidden">
+            <div style="background:#fffdf8;padding:18px 20px;border-right:1px solid #eee9dc">
+              <div style="font-size:11.5px;color:#8a8877">Needs a decision</div>
+              <div style="font-family:'Newsreader',serif;font-size:32px;font-weight:600;margin-top:4px">23</div>
+              <div style="font-size:11px;color:#a39c86;margin-top:5px">contention + unknown, with revenue</div>
+            </div>
+            <div style="background:#0e5049;color:#f3ede0;padding:18px 20px">
+              <div style="font-size:11.5px;color:#9cc7bf">High priority</div>
+              <div style="display:flex;align-items:baseline;gap:10px;margin-top:4px"><div style="font-family:'Newsreader',serif;font-size:32px;font-weight:600">9</div><div style="font-family:'IBM Plex Mono',monospace;font-size:15px;color:#e6c98f">$14,208 at stake</div></div>
+              <div style="font-size:11px;color:#9cc7bf;margin-top:5px">china signal vs a human not-china</div>
+            </div>
+            <div style="background:#fffdf8;padding:18px 20px;border-right:1px solid #eee9dc;border-left:1px solid #eee9dc">
+              <div style="font-size:11.5px;color:#8a8877">Unknown · pending</div>
+              <div style="font-family:'Newsreader',serif;font-size:32px;font-weight:600;margin-top:4px">41</div>
+              <div style="font-size:11px;color:#a39c86;margin-top:5px">claimed at $0 · revisitable</div>
+            </div>
+            <div style="background:#fffdf8;padding:18px 20px">
+              <div style="font-size:11.5px;color:#8a8877">Decided this week</div>
+              <div style="font-family:'Newsreader',serif;font-size:32px;font-weight:600;margin-top:4px">12</div>
+              <div style="font-size:11px;color:#a39c86;margin-top:5px">7 china · 5 not-china</div>
+            </div>
+          </div>
+
+          <!-- queue -->
+          <div>
+            <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:12px">
+              <div style="font-family:'Newsreader',serif;font-size:18px;font-weight:600">The queue · ranked by revenue at stake</div>
+              <div style="font-size:11px;color:#a39c86;font-family:'IBM Plex Mono',monospace">lens_ps_china_contention · 6 of 23</div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:12px">
+              <sc-for list="{{ queue }}" as="r" hint-placeholder-count="6">
+                <div style="border:1px solid #e6e3da;border-radius:11px;background:#fffdf8;padding:16px 18px;display:grid;grid-template-columns:240px 1fr 232px;gap:20px;align-items:start">
+                  <!-- col 1: brand -->
+                  <div>
+                    <span style="display:inline-block;padding:3px 9px;border-radius:999px;font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;background:{{ r.priBg }};color:{{ r.priFg }};border:1px solid {{ r.priBd }}">{{ r.priLabel }}</span>
+                    <div style="font-family:'Newsreader',serif;font-size:21px;font-weight:600;margin-top:9px;line-height:1.1">{{ r.brand }}</div>
+                    <div style="margin-top:7px;display:flex;align-items:center;gap:8px">
+                      <span style="display:inline-block;padding:2px 9px;border-radius:6px;font-size:11px;font-weight:600;background:{{ r.vBg }};color:{{ r.vFg }}">{{ r.vLabel }}</span>
+                    </div>
+                    <div style="margin-top:9px;font-size:11px;color:#8a8877">Revenue at stake</div>
+                    <div style="font-family:'IBM Plex Mono',monospace;font-size:17px;font-weight:600;color:#22302d">{{ r.rev }}</div>
+                  </div>
+                  <!-- col 2: evidence -->
+                  <div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+                      <div>
+                        <div style="font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:#0b5f58;font-weight:700;margin-bottom:7px">China signals</div>
+                        <div style="display:flex;flex-wrap:wrap;gap:5px">
+                          <sc-for list="{{ r.china }}" as="sig" hint-placeholder-count="2">
+                            <span style="display:inline-block;padding:3px 8px;border-radius:6px;font-size:11px;background:#e8f2ef;color:#0b5f58">{{ sig }}</span>
+                          </sc-for>
+                        </div>
+                      </div>
+                      <div>
+                        <div style="font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:#5b6b80;font-weight:700;margin-bottom:7px">Contra signals</div>
+                        <div style="display:flex;flex-wrap:wrap;gap:5px">
+                          <sc-for list="{{ r.contra }}" as="sig" hint-placeholder-count="2">
+                            <span style="display:inline-block;padding:3px 8px;border-radius:6px;font-size:11px;background:#eef1f5;color:#5b6b80">{{ sig }}</span>
+                          </sc-for>
+                        </div>
+                      </div>
+                    </div>
+                    <div style="margin-top:13px">
+                      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
+                        <div style="font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:#a39c86;font-weight:700">6-model signal spread</div>
+                        <div style="font-size:11px;color:#6a7370">{{ r.consensus }}</div>
+                      </div>
+                      <div style="display:flex;gap:4px">
+                        <sc-for list="{{ r.srcCells }}" as="c" hint-placeholder-count="6">
+                          <div style="flex:1;text-align:center">
+                            <div style="height:8px;border-radius:2px;background:{{ c.bg }}"></div>
+                            <div style="font-size:8.5px;color:#a39c86;margin-top:3px;font-family:'IBM Plex Mono',monospace">{{ c.label }}</div>
+                          </div>
+                        </sc-for>
+                      </div>
+                    </div>
+                  </div>
+                  <!-- col 3: decide -->
+                  <div style="border-left:1px solid #eee9dc;padding-left:18px;display:flex;flex-direction:column;gap:7px;height:100%">
+                    <div style="font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:#a39c86;font-weight:700;margin-bottom:1px">Your call</div>
+                    <div style="font-size:12.5px;font-weight:600;color:#fff;background:#0e5049;border-radius:7px;padding:8px 12px;text-align:center">Confirm china</div>
+                    <div style="font-size:12.5px;font-weight:600;color:#22302d;background:transparent;border:1px solid #d9d3c4;border-radius:7px;padding:8px 12px;text-align:center">Keep not-china</div>
+                    <div style="font-size:12.5px;font-weight:600;color:#8a8877;background:transparent;border-radius:7px;padding:6px 12px;text-align:center">Mark unknown</div>
+                    <div style="margin-top:auto;padding-top:8px;font-size:10.5px;color:#a39c86;line-height:1.4">Opens the evidence grid · logged, never auto-applied</div>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  // sources order: Claude, Accio, Perplexity, ChatGPT, Gemini·1, Gemini·2 (from reconciliation-final.csv)
+  base = [
+    { brand:'bedbath',     rev:3281.20, verdict:'unknown',   priority:'unknown',
+      china:['Generic reseller pattern','CJK packaging photos'], contra:['No Amazon seller page found','Dead support line'],
+      src:['unknown','unknown','not','not','unknown','unknown'] },
+    { brand:'Woodenhouse', rev:2305.07, verdict:'not_china', priority:'high',
+      china:['CJK on Amazon listing','1 model: likely china'], contra:['Named US founders','Non-CN seller address'],
+      src:['china','not','unknown','not','unknown','unknown'] },
+    { brand:'moralve',     rev:2038.64, verdict:'not_china', priority:'high',
+      china:['Pinyin brand owner','Free-mailbox contact'], contra:['US trademark owner','US LLC on file'],
+      src:['china','unknown','not','not','unknown','unknown'] },
+    { brand:'True Fresh',  rev:1671.05, verdict:'not_china', priority:'high',
+      china:['Shenzhen ship origin','1 model: likely china'], contra:['US HQ verified','Named US founder'],
+      src:['china','not','unknown','not','unknown','unknown'] },
+    { brand:'INICAT',      rev:1098.01, verdict:'unknown',   priority:'high',
+      china:['CN/HK card country','+86 phone','WeChat contact','2 models: definitely china'], contra:['US LLC (footer only)'],
+      src:['china','unknown','china','china','unknown','unknown'] },
+    { brand:'Primely',     rev:910.31,  verdict:'unknown',   priority:'unknown',
+      china:['Anonymous site footer'], contra:['Website offline','No trademark match'],
+      src:['unknown','not','not','unknown','unknown','unknown'] },
+  ];
+  srcLabels = ['Claude','Accio','Pplx','GPT','Gem1','Gem2'];
+  srcColor = { china:'#0e5049', not:'#9aa9a4', unknown:'#ddd6c3' };
+  pri = {
+    high:    { label:'High · are we right not to claim?', bg:'#fbf3e3', fg:'#8a6410', bd:'#ecdcb8' },
+    unknown: { label:'Unknown · not sure yet',            bg:'#f2f5f4', fg:'#6a7370', bd:'#e2e6e3' },
+  };
+  verdict = {
+    china:     { label:'china',            bg:'#e8f2ef', fg:'#0b5f58' },
+    not_china: { label:'not-china (human)',bg:'#eef1f5', fg:'#5b6b80' },
+    unknown:   { label:'unknown',          bg:'#fbf3e3', fg:'#8a6410' },
+  };
+  fmt(n){ return '$'+Number(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+  _q = null;
+  buildQueue(){
+    if (this._q) return this._q;
+    this._q = this.base.map(r => {
+      const cn = r.src.filter(s=>s==='china').length;
+      const no = r.src.filter(s=>s==='not').length;
+      const un = r.src.filter(s=>s==='unknown').length;
+      const p = this.pri[r.priority], v = this.verdict[r.verdict];
+      return {
+        brand:r.brand, rev:this.fmt(r.rev), china:r.china, contra:r.contra,
+        priLabel:p.label, priBg:p.bg, priFg:p.fg, priBd:p.bd,
+        vLabel:v.label, vBg:v.bg, vFg:v.fg,
+        consensus:`${cn} china · ${no} not · ${un} unknown`,
+        srcCells: r.src.map((s,i)=>({ bg:this.srcColor[s], label:this.srcLabels[i] })),
+      };
+    });
+    return this._q;
+  }
+  renderVals(){ return { queue: this.buildQueue() }; }
+}
+</script>
+</body>
+</html>

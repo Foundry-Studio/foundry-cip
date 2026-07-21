@@ -1,8 +1,8 @@
 # Project Silk Reporting — Build Plan (executable)
 
-**Status:** Build-ready. The 4 confirmations are **RESOLVED** (Tim, 2026-07-20 — see §14 + §16); two
-best-practice nuances (DB target, migration tool) are going to an expert panel for a second opinion.
-**Audience:** a developer picking this up
+**Status:** Build-ready + **hardened by a 4-seat expert panel** (2026-07-20 — see §17). BUILD confirmed
+(build-vs-buy overruled by Tim). One architectural change adopted: **Better Auth** replaces Auth.js v5
+(§17.2). Pin **Next.js ≥ 16.2.6** (live CVEs). **Audience:** a developer picking this up
 cold — every step says *what to do · depends on · edge cases · acceptance*. **Authority order:** the
 **content plan** wins on *what to show*; the **design handoff** (`handoff/`) wins on *how it looks*; this
 doc owns *how it is built*. It is **the executable plan** — it supersedes for build purposes the earlier
@@ -34,12 +34,12 @@ anything but their own rows.
 ### 1.1 Stack (locked)
 | Concern | Choice | Notes |
 |---|---|---|
-| Framework | **Next.js 16** App Router + **React 19** + **TypeScript** (strict) | `proxy.ts` (Node runtime) not `middleware.ts`. |
+| Framework | **Next.js ≥ 16.2.6** (pin — earlier 16.x has live CVEs, §17.1) App Router + **React 19** + **TS** (strict) | `proxy.ts` (Node runtime) not `middleware.ts`; Dependabot + 48h patch SLO. |
 | Styling | **Tailwind v4** (CSS-first `@theme`, no `tailwind.config.js`) + **shadcn/ui** | shadcn is TW-v4/React-19 ready. |
 | DB driver | **postgres.js** (porsager) v3 — raw tagged-template SQL | Lenses encode the logic; no ORM. |
-| Auth | **Auth.js v5** (`next-auth@5`) — Google, **identity-only JWT** (§4) | authz resolved per-request from DB. |
+| Auth | **Better Auth** (DB sessions) — Google (§17.2, supersedes Auth.js v5) | native instant revocation + RBAC; authz still the per-request DAL check. |
 | Data | **RSC → server-only DAL → zod DTO → render**; tables are **searchParams-driven Server Components** | react-query only for a *genuinely* client-only widget (none in v1). |
-| Tables | `@tanstack/react-table` headless, server-fed | client sorts a server-fetched slice; server paginates via URL params. |
+| Tables | `@tanstack/react-table` headless, server-fed; **[nuqs](https://nuqs.dev)** for typed searchParams | **server-side sort** (column allowlist — §17.7) + server paginate via URL params; never client-sort a capped slice. |
 | Charts | **chart.js** + `react-chartjs-2` (`'use client'`) | jade primary / gold secondary; no SSR canvas. |
 | i18n | **next-intl** — `[locale]` (`en`/`zh`), all pages **dynamic** | §6. |
 | Export | CSV streamed from `sql.cursor()`; PDF via **weasyprint on FAS** (§10.2) | never block the Node loop. |
@@ -72,9 +72,16 @@ client, or if a DAL file lacks `import 'server-only'`. This wrapper is the one a
 
 ### 1.3 The transaction scope — RLS GUC + snapshot consistency (`withTenant`)
 Two traps solved in one place. (a) With a pooled driver a bare `SET` leaks the tenant GUC to the next
-request → use `SET LOCAL` inside a transaction. (b) Postgres defaults to READ COMMITTED, so four lens reads
-in one screen can straddle an hourly-sync commit → **hero total ≠ ledger** intermittently. Fix: one
-**REPEATABLE READ** snapshot per screen, and capture one `as_of` for the whole render.
+request → use `SET LOCAL` inside a transaction. (b) Four separate lens reads in one screen can straddle an
+hourly-sync commit → **hero total ≠ ledger**. **REVISED FIX (panel):** prefer **one composed query / CTE
+per screen** — a single SQL statement is one implicit snapshot even under READ COMMITTED, giving
+cross-lens consistency **without a long-lived transaction**. This avoids the sharp footgun both the security
+and infra reviewers flagged: a multi-statement `REPEATABLE READ` transaction (esp. if a slow CSV cursor runs
+inside it) pins the `xmin` horizon and **blocks autovacuum on the OPERATIONAL primary we're a guest on** —
+a read-only app bloating someone else's DB. So: compose per screen; keep `withTenant` for the GUC only
+(short); set **`ALTER ROLE ps_reporting_reader SET idle_in_transaction_session_timeout='15s'`** (statement_
+timeout does NOT cover idle-in-transaction); and run **CSV exports OUTSIDE** any snapshot tx (an export
+tolerates READ COMMITTED — §10.2). Capture one `as_of` per render.
 ```ts
 export async function withTenant<T>(ctx: Ctx, fn: (tx)=>Promise<T>): Promise<T> {
   return sql.begin(async (tx) => {
@@ -91,11 +98,16 @@ the single `as_of` on every tile so the snapshot is explicit. (The tenant GUC is
 required for the partner RLS in §12.)
 
 ### 1.4 `numeric` / `bigint` are JS **strings** in postgres.js — money footgun
-By default postgres.js returns `numeric`/`bigint` as **strings** (to preserve precision). Two rules,
-non-negotiable: **(1) aggregate money in SQL** (`SUM(...)` in the lens query) — **never** `a + b` in JS
-(`"100.50"+"200.25" = "100.50200.25"`, a silent wrong total). **(2)** register a pool `types` parser that
-coerces the money/count columns to `number` for display, *and* use `z.coerce.number()` in every money DTO
-field so a string can't slip through. A unit test asserts a 2-row SQL `SUM` equals the JS-side total.
+By default postgres.js returns `numeric`/`bigint` as **strings** (to preserve precision). Rules
+(revised per panel — do NOT coerce money to `number`): **(1) aggregate money in SQL** (`SUM(...)` in the
+lens query) — **never** `a + b` in JS (`"100.50"+"200.25" = "100.50200.25"`, a silent wrong total).
+**(2) keep money a STRING end-to-end** — DO NOT register a global `numeric→number` type parser and DO NOT
+`z.coerce.number()` money fields; a JS `number` is float64 and re-opens the precision hole (`0.1+0.2 !==
+0.3`), and a global parser blunt-coerces rates too. Use a **branded type** `type USD = string & { readonly
+__brand: 'USD' }` so money is **un-addable by construction** (`usdA + usdB` won't typecheck) — the compiler
+now enforces "aggregate only in SQL." Format for display with `Intl.NumberFormat` / next-intl `format.number`
+(§6). `bigint` counts → `number` is fine (tiny); `bigint` IDs → keep string. A unit test asserts the
+SQL-side `SUM` string equals the app total.
 
 ### 1.5 Repo & deploy shape
 ```
@@ -488,6 +500,112 @@ scale (~6 users, then a few partners) the guardrails — read-only `ps_reporting
 10s at the role, per-query `LIMIT`, `max` pool from env, no autoscaling — make **prod-direct acceptable and
 far simpler**. A Railway Postgres **read replica** is the first-class upgrade the moment load or isolation
 demands it (reporting tolerates seconds of replica lag). Flagged for the panel.
+
+## 17. Expert-panel hardening (4-seat panel, 2026-07-20 — BUILD confirmed)
+Decision: **we build** (the build-vs-buy pivot the contrarian raised was considered and **overruled by
+Tim** — off the table). Below are the panel's sound, build-relevant findings, folded in as requirements.
+Where marked **SUPERSEDES**, this is authoritative over the earlier inline text.
+
+**17.1 Framework CVEs — pin Next.js ≥ 16.2.6 + a patch process (URGENT).** "Next.js 16" is currently
+vulnerable: the May-2026 security release patched a **new proxy/middleware auth-bypass via `.rsc`
+segment-prefetch (GHSA-267c-6grr-h53f, hits 16.0–16.2.4)**, a **self-host WebSocket SSRF (CVSS 8.6 — ours,
+because we self-host on Railway not Vercel)**, and a **Server-Function DoS**. Pin ≥16.2.6, add
+Dependabot/Renovate, and adopt a **patch-within-48h-of-advisory SLO**. (The bypass *validates* our thesis:
+the proxy is skippable, the DAL still enforces.)
+
+**17.2 Auth library → Better Auth (SUPERSEDES the Auth.js v5 choice in §1.1/§4).** All four seats flagged
+that **Auth.js/next-auth v5 went maintenance-mode (2025-09-26), is perpetually beta, and its own maintainers
+now steer new projects to Better Auth.** Decisive for us: we were hand-rolling identity-only-JWT + a
+per-request DB status read *specifically to fake DB-session semantics* — **which is Better Auth's native
+model** (a sessions table, immediate revocation, killable/listable sessions, org/RBAC) and slots straight
+into our `app_users` posture. Greenfield ⇒ no migration cost. **Adopt Better Auth**, Google provider, DB
+sessions on our Postgres. The authz is STILL the per-request DAL check (§1.2) — Better Auth handles identity
++ session lifecycle. Set `trustHost`. Keep the seam thin. *(This is the one architectural change from the
+committed plan — surfaced to Tim.)*
+
+**17.3 Money = string end-to-end** (done inline, §1.4 — branded `USD` type, no `numeric→number` coercion).
+**17.4 Snapshot = one composed query per screen + `idle_in_transaction_session_timeout`** (done inline, §1.3).
+
+**17.5 Partner RLS must be PROVEN fail-closed (not silent theater).** RLS fails *open* on misconfig, so the
+guarantee lives entirely in assertions, enforced before any external user exists:
+- **Assert `ps_reporting_reader` is `rolsuper=false` AND `rolbypassrls=false`** at boot + in CI — a LIVE risk
+  here because our operational role connects as `postgres`/BYPASSRLS; if the reader inherits that, isolation
+  is theater and every partner sees the whole book.
+- Base tables need **`FORCE ROW LEVEL SECURITY`** and the reader must **not own** them. They live in the
+  operational DB owned by the cip team (cross-repo coupling we don't control) → **this is the strongest
+  argument for moving partner-facing reads onto a separate reporting DB** (logical-replicate just the lens
+  base tables; own the RLS there). Until then, internal-only.
+- **GUC-absent → ZERO rows:** policy uses `current_setting('app.current_partner', true)` (missing_ok) and
+  `wayward_brand_id IN (SELECT … WHERE email = that)` so a forgotten GUC yields *nothing*, never *all*.
+- **Negative test runs AS `ps_reporting_reader`** (not the owner) and asserts: (a) partner sees only mapped
+  brands, (b) **GUC-absent returns zero rows**, (c) internal-only views are unreachable, (d) the role-attr
+  assertion above. Confirm prod Postgres **≥ 15** (security_invoker) — verify, don't assume.
+
+**17.6 `defineQuery` completeness (the build-check is now load-bearing security).** Make it AST/lint-grade
+(not regex) and cover EVERY data entry point: RSC fetches, **Route Handlers**, **Server Actions** (the
+Permissions cell-cycle especially — a Server Action is a public POST), `generateMetadata`,
+`generateStaticParams`, `route.ts`, `instrumentation`/cron. Rules: **scoping identifiers come from `ctx`
+(session), NEVER from `args`/searchParams** (else a partner sets `?partner=someone_else` — IDOR); `Surface`
+is a **closed union**, `assertCan` throws; **fail closed under RSC streaming** (a thrown `Forbidden` aborts
+the response — test that nothing privileged flushes to a denied client); add React **taint APIs**
+(`experimental_taintObjectReference` / `taintUniqueValue`) on raw rows + the DB creds as the belt to
+`server-only`'s suspenders. State loudly: **`defineQuery` is NOT the row-isolation boundary — RLS is** — so
+nobody "optimizes" a partner query off the `security_invoker` views.
+
+**17.7 `ORDER BY` / identifier injection + sorting correctness.** postgres.js parameterizes *values*, not
+*identifiers* — `sql\`… order by ${userCol}\`` from `?sort=` is injection. **Whitelist sortable columns
+(zod enum) + `sql(col)` escaping.** And **sort server-side always**: client-sorting a paginated slice
+answers "who owes the most" WRONG. **Adopt [nuqs](https://nuqs.dev)** for type-safe searchParams (don't
+hand-roll parse/validate across sort+filter+page+depth × 8 screens).
+
+**17.8 i18n enum labels (biggest i18n gap).** DB enums (`delta_status`, `verdict`, `verdict_strength`,
+`aging_bucket`, `reality`, `review_priority`, evidence-signal names) arrive one-language → a zh UI half-English
+on exactly the money/nationality terms. **Route every enum through the message catalog** (extend the
+`tokens.ts` map already keyed by enum for *color* to also carry the localized *label*). Add next-intl **TS
+augmentation** (missing/renamed key = `tsc` error). `fmtUSD` calls next-intl **`format.number({style:
+'currency'})`**, never `'$'+toFixed`. Gate `text-transform`/letter-spacing to **Latin only** (CJK). Brand
+names + free-text evidence stay source-language (can't translate data).
+
+**17.9 Deploy hardening.** **PR previews point at a SEEDED NON-PROD DB, not the prod reader** (else real
+commission money renders on ephemeral public URLs + preview pools draw down prod's ~100-conn budget) — reuse
+the §9 schema-only + lens `pg_dump` seed. Put a **WAF/edge (Cloudflare)** in front of Railway: rate-limit
+Server Actions/App-Router (the DoS CVE + allowlist brute-force), **strip `x-middleware-subrequest`** inbound,
+block unauth `.rsc`/segment-prefetch to protected paths. **Lock egress** to {reporting DB, Google OAuth, FAS
+weasyprint} — block `169.254.169.254` + internal IPs (neuters the SSRF class). `prepare:false` if a
+transaction-mode pooler is ever added (**boot tripwire**, not a comment). Set `application_name='reports-ps'`
+(visible in `pg_stat_activity`). `/api/health` = bare `select 1`, **not** through `defineQuery`.
+
+**17.10 Observability floor (launch-blockers — a guest on someone's prod OLTP).** `pg_stat_statements`
+filtered to the reader role; **connection-count alerting by role at ~70% of `max_connections`** (catches
+pool leaks / preview creep / accidental autoscale); external **uptime + error monitoring** (Sentry) +
+**ship structured logs** (Railway logs are ephemeral) stamped with request-id + `as_of`; **per-query timing
+emitted from `defineQuery`** `{query_name, duration_ms, row_count, as_of}` → p95-per-screen for free, alert
+on the >300ms benchmark; **one *verified* PITR test-restore**; a documented **reporting kill-switch** (REVOKE
+the reader / scale app to 0 during a sync incident).
+
+**17.11 Lens-contract drift = a SCHEDULED monitor, not just deploy-time.** The lenses are a cross-repo API
+changed by hourly syncs + charter bots; a rename or *semantic* change breaks money silently until reporting
+redeploys. Add a **scheduled (hourly/daily) contract test** that SELECTs each lens **as the reader**,
+zod-parses a row, and checks enum domains against the token map → alarms in hours. Also assert the
+"filter `reality != 'JUNK'` everywhere" rule centrally (one forgotten filter = wrong totals).
+
+**17.12 DB-target honesty + connection split.** Railway has **no one-click managed read replica** — the real
+options are self-operated Patroni HA or **logical replication of the lens base tables into a separate small
+reporting Postgres** (which also gives us a place we own `FORCE RLS`). Write that upgrade path as a *project*,
+not a toggle. The concrete **threshold to move reporting off the primary = external-partner onboarding**
+(untrusted internet concurrency + blast radius, not just load). Keep the **reader and writer pools able to
+point at DIFFERENT hosts from day one** so a later replica move doesn't strand the writable `app_*` schema.
+
+**17.13 app_\* least-privilege.** `ps_reporting_writer` has privileges on the `app_*` tables **and nothing
+else** (CI privilege assertion); prefer `app_*` in a **separate database/service** from operational data;
+append-only audit (have); **pull export-audit forward for internal users** (log who/surface/rows/`as_of`
+from day one — cheap INSERT into the trail we're already building).
+
+**17.14 Explicitly NOT doing (discarded / deferred).** The Metabase/Superset/Evidence **build-vs-buy** pivot
+(Tim ruled build). "Ship documents/Slack digests instead of a dashboard" — report automation is already
+**P4**; the dashboard is the product. Charts stay **chart.js** (design-specced) but **colors driven from
+`tokens.ts`/CSS vars** so dark mode + PDF don't drift (Recharts noted as an SVG alternative, not adopted).
+Short-TTL cache keyed to the sync heartbeat = a **post-v1** perf win, noted not built.
 
 ## Appendix — research sources (2026)
 Next.js 16 upgrade + proxy rename; CVE-2025-29927 (Datadog/JFrog/OffSec); Auth.js v5 migration + session

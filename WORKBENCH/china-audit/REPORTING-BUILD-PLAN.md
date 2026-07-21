@@ -1,6 +1,8 @@
 # Project Silk Reporting — Build Plan (executable)
 
-**Status:** Ready for build, pending 4 confirmations (§14). **Audience:** a developer picking this up
+**Status:** Build-ready. The 4 confirmations are **RESOLVED** (Tim, 2026-07-20 — see §14 + §16); two
+best-practice nuances (DB target, migration tool) are going to an expert panel for a second opinion.
+**Audience:** a developer picking this up
 cold — every step says *what to do · depends on · edge cases · acceptance*. **Authority order:** the
 **content plan** wins on *what to show*; the **design handoff** (`handoff/`) wins on *how it looks*; this
 doc owns *how it is built*. It is **the executable plan** — it supersedes for build purposes the earlier
@@ -41,8 +43,8 @@ anything but their own rows.
 | Charts | **chart.js** + `react-chartjs-2` (`'use client'`) | jade primary / gold secondary; no SSR canvas. |
 | i18n | **next-intl** — `[locale]` (`en`/`zh`), all pages **dynamic** | §6. |
 | Export | CSV streamed from `sql.cursor()`; PDF via **weasyprint on FAS** (§10.2) | never block the Node loop. |
-| RBAC schema migrations | **node-pg-migrate** in the reporting repo (raw SQL) | `app_*` tables + writer role. cip lens gaps stay in foundry-cip. |
-| Deploy | **Railway** — new service in the Project Silk project; `reports.project-silk.com` | single persistent Node process → one long-lived pool. |
+| RBAC schema migrations | **node-pg-migrate** (raw SQL, matches the no-ORM ethos) | `app_*` tables + writer role. cip lens gaps stay in foundry-cip. *Alt: Drizzle Kit — 2026 mainstream; §16 / panel.* |
+| Deploy | **Railway** auto-deploy (§16) into the website's Railway project; `reports.project-silk.com` | single persistent Node process → one long-lived pool. |
 
 Pin exact versions (no `^`); commit the lockfile. `next-auth@beta` installs a moving tag → **pin the
 resolved version** after install and record it in the changelog (confirm at build whether v5 is still beta).
@@ -155,10 +157,16 @@ coverage-%/exceptions, Leadership disputes tile.
 end. Everything after is "more screens on the same pattern."
 
 ### 0.0 Prerequisites to confirm/provision BEFORE scaffolding (§14)
-- **Google OAuth** — decide consent-screen type (Internal iff `project-silk.com` is a Workspace org; else
-  External + test users). Create the OAuth client; redirect URIs `https://reports.project-silk.com/api/auth/
-  callback/google` + `http://localhost:3000/api/auth/callback/google`. Confirm Tim's Google account + the 6
-  seed emails. **This gates Phase 0** — not a deferrable decision.
+- **Google OAuth = EXTERNAL consent** (decided). It MUST be External: the audience mixes a personal Gmail
+  (`treckrg@gmail.com` — Tim), `@project-silk.com` Workspace accounts, **and** external partners
+  (`ali@wayward.com` etc.). "Internal" consent only admits the Workspace org, so it can't serve the other
+  two — External + our own allowlist is the only fit. Config (new *Google Auth Platform* UI → Branding /
+  Audience / Clients): **non-sensitive scopes only** (`openid email profile` — no Gmail/Drive/sensitive
+  scopes → no heavyweight verification); **Testing** mode initially with the allowlist as test users (≤100,
+  no "unverified" warning for them); **publish + verify** the app before onboarding partners at scale.
+  Redirect URIs `https://reports.project-silk.com/api/auth/callback/google` + `http://localhost:3000/api/
+  auth/callback/google`. The **app's `app_users` allowlist is the real gate** (§4) — Google just proves
+  identity. **Gates Phase 0.**
 - **Read role credential** — set `PS_REPORTING_READER_DB_PASSWORD` on the Railway service, re-run cip_120
   (idempotent `ALTER ROLE … PASSWORD`), form `REPORTING_DB_URL=postgresql://ps_reporting_reader:<pw>@<host>/
   railway?sslmode=require`. **Decide the DB target** (§14): prod-direct (with hard query caps) vs a read
@@ -428,16 +436,17 @@ for a design riff** (deferred by decision — do not invent them).
 - **P4:** report automation planned separately (FAS + the weasyprint PDF path); statement-pinning is what
   makes `statement_drift` non-zero — until then drift is disclosed-inert.
 
-## 14. Confirm before build (needs Tim)
-1. **Repo home** — standalone `reports-project-silk` repo (**recommended** — clean CI/deploy/Railway
-   service) vs a folder in `venture-project-silk`.
-2. **OAuth** — is `project-silk.com` a Google **Workspace** org (→ Internal consent) or plain Gmail (→
-   External)? Tim's actual Google account (`treckrg@gmail.com` in the mock vs `admin@meettimjordan.com`)? The
-   6 seed emails as-is? **Blocks Phase 0.**
-3. **Reporting DB target** — read **prod directly** (with hard query caps + no autoscaling — **acceptable
-   v1, recommended**) vs provision a **read replica** (cleaner isolation, infra cost).
-4. **Two tool confirmations** — `node-pg-migrate` for the `app_*` schema; **weasyprint-on-FAS** for PDF (vs
-   in-app `@react-pdf`). (Both recommended as written.)
+## 14. Decisions — RESOLVED (Tim, 2026-07-20)
+1. **Repo** — a **standalone git repo** under the Project Silk org (§16), *deployed* into the Railway
+   project that owns `project-silk.com` DNS (the website's project) so the `reports.` subdomain + cert are
+   trivial. Maximize automation (§16). ✅
+2. **OAuth** — **External consent, allowlist-gated** (§0.0/§4). Tim = `treckrg@gmail.com` (personal),
+   staff = `firstname@project-silk.com` (Workspace), partners external (e.g. `ali@wayward.com`). ✅
+3. **DB target** — **prod-direct with guardrails for v1** (read-only role + `statement_timeout` + per-query
+   `LIMIT` + small pool), **read replica as the documented best-practice upgrade** (§16). Textbook says
+   "reporting → replica"; at this scale the guardrails make prod-direct acceptable — **on the panel's list.** ✅
+4. **Tools** — `node-pg-migrate` (raw-SQL, matches our no-ORM ethos) with **Drizzle Kit** noted as the 2026
+   mainstream alternative; **weasyprint-on-FAS** for PDF. Both **on the panel's list.** ✅
 
 ## 15. What the QC rounds changed (audit trail)
 3-lens QC (stress / gap / senior). **Incorporated:** single `defineQuery` boundary (was per-fn boilerplate);
@@ -450,6 +459,35 @@ pinned; next-themes-cookie + setRequestLocale + zh-fallback; searchParams tables
 cursor + weasyprint PDF; `app_partner_brands` + partner RLS. **Escalated to §14** (not silently decided):
 repo home, OAuth type/accounts, DB target. **Judged noise / already-covered:** none material discarded; a few
 findings (drift 0-rows, rate_missing) were already present and got strengthened, not added.
+
+## 16. Repo, deploy & CI/CD automation (researched 2026-07-20 — "measure twice, cut once")
+**Repo:** one **standalone** repo `reports-project-silk` under the Project Silk GitHub org (not a monorepo
+package — cleaner CI, its own deploy, no root-dir juggling). It reads the CIP prod DB over the network; it
+does **not** live in the cip repo.
+**Deploy target:** a **new Railway service in the same Railway project as `project-silk-website`** — that
+project already owns `project-silk.com` DNS + certs, so adding the `reports.` subdomain is one record.
+Railway → New Service → connect the GitHub repo. `next.config` `output:'standalone'`; Dockerfile (pinned
+Node) or Nixpacks; bind `$PORT`; healthcheck `/api/health`.
+**Automation (the "as much as possible" ask):**
+- **Auto-deploy on push to `main`**, with **"Wait for CI"** enabled so Railway only ships after GitHub
+  Actions is green (never deploys a red build).
+- **GitHub Actions CI** on every PR + push: `tsc --noEmit`, eslint, unit tests (the `assertCan` truth table
+  + money-SUM test), the **build-time security check** (§10.5c), and Playwright e2e (§10.5d). Branch
+  protection on `main` requires green CI.
+- **PR preview environments** (Railway PR deploys) so a screen can be reviewed on a real URL before merge —
+  each preview points at the **read-only** reporter role (never a writer) and a **non-prod** `AUTH_SECRET`.
+- **Custom domain** `reports.project-silk.com` via Railway Networking (auto TLS); add the CNAME to
+  `project-silk.com` DNS. **Secrets** in Railway per-environment (prod vs preview); `AUTH_SECRET` rotation
+  documented (invalidates sessions). No secret in git; `.env.example` is the contract (§0/§10).
+- **Migrations in CI/deploy:** run `node-pg-migrate up` as a **release/pre-start step** (never on first
+  request — that starves the pool). The cip lens-gap migrations (G1–G6) run via the cip repo's own path.
+
+**DB-target detail (decided v1 = prod-direct + guardrails; replica = best-practice upgrade):** research
+consensus is that reporting belongs on a **read replica** (isolation from the operational primary). For v1's
+scale (~6 users, then a few partners) the guardrails — read-only `ps_reporting_reader`, `statement_timeout`
+10s at the role, per-query `LIMIT`, `max` pool from env, no autoscaling — make **prod-direct acceptable and
+far simpler**. A Railway Postgres **read replica** is the first-class upgrade the moment load or isolation
+demands it (reporting tolerates seconds of replica lag). Flagged for the panel.
 
 ## Appendix — research sources (2026)
 Next.js 16 upgrade + proxy rename; CVE-2025-29927 (Datadog/JFrog/OffSec); Auth.js v5 migration + session

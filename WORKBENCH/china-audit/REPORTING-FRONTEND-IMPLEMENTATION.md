@@ -1,9 +1,11 @@
 # Project Silk Reporting Frontend — Implementation Plan
 
-> ⚠ **SUPERSEDED FOR EXECUTION (2026-07-20)** by
-> [REPORTING-BUILD-PLAN.md](REPORTING-BUILD-PLAN.md) — the executable plan built against the delivered
-> design handoff (`reporting-design-handoff/`) and hardened by a 3-lens QC + CTO pass. Build from that
-> doc. This one is kept for rationale/history.
+> ✅ **RE-INSTATED as the correct intent (2026-07-22).** The old "superseded for execution by
+> [REPORTING-BUILD-PLAN.md]" banner was **wrong** — that doc followed the design handoff into role-home
+> dashboards and drifted off the operational recovery pipeline. **This doc's pipeline screen set (§2–§8)
+> + security spine are the correct intent** and are carried forward by the plan of record,
+> **[REPORTING-REBUILD-PLAN.md](REPORTING-REBUILD-PLAN.md)** — build from THAT (it folds in the shipped
+> Phase-0 + the corrections). This doc is kept for the how/why detail it still holds.
 >
 > **Junior-dev-executable build plan.** Pairs with the decision-level
 > [REPORTING-FRONTEND-PLAN.md](REPORTING-FRONTEND-PLAN.md) (the *what/why*); this is the

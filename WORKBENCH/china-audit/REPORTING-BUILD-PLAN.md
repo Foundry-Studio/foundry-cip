@@ -1,5 +1,11 @@
 # Project Silk Reporting — Build Plan (executable)
 
+> ⚠ **SUPERSEDED for the SCREEN SET (2026-07-22).** The Phase-1 / §7 / §8 screens in this doc are
+> **role-home dashboards** — a drift off the operational recovery pipeline (this plan was built against
+> the design handoff, not [REPORTING-FRONTEND-PLAN.md]). The **corrected plan of record is
+> [REPORTING-REBUILD-PLAN.md](REPORTING-REBUILD-PLAN.md)** — do NOT build the screen set below. What
+> survives from here and is honored by the rebuild: **§1 (the security spine)** and **§16 (deploy/CI)**.
+
 **Status:** Build-ready + **hardened by a 4-seat expert panel** (2026-07-20 — see §17). BUILD confirmed
 (build-vs-buy overruled by Tim). One architectural change adopted: **Better Auth** replaces Auth.js v5
 (§17.2). Pin **Next.js ≥ 16.2.6** (live CVEs). **Audience:** a developer picking this up

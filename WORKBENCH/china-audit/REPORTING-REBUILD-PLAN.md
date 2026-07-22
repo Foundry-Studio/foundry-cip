@@ -4,15 +4,15 @@
 > `REPORTING-BUILD-PLAN.md` (which drifted to role-home dashboards) and re-anchors on the operational
 > money-recovery pipeline defined in `REPORTING-FRONTEND-PLAN.md` (the *what/why*) +
 > `REPORTING-FRONTEND-IMPLEMENTATION.md` (the *how*) + `REPORTING-CONTENT-PLAN.md` (the *content per
-> audience × depth*) + `LENS-CATALOG.md` (the *data*). Authored 2026-07-22 after a 3-reviewer audit of
+> audience × depth*) + `LENS-CATALOG.md` (the *data*). Authored 2026-07-21 after a 3-reviewer audit of
 > the shipped app.
 >
-> **Read order for a junior picking this up cold:** §1 (why) → §3 (the model) → §5 (the rules you may
-> not break) → §6 (the data) → §7 (the screens) → §9 (your sprint). Then build.
+> **Read order for a junior picking this up cold:** **§0.5 (repos, DBs, how to run)** → §1 (why) → §3 (the
+> model) → §5 (the rules you may not break) → §6 (the data) → §7 (the screens) → §9 (your sprint). Then build.
 
 ---
 
-## 0. Decisions locked (2026-07-22, Tim)
+## 0. Decisions locked (2026-07-21, Tim)
 
 1. **Write-surface path = (A) governed FAS API.** Money-input writes (Statements pin, Partners
    economics) go through a governed Foundry-Agent-System endpoint that writes + audits; the frontend
@@ -40,6 +40,40 @@
 > nationality IN-APP** via a governed write (§5 rule 9, §7.8, §10.1) and **Tim is the sole non-demotable
 > owner** (§7.12). The §7.14 workflow-state layer is **APPROVED**. Nothing here is open; this doc is
 > execution-ready.
+
+---
+
+## 0.5 Environment — the repos, DBs & how to run (COLD-START: read this first)
+
+Three repos are in play. All are **master-only** (no branches/PRs).
+
+| Repo | Local path | Remote | Role |
+|---|---|---|---|
+| **reports-project-silk** (THE app) | `c:/Users/Tim Jordan/code/reports-project-silk` | `github.com/Foundry-Studio/reports-project-silk` | the Next.js reporting frontend — where 90% of this plan is built |
+| **foundry-cip** (the data) | `c:/Users/Tim Jordan/code/foundry-cip` | `github.com/Foundry-Studio/foundry-cip` | the CIP DB, the `lens_ps_*` views, the `ps_reporting_reader` role, the §6.1 lens migrations |
+| **Foundry-Agent-System** (FAS) | `c:/Users/Tim Jordan/code/Foundry-Agent-System` | (Foundry-Studio) | the governed money-write endpoint (§10.1) + the scheduled report jobs (§9 Sprint 3) |
+
+**Run the app** (from `reports-project-silk/`): `npm run dev` (Next dev) · `npm run typecheck` (tsc --noEmit) ·
+`npm run lint` (eslint) · `npm test` (vitest run) · `npm run migrate` (node-pg-migrate; app_* migrations in
+`migrations/*.cjs`) · `npm run seed` (`scripts/seed-allowlist.cjs`). The security spine lives at
+`src/server/dal/define-query.ts`; roles at `src/server/auth/roles.ts`; money at `src/lib/money.ts`; the
+build-check at `src/security-invariants.test.ts`; screens under `src/app/[locale]/(app)/*`.
+
+**Two databases, two connections** (both server-only): **(1) the CIP reader** — postgres.js as
+`ps_reporting_reader`, SELECT-only on `lens_ps_*` (see rule 11/11a); **(2) the app's OWN `app_*` DB** — a
+`pg` pool (Better Auth + `app_users`/`app_user_roles`/`app_role_pages`/`app_permissions`/`app_activity_log`
++ the §7.14 `app_*` workflow tables). Set **`DATABASE_DEV_URL`** explicitly for local work (the ambient
+`DATABASE_URL`/`DATABASE_PUBLIC_URL` point at Railway **prod** — never migrate against those).
+
+**foundry-cip work** (the §6.1 lens migrations) is **alembic**, and the **jos-sync bot flips the main
+checkout onto `jos-sync/*` branches mid-session** — so build/commit CIP changes from a **detached-master
+worktree** (`git worktree add --detach <path> origin/master`), pathspec-scoped, and override the ambient
+`DATABASE_URL` to a local container for any alembic/verify run. Each new lens ships with a `zod.parse`
+lens-contract test pinned to the migration head (§11).
+
+**Deploy:** the app is live on Railway at `reports.project-silk.com` (Better-Auth Google login, TXT-verified
+custom domain, a 60s query cache). CI/CD is a Sprint-0a deliverable (it does **not** exist yet — `.github/`
+is absent).
 
 ---
 
@@ -196,7 +230,7 @@ surfaces = V2, §10.)
    pinned to one leaks; see the split-identity hazard). *Surfacing* a verdict without ruling is still
    read-only, and only CS/admin see the ruling control. Evidence types: only Tim-approved types (RULES.md 5).
 10. **Access = role-based, assigned per person, admin-managed; unauthorized pages are INVISIBLE.**
-    (Revises the "full-access seed" decision per Tim 2026-07-22 — no money gate.) Default-deny. Admins
+    (Revises the "full-access seed" decision per Tim 2026-07-21 — no money gate.) Default-deny. Admins
     add users by email + assign roles; roles grant pages; an ungranted page is **absent from nav and
     404s on a direct hit** (not a 403). Full model in **§7.12**. Every gated screen also **logs a
     `page.view`** and exports log `export.download` (§7.13) — logging is cross-cutting, never opt-in.
@@ -427,7 +461,7 @@ governed FAS API** (decision 1). *Accept:* a write appends an audit row in the s
 the capability never sees the affordance and the FAS endpoint rejects them. *Maps to:* NEW (small).
 
 **7.12 User & Access Admin — THE ACCESS MODEL** *(internal admin · WRITE on the app's own `app_*` DB)*.
-Where any admin onboards the team and controls who sees what. Designed per Tim 2026-07-22 (simplified —
+Where any admin onboards the team and controls who sees what. Designed per Tim 2026-07-21 (simplified —
 **no money gate**, role-based, multi-admin, no invitations).
 
 *Principle:* **role-based, assigned per person, admin-managed. Default-deny — a page you're not granted
@@ -444,7 +478,7 @@ is invisible (absent from nav; direct URL → 404, not a 403 that reveals it exi
   the primary lever (Tim: "select what roles they have when I add them").
 - **Multi-admin.** The **Admin** role reaches this screen and manages users/roles — **including granting
   Admin to someone else.** Make James an admin → James can then add users and assign roles too.
-- No capability layer, no money gate (dropped 2026-07-22). Access is purely **person → roles → pages**.
+- No capability layer, no money gate (dropped 2026-07-21). Access is purely **person → roles → pages**.
 
 *Guardrails (RESOLVED — Tim 2026-07-21, §10.2 #3):*
 - **Last-admin guard (non-bypassable).** The system refuses to remove or demote the *last* admin (and
@@ -491,7 +525,7 @@ couples routing to the DAL and mis-fires on composed pages that call one allowed
 missing route** (today the deny path is a *500*, and "exists-but-forbidden" must be indistinguishable from
 "doesn't exist"). Schema: `app_users` + `app_user_roles` (exist); the role→page map in a small seeded,
 admin-editable `app_role_pages` table (replaces the hard-coded `ROLE_SURFACE` matrix); a per-person override
-table (proposed `app_permissions`, carrying `locked`/`none`) for the fine-tune, deny-wins.
+table `app_permissions` (carrying `locked`/`none`) for the fine-tune, deny-wins.
 
 *Write path:* app-RBAC writes hit the app's OWN `app_*` Postgres via Next **server actions** (re-check
 `admin` + zod + a log row in the same tx) — NOT the CIP read role, NOT the FAS API (that's only for CIP
@@ -506,7 +540,7 @@ the writes (audited server actions), replace the fixed per-role matrix with admi
 
 **7.13 Activity Log & Report Builder** *(internal admin · the usage/audit trail — Tim: "very, very
 important")*. Everything meaningful that happens is logged **by code** to Postgres, and admins can filter
-and **download reports** of who used the system, for what, when. Best practices researched 2026-07-22
+and **download reports** of who used the system, for what, when. Best practices researched 2026-07-21
 (Graylog / Google-Cloud audit-logging / ZenGRC / Sonar — see the chat report for links).
 
 *What is logged (server-side, standardized action verbs):*
@@ -740,7 +774,7 @@ initiating actor + action — `statement.pinned` / `partner.added` / `nationalit
 write). This is the highest-stakes boundary in the system. *Van + I detail it in Sprint 1 (task); it is built
 in Sprint 3 before any screen that writes.*
 
-**Decisions — RESOLVED (Tim, 2026-07-22; see §0):**
+**Decisions — RESOLVED (Tim, 2026-07-21; see §0):**
 1. ✅ Write-surface path = **(A) governed FAS API** (contract in §10.1).
 2. ✅ Partners = **one page + light add-partner write** (not a heavy admin screen).
 3. ✅ Raw GMV = **ship derived**.
@@ -812,7 +846,7 @@ in Sprint 3 before any screen that writes.*
 1. **Doc-hygiene (do with this commit):** remove the wrong "superseded" banner on
    `REPORTING-FRONTEND-IMPLEMENTATION.md`; add a "superseded for screen set → see REPORTING-REBUILD-PLAN"
    banner to `REPORTING-BUILD-PLAN.md`; update `PROGRAM.md` P4 to reflect *shipped-Phase-0 + this
-   correction plan* and add a DECISION OF RECORD ("2026-07-22: reporting re-anchored to the operational
+   correction plan* and add a DECISION OF RECORD ("2026-07-21: reporting re-anchored to the operational
    pipeline; role-home build corrected"). **All via the detached master worktree, pathspec-scoped.**
 2. **PM buildout:** kick off P4 in PM properly — this plan → sprints → **a task per §7 screen / §8 fix /
    §9 sprint item, each with a full note** (goal, lenses, acceptance, escalate-if) so the board *is* the
@@ -827,5 +861,5 @@ in Sprint 3 before any screen that writes.*
    decisions #3–#4 are answered; the caution is about *review*, not a blocker).
 
 ---
-*Plan of record for WCC P4 reporting. Supersedes the role-home screen set. Junior entry point: §1 → §3 →
-§5 → §6 → §7 → your sprint in §9.*
+*Plan of record for WCC P4 reporting. Supersedes the role-home screen set. Junior entry point: §0.5 → §1 →
+§3 → §5 → §6 → §7 → your sprint in §9.*

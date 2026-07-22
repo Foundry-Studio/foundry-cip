@@ -820,10 +820,11 @@ in Sprint 3 before any screen that writes.*
 3. **4-subagent review — ✅ DONE (2026-07-21).** Coherence, CIP-data-mining, governance/security, and
    blind-spots reviewers pressure-tested the plan against the shipped code + the lenses. Sound findings folded
    in (§6.1 lens workstream, §7.12/§7.13 hardening, §10.1 FAS contract, the 0a/0b split, CI-in-0a, the data
-   adds, §7.14 workflow-state); **six items surfaced to Tim in §10.2.**
+   adds, §7.14 workflow-state); **all six decisions surfaced to Tim are now RESOLVED and baked in (§10.2).**
 4. **Then, and only then:** the autonomous BUILD run executes **Sprint 0a first (correctness — autonomous-
-   safe)**. **Sprint 0b (auth/audit) is HUMAN-REVIEWED and gated on §10.2 #3–#4** — the security review
-   recommends *not* handing the highest-blast-radius subsystem to the autonomous run before those answers.
+   safe)**. **Sprint 0b (auth/audit) stays HUMAN-REVIEWED** — the security review recommends keeping a human
+   in the loop on the highest-blast-radius subsystem rather than running it fully autonomously (its gating
+   decisions #3–#4 are answered; the caution is about *review*, not a blocker).
 
 ---
 *Plan of record for WCC P4 reporting. Supersedes the role-home screen set. Junior entry point: §1 → §3 →

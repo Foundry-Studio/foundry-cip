@@ -47,6 +47,7 @@ exclusion-list partners direct* (Eric et al. — **not ours**, tracked separatel
 | **lens_ps_china_contention** (cip_117) | The **contention review queue**: brands whose signals disagree (china evidence AND not_china evidence both present). `review_priority='high'` = a china signal (card_country / partner / slack) overridden by a human/legal not_china on a brand WITH collected revenue ("are we right NOT to claim this?"). Read-only — surfacing never changes a verdict. Separate from the `unknown` "not-sure-yet" queue. |
 | **lens_ps_china_companies** | The book, one row per company (not per brand-row) — for headcounts. |
 | **lens_ps_exclusion_status** | Is a brand on the contract exclusion list, and is it `takeable`. |
+| **lens_ps_brand_header** (cip_126) | One row per brand — the **Brand-360 header**: name, signup, nationality verdict + strength + conflict, excluded status/buckets/takeable, partner + rate. Assembles `ps_brands ⨝ china_verdict ⨝ exclusion_status ⨝ product_eligibility` (1:1, no fan-out — 5,396 rows). |
 
 ### "What do we owe our partners?"
 | lens | answers |
@@ -60,6 +61,7 @@ exclusion-list partners direct* (Eric et al. — **not ours**, tracked separatel
 | **lens_ps_wayward_reconciliation** | Per brand: our claim vs **Wayward-credits-Tim** (their attribution) vs paid → `delta_status`. |
 | **lens_ps_wayward_stated** | Wayward's OWN stated numbers (total_fees_paid / lifetime commissions / GMV) vs our recorded paid — the cross-check. |
 | **lens_ps_statement_drift** | Per brand pinned in `ps_claim_statements`: the **pinned** `stated_claim_owed` vs the **live** `ps_claim_owed` → `drift_amount` (live − stated) + `drift_direction`. **THE FIRST THING CHECKED BEFORE ANY invoice/statement goes out** — flag, don't block. Empty until a claim is pinned. |
+| **lens_ps_statements_history** (cip_126) | The sent-statement history — one row per pinned statement × brand (`ps_claim_statements`): `statement_label`, `generated_at`, the pinned mgmt/paid/claim figures + notes. Brand 360 filters by brand; the Statements screen groups by `statement_label`. Empty until a claim is pinned; the WRITE (pinning) is a **FAS-API governed write**, never the reader. |
 
 ### "What are the exclusion-list partners driving?" (separate — NOT ours)
 | lens | answers |

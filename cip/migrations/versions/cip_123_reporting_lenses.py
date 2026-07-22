@@ -24,8 +24,10 @@ under the owner's privileges; the reader needs SELECT on the top-level lens only
 = 1,776 rows / $1,198,878 remaining / 8 uncollectible; cash_ledger = 2,271 rows /
 $977,281 paid.
 
-Revision ID: cip_123_reporting_cash_and_open_invoices
+Revision ID: cip_123_reporting_lenses
 Revises: cip_122_ps_staff_junk
+
+(Revision id kept short — alembic_version_cip is VARCHAR(32).)
 """
 from __future__ import annotations
 
@@ -33,7 +35,7 @@ from collections.abc import Sequence
 
 from alembic import op
 
-revision: str = "cip_123_reporting_cash_and_open_invoices"
+revision: str = "cip_123_reporting_lenses"
 down_revision: str | Sequence[str] | None = "cip_122_ps_staff_junk"
 branch_labels = None
 depends_on = None

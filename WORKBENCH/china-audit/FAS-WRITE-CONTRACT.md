@@ -97,5 +97,35 @@ write surface into CIP from the reporting path — everything else stays read-on
 - **Sprint 1 (this doc):** the spec. **Decision §10.2 #5 = approved** (Tim signed off the six requirements).
 - **Sprint 3:** Van + I build the endpoint to this spec, then wire the three screens (§7.8 nationality-ruling
   go-live, §7.10 statement-pin, §7.11 partner-write). Build the endpoint BEFORE any screen that calls it.
-- **Open for Van at build time:** the exact CIP write-role name + grants; whether `app_*` RBAC is reachable
-  from FAS synchronously or needs a mirrored check; the idempotency-key retention window.
+- **Open for Van at build time:** the exact CIP write-role name + grants; the idempotency-key retention
+  window; the exact HubSpot company-id column used for §11.4 propagation.
+
+## 11. Reviewer-hardening (resolutions to the Sprint-1 adversarial review)
+1. **Actor re-verification needs a data path — resolved via a signed capability token, NOT a cross-service DB
+   read.** FAS is a different service from the app + its `app_*` DB, so "FAS reads `app_*` to re-check the
+   actor" may be unimplementable. Instead: the app (which has ALREADY run `assertCan` for the actor) mints a
+   **short-lived signed capability token** — HMAC/JWT over `{actor_email, action, exp≤120s}` with the shared
+   service secret — and sends it with the write. FAS **verifies the signature + that the token's `action`
+   matches the request** (and `exp` is fresh). That IS the re-verification: FAS trusts the app's `assertCan`
+   only because it's cryptographically bound to this one action, not a bearer claim it could forge. (If FAS
+   and `app_*` ever share a network, a direct read is a fine alternative — but the token path removes the
+   dependency.)
+2. **`statement.pin` is a NOW-snapshot only — no back-dating.** The `lens_ps_*` views are current-state (no
+   temporal/bitemporal dimension), so FAS **cannot** re-derive a past `as_of`. Drop the `as_of` request field;
+   the pin freezes the claim **as of now** (server clock), and that timestamp is the statement's as-of. History
+   comes from the *sequence* of pinned statements, not from back-dating one.
+3. **A pre-pin data-quality gate is part of the contract (not just money invariants).** Before committing a
+   `statement.pin`, FAS **also** re-checks server-side: (a) no source feed is stale past threshold (esp. the
+   manual Jake payment feed — `lens_ps_source_freshness` mode/heartbeat); (b) no claimed brand has `unknown`
+   verdict + revenue; (c) no open drift. A failing gate → `422 gate_failed:<reason>`, nothing pinned. A direct
+   FAS call therefore **cannot** bypass the app-side gate by hitting the endpoint.
+4. **Sibling propagation uses an explicit company key — never a fuzzy match.** `nationality.rule` propagates
+   across the same-company rows via the **structured company id** (`lens_ps_china_companies.company_id` /
+   the ps_brands→company linkage), the SAME grain the money count-rule uses — NOT name/mailbox fuzzy matching
+   (the Grownsy→Selgrownsy hazard, [[feedback_split_identity_leaks_decisions]]). If a brand has no company id,
+   the ruling applies to that brand_id only + flags "unlinked — verify siblings manually."
+5. **Concurrent / opposite rulings — append-only, last-writer-wins by `asserted_at`, everything retained.**
+   `ps_added_facts` is append-only, so two near-simultaneous opposite rulings both land; the **latest
+   `asserted_at` wins** the effective verdict and BOTH are in the audit trail (who/what/when). The
+   one-directional rule still holds — a human `not_china` outranks a weaker machine `china` regardless of
+   time. No lost-update: FAS never UPDATEs a fact, only INSERTs, so there is no race to corrupt.

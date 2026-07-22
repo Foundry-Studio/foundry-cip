@@ -200,9 +200,11 @@ surfaces = V2, §10.)
 2. **Money is a string, aggregated in SQL.** `USD` is a branded string; `Number()` only in the display
    formatter. **Never** add/subtract/derive money in JS — do it in the composed SQL (the MoM %, the
    deltas, everything). Ratios/percentages: compute in SQL.
-3. **Counts said out loud use `lens_ps_china_companies`** (one row per company), NEVER the row-level
-   `lens_ps_china_verdict` (RULES.md §, `LENS-CATALOG` — the company book is **1,951**, the verdict-row
-   count is 2,351, the claim-bearing subset is 1,167 — do not conflate). Label every population.
+3. **Counts said out loud use `lens_ps_china_companies` — filtered `WHERE verdict='china'`** (one row per
+   company), NEVER the row-level `lens_ps_china_verdict`. **⚠️ `lens_ps_china_companies` carries a `verdict`
+   column and holds ALL companies** — a bare `count(*)` is **4,543** (all verdicts, confirmed live 2026-07-22);
+   the China book is `count(*) … WHERE verdict='china'` = **1,951**. The verdict-row count is 2,351, the
+   claim-bearing subset is 1,167 — do not conflate. Label every population.
 4. **"Collected" means `usage_collected` — net of succeeded refunds (cip_113).** `lens_ps_brand_revenue`
    is a **data asset, NOT the money engine**; its `usage_fee_billed` is **gross billed**, has **no**
    `usage_collected` column, and must **never** be labeled "collected." Billed ≥ collected; billed stays
@@ -642,7 +644,7 @@ bite Brand-360/Exceptions otherwise — set per-screen query budgets).
 | # | Defect | Fix (what "done" looks like) | Acceptance test |
 |---|---|---|---|
 | **F1** | Brand-Perf "Collected" column is **gross billed** (`usage_fee_billed`), overstated ~$139k/13%; `brand_revenue` has no `usage_collected` | Relabel the column to what it is (**"Usage billed"**), or source true collected from the money engine; never call `brand_revenue` "collected" | column value == `sum(usage_fee_billed)` under a "billed" label; grep: no "collected" alias on a `brand_revenue` query |
-| **F2** | "China brands" = **1,167** on Commission, **2,351** on 3 screens; the RULES grain (**1,951** companies) shown nowhere | Use `lens_ps_china_companies` for every count-said-out-loud; label populations ("claim-bearing", "with a verdict") where a subset is intended. **⚠️ This is a DISPLAY-count swap ONLY — do NOT re-scope the money DALs by company.** The money correctly aggregates at **brand × product** grain (verdict-scoped); preserve that grain-split (money = brand×product, nationality = company) — swap only the shown *count* | one number for "the China book" app-wide, == `lens_ps_china_companies`; subset labels explicit; the money SUMs are unchanged (still brand×product) |
+| **F2** | "China brands" = **1,167** on Commission, **2,351** on 3 screens; the RULES grain (**1,951** companies) shown nowhere | Use **`count(*) FROM lens_ps_china_companies WHERE verdict='china'`** (= 1,951) for every count-said-out-loud — **the lens holds ALL verdicts; a bare `count(*)` is 4,543, NOT the book** (verified live, shipped in `brand.ts` 2026-07-22). Label populations ("claim-bearing"=1,167, "with a verdict"=2,351) where a subset is intended. **⚠️ DISPLAY-count swap ONLY — do NOT re-scope the money DALs by company.** The money aggregates at **brand × product** grain (verdict-scoped); preserve that grain-split — swap only the shown *count* | the China-book count == `count(*) FROM lens_ps_china_companies WHERE verdict='china'`; subset labels explicit; money SUMs unchanged (still brand×product) |
 | **F3** | Finance waterfall **splices** `brand_revenue` (all-china gross "billed") into the `claim` (claimable net) chain — false continuity | Don't render incompatible-population stages as one flow; separate the data-asset revenue from the money-engine stages, or gate/label both identically | the pipeline stages come from one consistent population/basis; no gross→net mixing in a single arrow chain |
 | **F4** | Finance `earned → paid → owed` arrows imply a subtraction; $32,943 − $23,286 ≠ $13,942 (per-brand floor) | Drop the `→` subtraction framing; show the three as related-but-not-additive figures with a one-line note re the per-brand floor | no rendered arithmetic that doesn't reconcile; the floor is explained |
 | **F5** | "Aged 90+ days" filters the **6+ month (180+)** bucket only; drops the 3–6mo bucket | Label the actual bucket ("180+ days / 6+ months"), or aggregate the true 90+ (3+ months) set | label matches the bucket(s) summed; if "90+", it includes 3–6mo |

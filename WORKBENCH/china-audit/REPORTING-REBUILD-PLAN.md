@@ -32,13 +32,14 @@
    change is logged by code to Postgres (append-only), and admins can filter + **download** "who used the
    system, for what, when." Tim: "very, very important." Design in **§7.13** (best practices researched).
 
-> **POST-REVIEW HARDENING (2026-07-21, four-reviewer pass).** A coherence, CIP-data-mining, governance/
-> security, and blind-spots review pressure-tested this plan against the shipped code + the CIP lenses.
-> The **sound, non-decision** findings are folded in below (base-table/lens workstream §6/§6.1; access-model
-> + activity-log hardening §7.12/§7.13; the FAS write contract §10.1; CI-in-Sprint-0 + the 0a/0b split §9).
-> **Six items need Tim** — collected in **§10.2 (DECISIONS OPEN)**; two are scope proposals marked
-> **PROPOSED** (§7.14 workflow-state layer; §7.8 in-app nationality ruling). Nothing PROPOSED is built until
-> you say go.
+> **POST-REVIEW HARDENING (2026-07-21, four-reviewer pass — ALL DECISIONS RESOLVED).** A coherence,
+> CIP-data-mining, governance/security, and blind-spots review pressure-tested this plan against the shipped
+> code + the CIP lenses. The sound findings are folded in (base-table/lens workstream §6/§6.1; access-model +
+> activity-log hardening §7.12/§7.13; the FAS write contract §10.1; CI-in-0a + the 0a/0b split §9), and **all
+> six decisions are now made and baked in (§10.2)** — including two Tim decided against my rec: **CS rules
+> nationality IN-APP** via a governed write (§5 rule 9, §7.8, §10.1) and **Tim is the sole non-demotable
+> owner** (§7.12). The §7.14 workflow-state layer is **APPROVED**. Nothing here is open; this doc is
+> execution-ready.
 
 ---
 
@@ -184,9 +185,16 @@ surfaces = V2, §10.)
    query over any written figure. (It's ~$13.7–13.9k and drifts hourly; that's correct, not a bug.)
 8. **Partner isolation is the DAL `WHERE`, not middleware** (post CVE-2025-29927). For V2 partner
    logins, the row filter is asserted in the query. Middleware is a convenience redirect only.
-9. **Verdict semantics** (RULES): china / not_china / unknown; `unknown` is a queue, never a denial;
-   surfacing a verdict never changes it (review is read-only in the app; rulings happen in the data
-   layer). Evidence types: only Tim-approved types (§ RULES.md 5) — the app only *displays* evidence.
+9. **Verdict semantics** (RULES): china / not_china / unknown; `unknown` is a queue, never a denial.
+   **CS MAY RULE NATIONALITY IN-APP (Tim, 2026-07-21 — supersedes the old "review is read-only" rule).** A
+   CS selection of china/not_china is a **hard added_fact** — same authority and mechanism as Tim's word in
+   chat (`ps_added_facts`, top-rank evidence) — written through the **governed FAS write** (§10.1), NEVER the
+   read role. Two invariants: **(a)** the ruling carries **reporting-engine provenance** (`asserted_by` = the
+   CS person, `source_ref` = `reporting-app`, `asserted_at`) so the trail shows *who selected it in the tool
+   and when* (the "show evidence it was selected in the reporting engine" requirement); **(b)** it
+   **propagates across the company's sibling brand rows** (one company = many `ps_brands` rows — a ruling
+   pinned to one leaks; see the split-identity hazard). *Surfacing* a verdict without ruling is still
+   read-only, and only CS/admin see the ruling control. Evidence types: only Tim-approved types (RULES.md 5).
 10. **Access = role-based, assigned per person, admin-managed; unauthorized pages are INVISIBLE.**
     (Revises the "full-access seed" decision per Tim 2026-07-22 — no money gate.) Default-deny. Admins
     add users by email + assign roles; roles grant pages; an ungranted page is **absent from nav and
@@ -195,11 +203,12 @@ surfaces = V2, §10.)
 11. **The CIP read role is SELECT-only on `lens_ps_*` — and there are THREE write classes, none of them
     on that role.** The app reads CIP only through `ps_reporting_reader` (lens views only; **base tables
     are denied** — see rule 11a). Writes never touch the read role and split into three governed paths:
-    **(i) CIP money-input writes** (statement pin, partner economics) → the **governed FAS API** (§10.1),
-    which uses its *own* CIP write credential and re-validates the money rules server-side; **(ii) app-RBAC
-    writes** (users/roles/role→page map) → Next **server actions** on the app's OWN `app_*` DB; **(iii)
-    activity-log writes** → INSERT-only into `app_activity_log` (§7.13). All three are audited. ("Read-only
-    except Partners Admin" was inaccurate — there are three write surfaces.)
+    **(i) CIP money-critical writes** — statement pin, partner economics, **and CS nationality rulings**
+    (§7.8; a verdict flips claim eligibility) → the **governed FAS API** (§10.1), which uses its *own* CIP
+    write credential and re-validates the rules server-side; **(ii) app-RBAC writes** (users/roles/role→page
+    map) → Next **server actions** on the app's OWN `app_*` DB; **(iii) app workflow-state + activity-log
+    writes** (§7.14 chase/dispute/exception/statement-status, and INSERT-only `app_activity_log` §7.13) →
+    server actions on `app_*`, never CIP. All are audited. ("Read-only except Partners Admin" was inaccurate.)
 11a. **A screen may read only a lens, never a base table.** Six shipped/planned screens route at base
     tables the read role cannot SELECT (`ps_payment_events`, `ps_stripe_balance_transactions/payouts`,
     `ps_partner_payouts`, `ps_brands`, `ps_claim_statements`, `ps_stripe_disputes`, `ps_stripe_invoices`).
@@ -370,15 +379,16 @@ Tim, by `ask_who`/`ask_channel`/priority). Lenses: `product_eligibility`(nulls),
 `open_questions`, freshness/invariants. *Accept:* each sub-queue count ties to its lens; empty-state per
 sub-queue. *Maps to:* NEW (re-home the Nationality Review Queue as one tab here + a CS view).
 
-> **⚠️ PROPOSED — DECISION FOR TIM (§10.2 #2): does CS *rule* nationality in-app?** The Nationality Review
-> mockup ships **"Confirm china / Keep not-china" action buttons**, but the constitution is read-only on
-> verdicts (§5 rule 9 — rulings happen in the data layer, the app only *displays*). Shipping those buttons
-> as dead UI is a lie. **Two coherent answers:** **(a)** keep read-only — the queue *surfaces* contention and
-> the CS member pings the ruling script / Tim (the buttons become "flag for review" that writes an
-> `open_questions` row, not a verdict); or **(b)** CS rules in-app via a **governed write** (server action →
-> FAS → `ps_added_facts`, fully audited, `added_current` provenance) — which is the §7.14 workflow-state
-> layer applied to verdicts. Until you pick, the buttons render as **"Flag for Tim"** (option a), never as a
-> silent verdict change.
+**Nationality Review = a WRITE surface (RESOLVED, Tim 2026-07-21 — §10.2 #2 = option b).** The
+"Confirm china / Keep not-china" buttons are **live**: a CS selection is a **hard verdict** — same authority
+as Tim's word in chat — written to `ps_added_facts` through the **governed FAS write** (§10.1; NOT a bare
+`app_*` action, because a verdict flips claim eligibility = money-critical). Requirements (per §5 rule 9):
+the write records **reporting-engine provenance** (`asserted_by`=CS person, `source_ref`=`reporting-app`,
+`asserted_at`) and **propagates across the company's sibling brand rows**; FAS re-verifies the actor is
+CS/admin and re-applies the added-facts rules server-side; the change logs `nationality.ruled` both sides;
+the verdict then flows through the normal lens (top-rank, one-directional). The ruling control is visible
+only to CS/admin. *Maps to:* NEW write surface on the re-homed review queue — the first user of the FAS
+write endpoint (§10.1), alongside statement-pin.
 
 **7.9 Revenue & Billing** (①②) — *finance/ops · Working*. Per brand × product × month: revenue generated
 (**derived GMV/ad-spend, labeled "derived (est.)"**) + Wayward billed; billing status; billed-vs-collected
@@ -398,10 +408,10 @@ loses the argument. Four parts:
 - **Pin = a governed write that freezes provenance, not just the total** (§10.1 FAS API). Pinning writes a
   `ps_claim_statements` row **and snapshots the derivation** (per-brand verdict/evidence/rate/lines that
   produced the number) so the claim is reconstructable months later. Sets the drift baseline.
-- **A lifecycle that closes the loop** *(PROPOSED — part of §7.14 / §10.2 #1)*: draft → **sent** → acknowledged
-  → paid/disputed, with **payment→statement linkage** ("did Wayward pay against statement #3?"). App-owned
-  state (`app_statement_status`), audited, never touches CIP money math. Without this, the statement is
-  fire-and-forget and reconciliation stays in spreadsheets.
+- **A lifecycle that closes the loop** *(APPROVED — part of §7.14; ships with Statements in Sprint 3)*:
+  draft → **sent** → acknowledged → paid/disputed, with **payment→statement linkage** ("did Wayward pay
+  against statement #3?"). App-owned state (`app_statement_status`), audited, never touches CIP money math.
+  Without this, the statement is fire-and-forget and reconciliation stays in spreadsheets.
 
 Lenses: `claim, statement_drift, ⛔ps_claim_statements`(§6.1 G7)`, added_current, identity_provenance,
 rate_clock, china_evidence_grid`. *Accept:* pinning creates a `ps_claim_statements` row + a frozen
@@ -426,25 +436,29 @@ is invisible (absent from nav; direct URL → 404, not a 403 that reveals it exi
 - **Add a user by email, no invitation.** An admin types the person's Google email → they're a user
   (`active` immediately). Nothing is sent; the person just signs in with Google and their access is
   already there. Any admin can add / edit / remove users.
-- **Roles are the page bundles.** Each role grants a defined set of pages — **Admin · Finance · Ops ·
-  CS · Partner-Manager**. When adding/editing a user, the admin **assigns one or more roles**; the
-  person's access = the **union** of their roles' pages. A per-page fine-tune per person is available
-  for exceptions, but roles are the primary lever (Tim: "select what roles they have when I add them").
+- **Roles are the page bundles.** Each role grants a defined set of pages. **Every screen is a grantable
+  page — including `Admin` (User & Access) and `Activity Log`** (Tim 2026-07-21, §10.2 #4: "I can say they
+  can see the admin or the activity log or not"). Internal roles: **Admin · Finance · Ops · CS ·
+  Partner-Manager.** When adding/editing a user, the admin **assigns one or more roles**; access = the
+  **union** of their roles' pages. A per-page fine-tune per person is available for exceptions, but roles are
+  the primary lever (Tim: "select what roles they have when I add them").
 - **Multi-admin.** The **Admin** role reaches this screen and manages users/roles — **including granting
   Admin to someone else.** Make James an admin → James can then add users and assign roles too.
 - No capability layer, no money gate (dropped 2026-07-22). Access is purely **person → roles → pages**.
 
-*Guardrails the security review requires (all mechanical, no decision except the ⚑ owner identity, §10.2 #3):*
+*Guardrails (RESOLVED — Tim 2026-07-21, §10.2 #3):*
 - **Last-admin guard (non-bypassable).** The system refuses to remove or demote the *last* admin (and
   handles the two-admins-demote-each-other race) — otherwise nobody can reach the admin surface and recovery
   is only via `seed-allowlist.cjs` / direct DB.
-- **⚑ Protected owners.** A small owner set (proposed **Tim + Van**) that other admins **cannot demote or
-  remove**. *(Who the owners are = a Tim decision, §10.2 #3.)*
-- **Editing the role→page map is the real superpower — guard + log it as such.** Remapping is *more*
-  powerful than "make admin" (an admin could add the `admin` page to the `cs` bundle and silently escalate
-  every CS user). So: **"grant the admin page to any role" is gated identically to make-admin** (owner-gated),
-  and map edits emit a distinct **`admin.role_pages_changed`** log verb (§7.13). Consider making map edits
-  owner-only.
+- **Tim is the SOLE non-demotable owner.** Only Tim (`owner` flag) cannot be demoted or removed by anyone.
+  **Every other admin — Van included — is a normal admin** who can be demoted/removed by another admin.
+  Tim's un-removable ownership is the backstop that makes the rest safe: whatever an admin does, Tim can
+  always walk it back.
+- **Editing the role→page map is admin-allowed but fully audited (detection over prevention).** Remapping is
+  powerful (an admin could add the `admin` or `activity-log` page to another role) — but per Tim's model
+  admins *do* control what people see, so it stays admin-editable. The guardrails are: every map edit emits
+  **`admin.role_pages_changed`** (§7.13), granting the `admin` page **is** the make-admin action (logged as
+  such), and Tim (sole owner) can reverse anything. No silent, unlogged escalation is possible.
 - **Roles are a fixed, migration-controlled set** (`admin, finance, ops, cs, partner-manager` — the CHECK
   constraint stays). Admins edit the *map* (role→pages) and *assignments* (person→roles); admins do **not**
   invent new roles. `referral` stays reserved for the external-lock floor (below), never internal.
@@ -483,8 +497,8 @@ table (proposed `app_permissions`, carrying `locked`/`none`) for the fine-tune, 
 `admin` + zod + a log row in the same tx) — NOT the CIP read role, NOT the FAS API (that's only for CIP
 money-input writes).
 
-*Seed (Sprint 0):* **Tim + Van = Admin.** **James, Rhea, Sheila, Samantha** added; Tim assigns each
-their roles in the UI. No one sees a page until a role grants it.
+*Seed (Sprint 0b):* **Tim = owner-Admin (the sole non-demotable owner); Van = Admin.** **James, Rhea,
+Sheila, Samantha** added; Tim assigns each their roles in the UI. No one sees a page until a role grants it.
 
 *Maps to:* **reframe + extend the shipped "People & Permissions" Admin** — keep the read model, turn on
 the writes (audited server actions), replace the fixed per-role matrix with admin-assigned roles + the
@@ -529,20 +543,22 @@ hit (so seam-logging under-counts) and its grain is per-DAL-call (a multi-query 
 Every log INSERT is **best-effort** — a logging failure must **never** fail the request. Exports log
 `export.download`; server actions log their `admin.*` verb in the same tx as the change.
 
-*⚑ The activity log is employee-surveillance PII — gate who reads it (governance M8, §10.2 #4).* It captures
-`actor_email`, `ip`, `user_agent`, brand/person targets — monitoring data — while any admin can mint more
-admins, so "any admin reads it" lets the watcher-set grow without owner sign-off. **Proposed:** the Report
-Builder read is **owner-gated** (or an explicit `read-activity-log` capability), IP/user-agent capture is a
-**conscious choice** (default on, with a documented reason), and retention has a stated rationale + any
-employee-notice obligation. *(Tim's call on read-gate + IP/UA + retention.)*
+*Who reads it = a grantable page (RESOLVED, Tim 2026-07-21 — §10.2 #4).* The activity log captures
+employee-surveillance PII (`actor_email`, `ip`, `user_agent`, brand/person targets), but Tim's model is
+simple: **`Activity Log` is just another page in the access map** — an admin grants "can see the Activity
+Log" per person/role, exactly like any screen (§7.12). No special owner-lock. IP/user-agent **are** captured
+(they're useful in the trail); retention keeps a stated rationale on the `page.view` stream. *(This is Tim's
+risk posture — visibility is controlled by the same page-grant machinery, backed by the append-only table +
+his sole ownership, not by hard-wiring the reader set.)*
 
-*Accept:* every login / page view / export / admin change lands in `app_activity_log`; an admin can filter +
-download CSV; **only an owner (or capability-holder) can reach the Report Builder**; the table **rejects
-UPDATE/DELETE at the DB level** (verified: app role is not owner/superuser). *Maps to:* NEW — expands
-`app_audit_log` (RBAC-only today) into the full activity log + the Report Builder screen.
+*Accept:* every login / page view / export / admin change lands in `app_activity_log`; **anyone granted the
+Activity Log page** can filter + download CSV; a person **without** that page can't reach it (hidden nav +
+404); the table **rejects UPDATE/DELETE at the DB level** (verified: app role is not owner/superuser).
+*Maps to:* NEW — expands `app_audit_log` (RBAC-only today) into the full activity log + the Report Builder
+screen (itself a grantable page).
 
-**7.14 Recovery workflow-state layer** *(app-owned writes · **PROPOSED — the biggest scope decision,
-§10.2 #1**)*. **The gap the blind-spots review found:** the reframe fixes the *screens*, but the plan keeps
+**7.14 Recovery workflow-state layer** *(app-owned writes · **APPROVED, Tim 2026-07-21 — §10.2 #1**)*.
+**The gap the blind-spots review found:** the reframe fixes the *screens*, but the plan keeps
 the app **read-only on CIP** — so the actual recovery *work* never lives in the tool. The chase status
 ("called X, promised pay-by Y, follow up Z"), the **164-brand dispute** negotiation (currently just a bucket
 total), which exceptions were **worked vs dismissed**, and "did Wayward pay against statement #3" all stay in
@@ -561,10 +577,9 @@ spreadsheets and WeChat — **the exact failure this rebuild exists to end.** Th
 
 *Everything here is app-state ABOUT CIP data, not a CIP write* — money numbers stay live-read from the
 lenses; only the human workflow layer is writable, audited, reversible. **This is the line between a dashboard
-and a recovery tool.** *If approved*, it slots as **Sprint 2–3** (chase/dispute after the money screens
-exist), the statement-lifecycle piece merges into §7.10, and it opens the door to **event alerts** (Wayward
-payment landed, a brand aged past 90d, a rate-cliff) instead of the passive-only freshness pill. **Recommended.**
-*(Not built until §10.2 #1 is decided.)*
+and a recovery tool.** It slots as **Sprint 2–3** (chase/dispute after the money screens exist), the
+statement-lifecycle piece merges into §7.10, and it opens the door to **event alerts** (Wayward payment
+landed, a brand aged past 90d, a rate-cliff) instead of the passive-only freshness pill.
 
 **Supporting:** **Refunds** (tab in Payments/Brand-360 — `refund_allocation` + disputes + `credit_notes`) ·
 **Data Health** (the shipped Freshness, extended with coverage % + invariant status — **keyed on the sync
@@ -628,25 +643,27 @@ population-consistent; counts use `china_companies` (display-only, money grain u
 count-grain, the 6 fix checks, build-check. *Escalate-if:* a lens for a stage card is missing/changed.
 
 **Sprint 0b — Access model, activity log & route authz** *(HUMAN-REVIEWED — the security-critical subsystem;
-governance says hold the autonomous run until §10.2 #3–#4 are answered).* *Goal:* any admin can onboard the
-team safely, and everything is logged immutably. *Scope:* **(a)** the **User & Access Admin** (§7.12, = F7) —
-add-user-by-email (warn-confirm), assign roles → pages, multi-admin **with the last-admin guard + protected
-owners + role-map-is-superpower gate**, **route-level authz + `not-found.tsx` (byte-identical 404)**, the
-People-list/Edit-person UI, audited server-action writes, the `app_role_pages` map + `app_permissions`
-override (deny-wins), the fixed migration-controlled role set, drop the `invited` vestige, the
-**external-lock floor**, and the seed (Tim/Van owner-admin; James/Rhea/Sheila/Samantha added); **(b)** the
-**Activity Log + Report Builder** (§7.13) — `app_activity_log` **architected append-only** (separate owner
-role + INSERT-only grant + trigger; app role verified non-owner), route-boundary best-effort `page.view` +
-`export.download` + `admin.*` (incl. `admin.role_pages_changed`) logging, and the **owner-gated** filter/
-**CSV download** UI (this CSV export is in-scope now even though general "Export ▾" wiring is Sprint 4).
-*Depends:* 0a; **decisions §10.2 #3 (owners) + #4 (log read-gate/IP-UA)**. *Accept:* any admin can add a user
-+ assign roles + make another admin; **the last admin cannot be removed; an owner cannot be demoted by a
-non-owner; remapping the admin page is owner-gated + logged**; an ungranted page is invisible + 404s
+§10.2 #3–#4 are now decided, but keep a human in the loop on the auth/audit build rather than running it
+fully autonomously).* *Goal:* any admin can onboard the team safely, and everything is logged immutably.
+*Scope:* **(a)** the **User & Access Admin** (§7.12, = F7) — add-user-by-email (warn-confirm), assign
+roles → pages (**every screen a grantable page, incl. `Admin` and `Activity Log`**), multi-admin **with the
+last-admin guard + Tim as the SOLE non-demotable owner + audited role-map edits (`admin.role_pages_changed`)**,
+**route-level authz + `not-found.tsx` (byte-identical 404)**, the People-list/Edit-person UI, audited
+server-action writes, the `app_role_pages` map + `app_permissions` override (deny-wins), the fixed
+migration-controlled role set, drop the `invited` vestige, the **external-lock floor**, and the seed (**Tim =
+owner-Admin, Van = Admin**; James/Rhea/Sheila/Samantha added); **(b)** the **Activity Log + Report Builder**
+(§7.13) — `app_activity_log` **architected append-only** (separate owner role + INSERT-only grant + trigger;
+app role verified non-owner), route-boundary best-effort `page.view` + `export.download` + `admin.*` (incl.
+`admin.role_pages_changed`) logging, and the filter/**CSV download** UI **behind the grantable `Activity Log`
+page** (this CSV export is in-scope now even though general "Export ▾" wiring is Sprint 4). *Depends:* 0a.
+*Accept:* any admin can add a user + assign roles + make another admin; **the last admin cannot be removed;
+Tim cannot be demoted by anyone; remapping the admin page is logged**; an ungranted page is invisible + 404s
 byte-identically to a missing route; every login/page-view/export/admin-change lands in `app_activity_log`;
-**the table rejects UPDATE/DELETE at the DB level**; only an owner can download the log CSV. *Tests:* the
-access truth-table (role→page, hidden-nav, route-authz, scope-isolation, last-admin guard, external-lock),
-the activity-log test (each verb; DB-level immutability; owner-only Report Builder). *Escalate-if:* the
-`app_*` schema needs a migration touching a shared contract; the app role turns out to own the log table.
+**the table rejects UPDATE/DELETE at the DB level**; only a person granted the Activity Log page can download
+the CSV. *Tests:* the access truth-table (role→page, hidden-nav, route-authz, scope-isolation, last-admin
+guard, Tim-non-demotable, external-lock), the activity-log test (each verb; DB-level immutability;
+Activity-Log-page-gated Report Builder). *Escalate-if:* the `app_*` schema needs a migration touching a
+shared contract; the app role turns out to own the log table.
 
 **Sprint 1 — Core recovery money (+ the first CIP lenses + the FAS write-endpoint spec).** *Goal:* you can
 see and reconcile the whole owed picture. *Scope:* the **§6.1 CIP-lens workstream G2/G3/G8** (build
@@ -658,22 +675,29 @@ clickable invoice links) · **7.4 Payments-In** (variance from `wayward_stated`,
 3 has something to call. *Depends:* Sprint 0a/0b. *Accept:* per §7 each; scope-isolation tests pass; the new
 lenses pass their contract test. *Escalate-if:* a §6.1 lens needs a schema change beyond a view+grant.
 
-**Sprint 2 — Operations & performance (+ workflow-state if approved).** *Scope:* the **§6.1 G4/G5 lenses**;
+**Sprint 2 — Operations & performance (+ the approved workflow-state).** *Scope:* the **§6.1 G4/G5 lenses**;
 then **7.5 Partners** (perf+payouts) · **7.6 Brand&Product** (fixed + trends + the `rate_clock` rung) ·
 **7.8 Exceptions** (all sub-queues incl. `attribution_at_risk` + split-identity + the ask-queue; re-home the
-review queue) · **7.9 Revenue&Billing** · **Excluded book** · **Refunds tab** (+ `credit_notes`). **If §10.2
-#1 approved:** the **§7.14 chase/dispute/exception workflow-state** (app-owned, audited). *Depends:* Sprint
-0a/0b, Sprint 1 lenses. *Accept:* per §7; every count labeled; population-consistent.
+review queue) · **7.9 Revenue&Billing** · **Excluded book** · **Refunds tab** (+ `credit_notes`); and the
+**§7.14 chase / dispute / exception workflow-state** (APPROVED — app-owned, audited server actions on
+`app_*`). *Depends:* Sprint 0a/0b, Sprint 1 lenses. *Accept:* per §7; every count labeled;
+population-consistent; a worked exception/chase persists across renders. *(The nationality-ruling write on
+the re-homed review queue depends on the FAS endpoint (Sprint 3) — ships read-only here, live in Sprint 3.)*
 
-**Sprint 3 — Brand 360 + Statements + the FAS write endpoint + FAS reporting.** *Scope:* the **§6.1 G6/G7
-lenses**; **build the governed FAS write endpoint** to the Sprint-1 spec (its own CIP write credential,
-server-side money-invariant re-validation, actor re-verification, idempotency, dual-side audit) **before**
-the writes that need it; **7.7 Brand 360** (the Deep join; every brand-name links here) · **7.10 Statements**
-(the defensible evidence packet + pre-pin data-quality gate + provenance-freeze pin — governed write; the
-lifecycle if §7.14 approved) · the **FAS report jobs** (monthly Wayward + per-partner statements, weekly
-collections + review queue, daily sync digest — off the lenses, per `REPORTING-FRONTEND-IMPLEMENTATION §6`).
-*Depends:* Sprints 0–2; **§10.2 #5 (FAS write-contract sign-off).** *Escalate-if:* the FAS contract review
-surfaces a money-rule the endpoint can't re-validate server-side.
+**Sprint 3 — Brand 360 + Statements + Nationality-ruling write + the FAS endpoint + FAS reporting.** *Scope:*
+the **§6.1 G6/G7 lenses**; **build the governed FAS write endpoint** to the Sprint-1 spec (its own CIP write
+credential, server-side re-validation of money rules AND the added-facts/provenance/propagation rules, actor
+re-verification, idempotency, dual-side audit) **before** the writes that need it; then the three write
+surfaces + the Deep view: **7.7 Brand 360** (the Deep join; every brand-name links here) · **7.10 Statements**
+(the defensible evidence packet + pre-pin data-quality gate + provenance-freeze pin + the approved lifecycle
+`app_statement_status`) · **the §7.8 Nationality-ruling write** (CS selects china/not-china → `ps_added_facts`
+via FAS, with reporting-engine provenance + sibling-row propagation; go-live of the buttons that shipped
+read-only in Sprint 2) · the **FAS report jobs** (monthly Wayward + per-partner statements, weekly collections
++ review queue, daily sync digest — off the lenses, per `REPORTING-FRONTEND-IMPLEMENTATION §6`). *Depends:*
+Sprints 0–2; the §10.1 contract (approved). *Accept:* a CS ruling writes an `added_fact` with app-source
+provenance, propagates to sibling rows, logs `nationality.ruled` both sides, and the verdict lens reflects it;
+a statement pin freezes provenance. *Escalate-if:* the FAS contract build surfaces a rule the endpoint can't
+re-validate server-side.
 
 **Sprint 4 — Polish + export + depth + external V2 groundwork.** *Scope:* wire the general **export** (CSV/
 PDF) across screens · finish **depth tabs** · **Partners Admin** light write (7.11 — after Tim's design riff)
@@ -699,16 +723,22 @@ schedules these as a CIP-migration workstream. Highlights:
 - **Coverage/exceptions lens — RESOLVED:** `lens_ps_information_gaps` **does not exist**; use the existing
   `lens_ps_open_questions` (+ base `ps_information_gaps`). No cip add needed (§6.1 G1).
 
-### 10.1 The governed FAS money-write contract (design before Sprint 3 — governance H5)
-Decision 1 routes CIP money-input writes (statement pin §7.10, partner economics §7.11) through "a governed
-FAS API" — but the *security of that boundary* was one sentence. Before Sprint 3 builds it, the contract must
-specify: **(1)** how the reports app authenticates to FAS (a scoped service token, not the app's reader
-role); **(2)** actor propagation — the initiating user + roles travel to FAS and are **re-verified against
-app-RBAC on the FAS side**, not trusted; **(3)** **idempotency** of a statement pin / partner add (a retry
-can't double-write); **(4)** **FAS re-validates the money rules server-side** (count-grain, net-of-refunds,
-money-as-string, the per-brand `ps_claim_owed` floor) — it never trusts numbers the app sends; **(5)** FAS
-uses its **own** CIP write credential; **(6)** **dual-side audit** (the app logs the initiating actor; FAS
-logs the committed write). *This is the highest-stakes boundary in the system — §10.2 #5 is its sign-off.*
+### 10.1 The governed FAS money-write contract (APPROVED, Tim 2026-07-21 — §10.2 #5; design in Sprint 1)
+Decision 1 routes every CIP money-critical write through "a governed FAS API." **Three write actions ride it:
+(i) statement pin (§7.10), (ii) partner economics — add/rate (§7.11), and (iii) CS nationality rulings
+(§7.8) — a verdict flips claim eligibility, so it is money-critical and goes through the same doorway, NOT a
+bare `app_*` action.** Tim's plain-terms description (from chat) *is* the sign-off; the contract specifies:
+**(1)** how the reports app authenticates to FAS (a scoped **service token**, not the app's reader role);
+**(2)** actor propagation — the initiating user + roles travel to FAS and are **re-verified against app-RBAC
+on the FAS side** (e.g. FAS confirms the ruler is CS/admin), not trusted; **(3)** **idempotency** (a retried
+pin / add / ruling can't double-write); **(4)** **FAS re-validates the rules server-side** — for money: count-
+grain, net-of-refunds, money-as-string, the per-brand `ps_claim_owed` floor; **for a nationality ruling: it
+writes `ps_added_facts` with reporting-engine provenance (`asserted_by`=CS person, `source_ref`=`reporting-
+app`, `asserted_at`) and PROPAGATES across the company's sibling brand rows** — never trusting numbers/flags
+the app sends; **(5)** FAS uses its **own** CIP write credential; **(6)** **dual-side audit** (the app logs the
+initiating actor + action — `statement.pinned` / `partner.added` / `nationality.ruled`; FAS logs the committed
+write). This is the highest-stakes boundary in the system. *Van + I detail it in Sprint 1 (task); it is built
+in Sprint 3 before any screen that writes.*
 
 **Decisions — RESOLVED (Tim, 2026-07-22; see §0):**
 1. ✅ Write-surface path = **(A) governed FAS API** (contract in §10.1).
@@ -718,27 +748,27 @@ logs the committed write). *This is the highest-stakes boundary in the system �
 5. ✅ Access model = **admin-managed per-person page grants + hidden nav** (§7.12). *(Corrected: "+ money
    gate" was a stale leftover — there is **no money gate**, per §0.5/§5.10/§7.12.)*
 
-### 10.2 DECISIONS OPEN — need Tim (the four-reviewer pass, 2026-07-21)
-> These are **not baked** into the plan. Items #1–#2 gate PROPOSED scope (§7.14, §7.8); #3–#5 gate the
-> **Sprint 0b / Sprint 3** builds and the security review recommends holding those autonomous runs until
-> they're answered; #6 is a sanity-eyeball. My recommendation is on each.
+### 10.2 DECISIONS — RESOLVED (Tim, 2026-07-21; the four-reviewer pass)
+> All six are decided and **baked into the plan** (nothing here is open). Two changed my recommendation —
+> #2 (Tim chose in-app ruling) and #3 (Tim-only owner). Where a decision changed a screen or a rule, the
+> section is edited to match (cited below).
 
-1. **Ship the §7.14 recovery workflow-state layer?** *(the read-only→recovery-tool decision — the biggest.)*
-   App-owned chase notes / dispute state / exception state / statement lifecycle, audited, never touching CIP
-   money. **Rec: YES** — it's the line between a dashboard and a tool, and it reuses a pattern already blessed.
-2. **Does CS *rule* nationality in-app, or stay read-only?** *(the dead-buttons contradiction, §7.8.)*
-   (a) read-only — the buttons become "Flag for Tim" (writes an `open_questions` row); or (b) CS rules via a
-   governed write to `ps_added_facts`. **Rec: (a) for v1** (keep verdict authority in the data layer), revisit
-   (b) if §7.14 ships.
-3. **Protected-owner / last-admin policy** (governance H1). Who is non-demotable — **Tim + Van?** And does
-   *granting admin* need a second party or just a notification? **Rec: Tim+Van owners; notify-on-admin-grant.**
-4. **Who may read the activity log, and do we capture IP/user-agent?** (governance M8 — it's employee-
-   surveillance PII.) **Rec: owner-gated Report Builder; capture IP/UA with a documented reason; 12-mo hot
-   retention on `page.view`.**
-5. **Sign off the §10.1 FAS money-write contract** (governance H5) — or delegate the detailed design to Van.
-   **Rec: approve the six requirements above as the contract; Van + I detail it in Sprint 1.**
-6. **Eyeball the live still-owed move:** it read **$12,035** (~Jul 16) → **$13,922** (Jul 21). Confirm it's
-   legit hourly drift / sync recovery, not a grain change. **Rec: I can diff the two snapshots and show you.**
+1. ✅ **Ship the §7.14 recovery workflow-state layer — YES.** App-owned chase notes / dispute state /
+   exception state / statement lifecycle, audited, never touching CIP money. Slots Sprint 2–3. (§7.14 now
+   APPROVED; PM scope active.)
+2. ✅ **CS rules nationality IN-APP — option (b)** *(Tim overrode the read-only rec).* A CS selection is a
+   **hard verdict** to `ps_added_facts` via the governed FAS write (§10.1), same authority as Tim's chat
+   word, carrying **reporting-engine provenance** and **sibling-row propagation**. (Changed §5 rule 9;
+   §7.8 is now a write surface; §10.1 write action (iii).)
+3. ✅ **Tim is the SOLE non-demotable owner** *(not Tim+Van).* Everyone else — Van included — is a normal
+   demotable admin; the last-admin guard prevents zero-admins. *Notify-on-admin-grant kept as a light default
+   (a heads-up, not a second-party approval) — Tim can veto.* (§7.12 guardrails.)
+4. ✅ **Activity Log = a grantable page**, not owner-gated. An admin grants "can see the Activity Log" per
+   person/role like any screen; IP/UA are captured in the trail; retention rationale on `page.view`. (§7.13.)
+5. ✅ **FAS money-write contract — APPROVED** (the six requirements; Tim signed off on the plain-terms
+   version). Covers statement pin + partner economics + nationality rulings. Van + I detail it in Sprint 1,
+   built Sprint 3. (§10.1.)
+6. ✅ **The $12,035→$13,922 move — closed.** Tim has seen it; it's legit (drift / sync recovery), no action.
 
 **Still deferred to V2 (data-gated, backlog in PM — not v1 decisions):**
 - **Partner-facing logins** (row-isolated) — needs the rebuilt partner-safe lens + the email→partner
@@ -757,10 +787,16 @@ logs the committed write). *This is the highest-stakes boundary in the system �
   net-of-refunds check.
 - **Access:** the role→page truth-table (a user sees exactly their assigned roles' pages, an ungranted
   page 404s **at the route boundary, byte-identical to a missing route**, multi-admin works, add-by-email
-  creates an active user, **the last-admin guard holds, an owner can't be demoted by a non-owner, remapping
-  the admin page is owner-gated, the external-lock floor denies an external identity every internal surface**).
-- **Activity log:** every logged verb (`auth.*`, `page.view`, `export.download`, `admin.*`) writes a row;
-  the table rejects UPDATE/DELETE; the Report Builder filter + CSV download works and is admin-only.
+  creates an active user, **the last-admin guard holds, Tim (sole owner) can't be demoted by anyone, a
+  role-map edit emits `admin.role_pages_changed`, the `Activity Log` page gates the Report Builder, the
+  external-lock floor denies an external identity every internal surface**).
+- **Activity log:** every logged verb (`auth.*`, `page.view`, `export.download`, `admin.*` incl.
+  `admin.role_pages_changed`, `statement.pinned`, `partner.added`, `nationality.ruled`) writes a row; the
+  table rejects UPDATE/DELETE; the Report Builder filter + CSV download works and is gated by the grantable
+  `Activity Log` page (not hard-wired to admin).
+- **Nationality-ruling write (§7.8):** a CS ruling writes `ps_added_facts` with `source_ref=reporting-app`
+  provenance, propagates across the company's sibling brand rows, logs `nationality.ruled`, and a non-CS/admin
+  user has no ruling control; FAS rejects a ruling from an unauthorized actor.
 - **Build-check:** no component imports the DB client; no `"use client"` imports `@/server/*`; dev-bypass
   hard-refused in prod.
 - **Activity-log immutability:** a DB-level test that `UPDATE`/`DELETE` on `app_activity_log` is refused for

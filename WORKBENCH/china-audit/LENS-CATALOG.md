@@ -73,6 +73,12 @@ exclusion-list partners direct* (Eric et al. — **not ours**, tracked separatel
 
 ---
 
+### "Can I trust the numbers? / is the data healthy?" (Data Health screen §7.1)
+| lens | answers |
+|---|---|
+| **lens_ps_coverage** (cip_125) | Data-completeness **bands** per dimension: `nationality` ruled (~60%), client `fee_rate` resolved (~54%, **whole-PS** — surfaces the P3-feed gap, not a vanity china-only 100%), `contacts` = china brands with an email/phone/WeChat (~46%). Shape `passed/total/failed/pct/status` (ok≥90 / warn≥50 / else fail). **NOT money** — a completeness signal (fee-rate feeds derived GMV, never the claim). |
+| **lens_ps_invariants** (cip_125) | The MATH-SPEC §5 money-engine invariants evaluated **live**: mgmt-fee ≥ 0 · claimable⇒china · rate∈{10/6/3} · partner ≤ mgmt · claim floored at 0 · grain unique. `failed` = violations; `status='fail'` = an **engine finding to investigate, not a lens bug** (currently 9 rows: tiny negative-`usage_collected` cells, −$3 mgmt, claim-floor unaffected). Freshness (3rd Data-Health dimension) reuses `lens_ps_source_freshness`. |
+
 ## `delta_status` values (from lens_ps_wayward_reconciliation)
 - **`paid_settled`** — Wayward paid, nothing left owed.
 - **`paid_partial`** — Wayward paid something, a balance remains.

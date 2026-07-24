@@ -98,5 +98,6 @@
 | JOS-D0089 | Reverse JOS-D0071 — venture-studio is the live incubator-host; retire Foundry-Ventures | adopt |  |
 | JOS-D0090 | Role Declaration via the Work Packet (not the thing-type matrix) | adopt |  |
 | JOS-D0091 | Venture Frontmatter Extensions Are Declared, Not Drift | adopt |  |
+| JOS-D0092 | UUID5 Convention Codified | adopt |  |
 
-_Total: 91_
+_Total: 92_

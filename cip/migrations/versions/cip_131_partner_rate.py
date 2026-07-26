@@ -221,7 +221,13 @@ def _repoint_eligibility_rate(upgrade: bool) -> str:
     pc.partner_rate on downgrade. Rebuilt from the cip_130 body (the live definition)."""
     if upgrade:
         rate_expr = (
-            "COALESCE(rt.rate_pct, pc.partner_rate) AS partner_rate_pct"  # <<< cip_131 as-of (today)
+            # ::numeric(6,4) preserves the column's EXISTING type. cip_130 defines partner_rate_pct as
+            # pc.partner_rate (numeric(6,4), matching the live view); COALESCE with the UNqualified
+            # ps_partner_rate.rate_pct promotes the result to bare numeric, and CREATE OR REPLACE VIEW
+            # rejects that as a column type change. Money is unaffected — this is the DISPLAY column;
+            # the ledger reads the full-precision rate directly (COALESCE(rt.rate_pct, pc.partner_rate,
+            # 0), uncast). Seeded/realistic rates are < 100 so the (6,4) cast never overflows.
+            "COALESCE(rt.rate_pct, pc.partner_rate)::numeric(6,4) AS partner_rate_pct"  # <<< cip_131 as-of
         )
         rate_lateral = (
             "LEFT JOIN LATERAL (SELECT r.rate_pct FROM ps_partner_rate r "

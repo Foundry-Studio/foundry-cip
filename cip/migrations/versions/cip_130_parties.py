@@ -163,8 +163,8 @@ _INDEXES: tuple[str, ...] = (
     "CREATE INDEX idx_ps_party_alias_party ON ps_party_alias (tenant_id, party_id)",
     "CREATE INDEX idx_ps_party_deal_party ON ps_party_deal (tenant_id, party_id)",
     "CREATE INDEX idx_ps_customer_party_brand ON ps_customer_party (tenant_id, canonical_brand_id)",
-    # Supports the new FK + the lens join ps_partner_credit -> ps_party.
-    "CREATE INDEX idx_ps_partner_credit_party ON ps_partner_credit (tenant_id, party_id)",
+    # NOTE: idx_ps_partner_credit_party is created in step 2 of upgrade() — AFTER the party_id column is
+    # ADDed to ps_partner_credit. It cannot live in this loop; the column doesn't exist yet at step 1.
 )
 
 
@@ -384,122 +384,131 @@ def _seed_counterparty(bind) -> None:
 def _backfill_referral_parties(bind) -> None:
     """A referral party per distinct ps_partner_credit.partner_of_record (excluding the sentinels
     'unassigned' / '_default' / ''), + a 'handle' alias for the raw string, + set credit.party_id.
-    Idempotent: the 'handle' alias (UNIQUE) is the dedup key; a re-run reuses the existing party."""
-    rows = bind.execute(
+
+    SET-BASED (cip_130 fix): a temp mapping with a stable gen_random_uuid() pid drives a handful of
+    bulk statements instead of ~N per-row round-trips. The per-row form held ps_partner_credit's
+    ALTER lock for ~10 min over the high-latency proxy and deadlocked the money-lens view replace at
+    the end of the chain; the set-based form finishes in one round-trip each. Result is byte-identical
+    (same parties/kinds/aliases/links), only fast. Idempotent: the temp map excludes handles that
+    already have a 'handle' alias (UNIQUE), and the final link joins credit rows THROUGH that alias,
+    so a re-run relinks any still-NULL rows to the pre-existing party."""
+    bind.execute(
         text(
             """
+            CREATE TEMP TABLE _ref_map ON COMMIT DROP AS
             SELECT pc.partner_of_record                         AS handle,
                    COALESCE(max(r.name), pc.partner_of_record)  AS display_name,
-                   max(r.country)                               AS country
+                   max(r.country)                               AS country,
+                   gen_random_uuid()                            AS pid
             FROM ps_partner_credit pc
             LEFT JOIN ps_partner_registry r
                    ON r.tenant_id = pc.tenant_id AND r.partner_id = pc.partner_of_record
-            WHERE pc.partner_of_record IS NOT NULL
+            WHERE pc.tenant_id = :t
+              AND pc.partner_of_record IS NOT NULL
               AND pc.partner_of_record NOT IN ('unassigned', '_default')
               AND pc.partner_of_record <> ''
+              AND NOT EXISTS (
+                    SELECT 1 FROM ps_party_alias a
+                    WHERE a.tenant_id = :t AND a.alias_kind = 'handle'
+                      AND a.alias_value = pc.partner_of_record)
             GROUP BY pc.partner_of_record
             """
-        )
-    ).fetchall()
-    for handle, display_name, country in rows:
-        existing = bind.execute(
-            text(
-                "SELECT party_id FROM ps_party_alias "
-                "WHERE tenant_id = :t AND alias_kind = 'handle' AND alias_value = :h"
-            ),
-            {"t": PS_TENANT, "h": handle},
-        ).fetchone()
-        if existing is not None:
-            party_id = existing[0]
-        else:
-            party_id = bind.execute(
-                text(
-                    "INSERT INTO ps_party (tenant_id, display_name, country, status) "
-                    "VALUES (:t, :dn, :c, 'active') RETURNING party_id"
-                ),
-                {"t": PS_TENANT, "dn": display_name, "c": country},
-            ).scalar()
-            bind.execute(
-                text(
-                    "INSERT INTO ps_party_kind (tenant_id, party_id, kind) "
-                    "VALUES (:t, :p, 'referral') ON CONFLICT DO NOTHING"
-                ),
-                {"t": PS_TENANT, "p": party_id},
-            )
-            bind.execute(
-                text(
-                    "INSERT INTO ps_party_alias (tenant_id, party_id, alias_value, alias_kind, source) "
-                    "VALUES (:t, :p, :h, 'handle', 'backfill:ps_partner_credit.partner_of_record') "
-                    "ON CONFLICT (tenant_id, alias_kind, alias_value) DO NOTHING"
-                ),
-                {"t": PS_TENANT, "p": party_id, "h": handle},
-            )
-        bind.execute(
-            text(
-                "UPDATE ps_partner_credit SET party_id = :p "
-                "WHERE tenant_id = :t AND partner_of_record = :h AND party_id IS DISTINCT FROM :p"
-            ),
-            {"t": PS_TENANT, "p": party_id, "h": handle},
-        )
+        ),
+        {"t": PS_TENANT},
+    )
+    bind.execute(
+        text(
+            "INSERT INTO ps_party (party_id, tenant_id, display_name, country, status) "
+            "SELECT pid, :t, display_name, country, 'active' FROM _ref_map"
+        ),
+        {"t": PS_TENANT},
+    )
+    bind.execute(
+        text(
+            "INSERT INTO ps_party_kind (tenant_id, party_id, kind) "
+            "SELECT :t, pid, 'referral' FROM _ref_map ON CONFLICT DO NOTHING"
+        ),
+        {"t": PS_TENANT},
+    )
+    bind.execute(
+        text(
+            "INSERT INTO ps_party_alias (tenant_id, party_id, alias_value, alias_kind, source) "
+            "SELECT :t, pid, handle, 'handle', 'backfill:ps_partner_credit.partner_of_record' "
+            "FROM _ref_map ON CONFLICT (tenant_id, alias_kind, alias_value) DO NOTHING"
+        ),
+        {"t": PS_TENANT},
+    )
+    # Link every credit row to its party via the (new or pre-existing) 'handle' alias — idempotent.
+    bind.execute(
+        text(
+            "UPDATE ps_partner_credit pc SET party_id = a.party_id "
+            "FROM ps_party_alias a "
+            "WHERE a.tenant_id = :t AND a.alias_kind = 'handle' "
+            "AND a.alias_value = pc.partner_of_record "
+            "AND pc.tenant_id = :t AND pc.party_id IS DISTINCT FROM a.party_id"
+        ),
+        {"t": PS_TENANT},
+    )
 
 
 def _backfill_customer_parties(bind) -> None:
-    """One customer party per COMPANY (the ps_brands.canonical_brand_id spine). Idempotent via
-    ps_customer_party's UNIQUE(tenant_id, canonical_brand_id)."""
-    companies = bind.execute(
+    """One customer party per COMPANY (the ps_brands.canonical_brand_id spine), scoped to the CHINA
+    book. SET-BASED (cip_130 fix): same temp-mapping-with-stable-pid pattern as
+    _backfill_referral_parties — see there for why the per-row form was replaced. Idempotent via
+    ps_customer_party's UNIQUE(tenant_id, canonical_brand_id): the temp map excludes already-mapped
+    companies and the bridge insert is ON CONFLICT DO NOTHING."""
+    bind.execute(
         text(
             """
-            SELECT COALESCE(b.canonical_brand_id, b.wayward_brand_id) AS company_id,
-                   COALESCE(
-                     max(b.brand_name) FILTER (
-                       WHERE b.wayward_brand_id = COALESCE(b.canonical_brand_id, b.wayward_brand_id)),
-                     max(b.brand_name)
-                   ) AS company_name
-            FROM ps_brands b
-            -- Scope to the CHINA book: a company is a customer of THIS app iff it has >=1 china brand.
-            -- (QC #1: avoids seeding ~4,500 parties incl JUNK/GHOST; the reporting reads are china-scoped.
-            --  The party model stays general — non-china customers are a later backfill if ever needed.)
-            WHERE COALESCE(b.canonical_brand_id, b.wayward_brand_id) IN (
-                SELECT COALESCE(b2.canonical_brand_id, b2.wayward_brand_id)
-                FROM ps_brands b2
-                JOIN lens_ps_china_verdict cv ON cv.wayward_brand_id = b2.wayward_brand_id
-                WHERE cv.verdict = 'china'
-            )
-            GROUP BY COALESCE(b.canonical_brand_id, b.wayward_brand_id)
+            CREATE TEMP TABLE _cust_map ON COMMIT DROP AS
+            SELECT company_id, company_name, gen_random_uuid() AS pid
+            FROM (
+                SELECT COALESCE(b.canonical_brand_id, b.wayward_brand_id) AS company_id,
+                       COALESCE(
+                         max(b.brand_name) FILTER (
+                           WHERE b.wayward_brand_id = COALESCE(b.canonical_brand_id, b.wayward_brand_id)),
+                         max(b.brand_name)
+                       ) AS company_name
+                FROM ps_brands b
+                -- Scope to the CHINA book: a company is a customer of THIS app iff it has >=1 china
+                -- brand. (QC #1: avoids seeding ~4,500 parties incl JUNK/GHOST; reporting reads are
+                -- china-scoped. The party model stays general — non-china is a later backfill if ever.)
+                WHERE COALESCE(b.canonical_brand_id, b.wayward_brand_id) IN (
+                    SELECT COALESCE(b2.canonical_brand_id, b2.wayward_brand_id)
+                    FROM ps_brands b2
+                    JOIN lens_ps_china_verdict cv ON cv.wayward_brand_id = b2.wayward_brand_id
+                    WHERE cv.verdict = 'china'
+                )
+                GROUP BY COALESCE(b.canonical_brand_id, b.wayward_brand_id)
+            ) g
+            WHERE NOT EXISTS (
+                SELECT 1 FROM ps_customer_party cp
+                WHERE cp.tenant_id = :t AND cp.canonical_brand_id = g.company_id)
             """
-        )
-    ).fetchall()
-    for company_id, company_name in companies:
-        exists = bind.execute(
-            text(
-                "SELECT 1 FROM ps_customer_party "
-                "WHERE tenant_id = :t AND canonical_brand_id = :c"
-            ),
-            {"t": PS_TENANT, "c": company_id},
-        ).fetchone()
-        if exists is not None:
-            continue
-        party_id = bind.execute(
-            text(
-                "INSERT INTO ps_party (tenant_id, display_name, status) "
-                "VALUES (:t, COALESCE(:dn, '(unnamed brand)'), 'active') RETURNING party_id"
-            ),
-            {"t": PS_TENANT, "dn": company_name},
-        ).scalar()
-        bind.execute(
-            text(
-                "INSERT INTO ps_party_kind (tenant_id, party_id, kind) "
-                "VALUES (:t, :p, 'customer') ON CONFLICT DO NOTHING"
-            ),
-            {"t": PS_TENANT, "p": party_id},
-        )
-        bind.execute(
-            text(
-                "INSERT INTO ps_customer_party (tenant_id, party_id, canonical_brand_id) "
-                "VALUES (:t, :p, :c) ON CONFLICT (tenant_id, canonical_brand_id) DO NOTHING"
-            ),
-            {"t": PS_TENANT, "p": party_id, "c": company_id},
-        )
+        ),
+        {"t": PS_TENANT},
+    )
+    bind.execute(
+        text(
+            "INSERT INTO ps_party (party_id, tenant_id, display_name, status) "
+            "SELECT pid, :t, COALESCE(company_name, '(unnamed brand)'), 'active' FROM _cust_map"
+        ),
+        {"t": PS_TENANT},
+    )
+    bind.execute(
+        text(
+            "INSERT INTO ps_party_kind (tenant_id, party_id, kind) "
+            "SELECT :t, pid, 'customer' FROM _cust_map ON CONFLICT DO NOTHING"
+        ),
+        {"t": PS_TENANT},
+    )
+    bind.execute(
+        text(
+            "INSERT INTO ps_customer_party (tenant_id, party_id, canonical_brand_id) "
+            "SELECT :t, pid, company_id FROM _cust_map ON CONFLICT (tenant_id, canonical_brand_id) DO NOTHING"
+        ),
+        {"t": PS_TENANT},
+    )
 
 
 def upgrade() -> None:
@@ -509,6 +518,13 @@ def upgrade() -> None:
     # seed/backfill DML below even if the migration role is NOT BYPASSRLS (defensive — harmless under
     # the owner role; matches the set_config(..., true) pattern used everywhere else).
     op.execute(f"SELECT set_config('app.current_tenant', '{PS_TENANT}', true)")
+    # Fail fast on lock contention rather than hanging: this whole chain runs in ONE transaction
+    # (env.py), so a txn-local lock_timeout guards every migration in it. cip_130 mutates
+    # ps_partner_credit (ALTER) and replaces the money-lens view (which has dependents), so a
+    # concurrent FAS sync must not be able to block the apply indefinitely — 10s then error, never
+    # a long deadlock-wait. (The slow per-row backfill that provoked exactly that has been made
+    # set-based below.)
+    op.execute("SET LOCAL lock_timeout = '10s'")
 
     # ── 1. Tables (parents first), indexes, RLS + read grants ────────────────
     for t in _TABLES:
@@ -528,6 +544,11 @@ def upgrade() -> None:
         "'cip_130 (BE-1): stable referral-party id. ADDITIVE — partner_of_record (the text "
         "FK-by-value) stays the authoritative key until reads are re-pointed. NULL = not yet "
         "linked to a party.'"
+    )
+    # party_id now exists → create its covering index (supports the FK + the lens join to ps_party).
+    op.execute(
+        "CREATE INDEX IF NOT EXISTS idx_ps_partner_credit_party "
+        "ON ps_partner_credit (tenant_id, party_id)"
     )
 
     # ── 3. Writer grants — extend the cip_127 ps_reporting_writer _UPSERT set ─

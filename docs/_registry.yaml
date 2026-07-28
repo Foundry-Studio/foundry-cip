@@ -142,6 +142,15 @@ objects:
   owner: tim
   path: CLAUDE.md
   last_reviewed: '2026-05-19'
+- id: CIP-K03
+  uuid: c7d78a2b-28be-4bf3-8ff3-aabcc11507c8
+  title: Readouts Contract
+  type: contract
+  stage_label: trial
+  domain: dat
+  owner: tim
+  path: docs/READOUTS-CONTRACT.md
+  last_reviewed: '2026-07-28'
 - id: CIP-SOP-001
   uuid: 7e334cdd-132d-4867-b310-690e3d689437
   title: Connector Authoring Guide

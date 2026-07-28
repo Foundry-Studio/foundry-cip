@@ -62,7 +62,7 @@ Every Readout declares which layers it produces. A Readout MUST produce Layer 1.
 The facts, phrased. "Connect GMV is 8.2 percent ahead of last period across 63 producing brands. Two source feeds are late."
 
 - The writer restates and ranks facts from the fact pack. No interpretation, no recommendation.
-- **Numeric fidelity is strict:** every figure in the prose MUST appear in the fact pack, or the edition is rejected and regenerated.
+- **Fact fidelity is strict:** every fact in the prose, whether a figure, a count, a named entity, or an event, MUST appear in the fact pack, or the edition is rejected and regenerated.
 - Highest trust. May be rendered to any audience the Readout's confidentiality rule permits, including external partners or customers.
 
 ### Layer 2: Open Readout ("what it might mean, what to do")
@@ -83,7 +83,7 @@ Every Readout run MUST execute these stages in order. Stages 1, 2, 4, and 5 are 
 1. **Gather.** Pull inputs through source adapters (see section 5.1). Sources MAY be CIP lenses, and MAY be anything else (a Slack channel, an external dataset, an API). Not all data comes from CIP.
 2. **Compute the fact pack.** Deterministically compute every figure, delta, and significance score in code. Rank the candidates. Output a locked fact pack of ground truths. This stage decides what is worth saying; it is math, not a model.
 3. **Narrate.** Hand the ranked fact pack plus the last N editions (for continuity) to the LLM Roster. Produce Layer 1, and Layer 2 if declared. The model sees the fact pack and the prior editions, never the raw source rows.
-4. **Validate (the editor).** Reject and regenerate on any failure: numeric fidelity (every number traces to the fact pack), confidentiality (no content outside the edition's audience), freshness gate (do not publish over stale inputs without saying so).
+4. **Validate (the editor).** Reject and regenerate on any failure: fact fidelity (every asserted fact, whether a figure, a count, a named entity, or an event, traces to the fact pack; numbers are never model-computed), confidentiality (no content outside the edition's audience), freshness gate (do not publish over stale inputs without saying so).
 5. **File.** Insert one immutable edition row into the append-only ledger, with full provenance.
 6. **Deliver.** Render or push the edition to its declared surfaces. Delivery is a consumer concern; the ledger is the source of truth regardless of whether delivery succeeds.
 
@@ -97,7 +97,7 @@ Inputs MUST arrive through a `ReadoutSource` adapter with a uniform shape: given
 
 ### 5.2 Deterministic fact pack
 
-Every number the Readout will ever state MUST be computed here, in code, and placed in the fact pack. The fact pack is the model's entire universe of figures. If a number is not in the fact pack, no layer may state it. The fact pack MUST also carry significance ranking, so the writer leads with what matters.
+Every fact the Readout will ever state, whether a figure, a count, a named entity, or a change/event, MUST be produced here, in code, and placed in the fact pack. The fact pack is the model's entire universe of facts. If a fact is not in the fact pack, no layer may state it. Numbers are the strictest case: the model never computes one. The fact pack MUST also carry significance ranking, so the writer leads with what matters.
 
 ### 5.3 Append-only ledger
 
@@ -109,7 +109,7 @@ Layer 1 and Layer 2 MUST be stored as distinct fields. A surface MUST be able to
 
 ### 5.5 Guardrails
 
-Numeric fidelity, confidentiality (role or audience shaping), and a freshness gate are all mandatory and enforced in stage 4, before filing. A Readout MUST fail closed: if a guardrail cannot be evaluated, the edition is not published.
+Fact fidelity, confidentiality (role or audience shaping), and a freshness gate are all mandatory and enforced in stage 4, before filing. A Readout MUST fail closed: if a guardrail cannot be evaluated, the edition is not published.
 
 ### 5.6 Provenance
 
@@ -173,7 +173,7 @@ That card is the whole customization surface. Fill it, and the engine produces a
 ## 9. What this is NOT
 
 - **Not the agent briefing.** A briefing is a queue of items to action (`briefing_items`); a Readout is a narrative of computed state.
-- **Not a compute engine.** The model never computes. If a number is not in the fact pack, it does not exist for the Readout.
+- **Not a compute engine.** The model never computes. If a fact is not in the fact pack, it does not exist for the Readout.
 - **Not opinion in Layer 1.** Interpretation lives in Layer 2, labeled and confidence-scored, internal by default.
 - **Not a delivery guarantee.** The ledger is the source of truth; delivery is best-effort on top of it.
 - **Not CIP-hosted at runtime.** CIP defines and stores; FAS runs.

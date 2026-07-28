@@ -24,7 +24,7 @@ connects_to:
 
 ## The one sentence
 
-**CIP exists so Foundry-Studio onboards a client's data ONCE and serves it EVERYWHERE — dashboards, reports, chatbots, agents, partner portals — instead of starting from zero on every engagement.**
+**CIP exists so Foundry-Studio captures and organizes a venture's data ONCE and serves it EVERYWHERE — dashboards, reports, chatbots, agents, partner portals — instead of starting from zero on every engagement.**
 
 ## The longer answer
 

@@ -24,7 +24,7 @@ d_numbers: [D-117, D-118, D-119, D-120, D-121, P-21]
 
 ## North star
 
-**By 2027-05, Foundry-Studio onboards a client's data once and serves it everywhere — dashboards, reports, chatbots, agents, partner portals.** The second tenant onboards in an hour; the tenth in minutes. CIP is the framework that makes "we know what's happening with this client" a structural property of every Foundry-Studio engagement, not a manual session.
+**By 2027-05, Foundry-Studio captures and organizes a venture's data once and serves it everywhere — dashboards, reports, chatbots, agents, partner portals.** The second tenant onboards in an hour; the tenth in minutes. CIP is the framework that makes "we know what's happening with this client" a structural property of every Foundry-Studio engagement, not a manual session.
 
 ## Horizon
 

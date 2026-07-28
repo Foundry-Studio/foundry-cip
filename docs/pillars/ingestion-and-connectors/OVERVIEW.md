@@ -31,7 +31,7 @@ connects_to:
 
 ## What this is
 
-The framework that lets CIP pull a client's data from any external source — CRM, support, financial, documents — into the structured store. Connectors implement two Protocols (`CIPConnector` for streaming records, `CIPMapper` for translating to the cip_* schema). The sync orchestrator wraps them with advisory-lock dual-run prevention, batched transactions, and post-commit RLS assertions.
+The framework that lets CIP pull a venture's data from any external source — CRM, support, financial, documents — into the structured store. Connectors implement two Protocols (`CIPConnector` for streaming records, `CIPMapper` for translating to the cip_* schema). The sync orchestrator wraps them with advisory-lock dual-run prevention, batched transactions, and post-commit RLS assertions.
 
 Mandatory historical backfill per D-159: every connector pulls source-system history (HubSpot 20-rev window, Zendesk audit log, etc.) on first sync and synthesizes `cip_*_history` rows. Delay = permanent loss.
 

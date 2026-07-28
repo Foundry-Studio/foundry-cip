@@ -156,4 +156,4 @@ These are durable work slices — what CIP **is** as a product, forever. Phases 
 
 ## Quick mental model
 
-CIP is **the framework that lets Foundry-Studio onboard a client's data once and serve it everywhere** — dashboards, reports, chatbots, agents, partner portals. Three data layers (Originals + Derived Knowledge + Structured), eight pillars, multi-tenant by default with RLS + lens engine. Phase 1 proved the framework against fixture data; Phase 2 proves it against Wayward; Phase 3 proves multi-tenant with Rocky Ridge. The horizon is "second tenant in an hour, tenth in minutes."
+CIP is **the framework that lets Foundry-Studio capture and organize a venture's data once and serve it everywhere** — dashboards, reports, chatbots, agents, partner portals. Three data layers (Originals + Derived Knowledge + Structured), eight pillars, multi-tenant by default with RLS + lens engine. Phase 1 proved the framework against fixture data; Phase 2 proves it against Wayward; Phase 3 proves multi-tenant with Rocky Ridge. The horizon is "second tenant in an hour, tenth in minutes."

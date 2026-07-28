@@ -11,7 +11,7 @@ review_cadence: 90
 capabilities:
   - capability_id: CIP-CAP-001
     title: Ingest Client Data from External Sources
-    summary: Pull a client's data from CRM, support, financial, and document systems into CIP automatically.
+    summary: Pull a venture's data from CRM, support, financial, and document systems into CIP automatically.
     description: |
       Connector framework + concrete connectors (FixtureConnector, HubSpot, Zendesk;
       Plaid planned). Every connector implements CIPConnector + CIPMapper Protocols,

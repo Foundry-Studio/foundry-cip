@@ -370,6 +370,17 @@ features:
     domain: eng
     tags: [pillar:intelligence-and-alerts]
 
+  - feature_id: readouts
+    title: Readouts (Grounded Narrative Editions)
+    summary: Machine-written, grounded narratives of a subject's computed state, filed to an append-only ledger and rendered anywhere. Narrate-never-compute; two layers (grounded + open); source-agnostic adapters; CIP defines, FAS runs. Per CIP-K03 / JOS-S66.
+    status: planned
+    maturity: bronze
+    created: 2026-07-28
+    last_modified: 2026-07-28
+    owner: tim
+    domain: dat
+    tags: [pillar:intelligence-and-alerts]
+
   # ─── Pillar 8: Access & Operations ───────────────────────────────────
   - feature_id: cross-tenant-grants
     title: Cross-Tenant Grants Runtime

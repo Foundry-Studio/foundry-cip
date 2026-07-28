@@ -195,6 +195,7 @@ capabilities:
     audience: [internal-team, client]
     composed_of_features:
       - anomaly-detection
+      - readouts
     value_delivered: CIP stops being passive — it surfaces what's worth noticing without operators having to ask.
     tags: [pillar:intelligence-and-alerts]
     references:

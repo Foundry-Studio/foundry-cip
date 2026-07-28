@@ -119,6 +119,8 @@ Every edition MUST record: the config version that produced it, the model the Ro
 
 An edition MUST be readable by any authorized human or agent, and MUST be composable: it MAY be pushed to a dashboard, dropped in Slack, emailed, or aggregated into a higher-level Readout. The Readout does not know or care who consumes it; it files a well-formed edition and exposes it.
 
+**Cross-venture composition** is achieved by granting a specific reader or agent (for example a Chief-of-Staff agent) read access to the relevant tenants' editions, never by generating data across tenants and never by relaxing tenant isolation. Readouts stay tenant-isolated; a portfolio or cross-venture view is a permissioned reader, not a new data layer or a change to CIP's tenant model.
+
 ## 6. The ledger schema
 
 A Readout's ledger is a CIP structured-store table (append-only), inheriting CIP's tenant isolation (RLS) and 9-column provenance model. The Readout-specific columns are:

@@ -1,3 +1,8 @@
+> **SUPERSEDED (2026-07-29).** This plan is no longer the plan of record for the reporting app.
+> The operative documents live in the reports-project-silk repo: CLEAN-BUILD-PLAN.md (v2.2 FINAL,
+> approved, rulings R1-R16) and BUILD-LIST.md. The app is the operations command center for the
+> whole Wayward channel business; the recovery-pipeline framing below is retained as history only.
+
 # Project Silk Reporting — Rebuild & Correction Plan (P4 / WCC4)
 
 > **THIS IS THE PLAN OF RECORD for the reporting frontend.** It supersedes the screen set in

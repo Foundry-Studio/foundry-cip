@@ -7,10 +7,10 @@ owner: tim
 solve_for: The minimum architecture every Readout must satisfy, so any venture, dataset, or agent can stand up a new Readout without reinventing the engine, and so every Readout stays grounded, auditable, and safe.
 stage_label: trial
 domain: dat
-version: '1.1'
+version: '1.2'
 created: '2026-07-28'
-last_modified: '2026-07-28'
-last_reviewed: '2026-07-28'
+last_modified: '2026-08-01'
+last_reviewed: '2026-08-01'
 review_cadence: 180
 references:
   - id: JOS-S66
@@ -26,6 +26,8 @@ references:
 > **Status:** trial. This is the agnostic contract for the Readouts capability, deliberately venture-neutral, dataset-neutral, and surface-neutral. The first concrete Readout (the Wayward channel Readout) is authored against this contract, not the other way around. Governed by JOS-S66 (Readouts Standard); realized as CIP Pillar 7 capability CIP-CAP-007 (Intelligence & Alerts); run by the FAS WORK system.
 >
 > **v1.1 (2026-07-28):** a Readout writes to the shelf and consumers pull it (no engine-side delivery); the run is a scheduled WORK-system job; the model authors one long master then distills it to sized renderings; the ledger stores named renderings with character budgets.
+>
+> **v1.2 (2026-08-01):** two refinements surfaced by the first concrete instance (the Wayward Readout, `docs/READOUTS-WAYWARD.md`). (1) **Master per locale:** when a locale is authored natively (never translated), it has its own master and its renderings distill from that locale's master; locale is an audience-like axis. (2) **Retention profile:** a ledger MAY be bounded to a hot window plus rolling summaries (instead of unbounded forever), with the deep history housed in a declared external archive such as the WORK-system run logs.
 
 ## Purpose, Vision, and What Good Looks Like
 
@@ -127,7 +129,7 @@ Every edition MUST be inserted, never updated in place. The ledger is the audit 
 
 ### 5.4 Master-then-distill
 
-Exactly one rendering is the **master** (the long), authored directly from the fact pack. Every other rendering is a distillation of the master. Renderings MUST be stored as distinct, separately addressable fields so a consumer can pull one size without loading the others.
+Exactly one rendering per locale is the **master** (the long), authored directly from the fact pack. A single-locale Readout has one master; a Readout that authors a locale NATIVELY (never translated) has one master per locale (locale is an audience-like axis, section 5.5). Every other rendering is a distillation of ITS LOCALE's master. Renderings MUST be stored as distinct, separately addressable fields so a consumer can pull one size (and locale) without loading the others.
 
 ### 5.5 Guardrails
 
@@ -164,6 +166,8 @@ A Readout's ledger is a CIP structured-store table (append-only), inheriting CIP
 
 **Live versus history.** The "live" Readout is simply the latest edition row for a (readout_id, subject_key, audience). The rest are the ledger. There is no separate live store; a reader who missed the last edition scrolls back.
 
+**Retention (v1.2).** A ledger MAY be UNBOUNDED (kept forever, the default) OR bound to a declared **retention profile**: a hot window of full editions plus a rolling set of coarser-grained summary editions (for example, 35 days of full editions plus rolling monthly summaries). When bounded, the deep history MUST remain recoverable from a declared external archive (for example, the WORK-system run logs), so "scroll back" is served over the retained window plus its summaries and nothing is truly lost. The profile is declared on the config card (section 7).
+
 **Cadence and identity.** Default cadence is twice daily, at **05:00 and 17:00 America/Chicago**, pinned to local time so DST does not drift it, chosen to align with both the US and Asia working day. The schedule is fired by the WORK system. Each run inserts NEW immutable editions, identified by `generated_at` and `edition_seq`, never by weekday.
 
 ## 7. The config card (defining one Readout)
@@ -173,10 +177,10 @@ A new Readout is a filled-in config, not new engine code. The config MUST declar
 1. **Subject** — what this Readout is about.
 2. **Sources** — which adapters and inputs feed it (CIP lenses and/or external, per 5.1).
 3. **Significance rules** — how the fact pack is computed and ranked (deltas, thresholds, what counts as worth saying).
-4. **Storage** — which ledger table and tenant scope.
+4. **Storage and retention** — which ledger table and tenant scope, and the retention profile: unbounded, or a bounded hot-window-plus-summaries with its declared external archive (section 6).
 5. **Audience(s)** — the confidentiality/role shapes (who may see which layer); one edition is filed per audience per run.
 6. **Layers** — Layer 1 only, or Layer 1 plus Layer 2, on the master.
-7. **Renderings** — the named sizes and their character budgets (at minimum a `long` master and a `short`), each declaring which layers it carries. Smaller renderings are distilled from the master.
+7. **Renderings and locales** — the named sizes and their character budgets (at minimum a `long` master and a `short`), each declaring which layers it carries, and the locale(s) authored. A natively-authored locale has its own master; smaller renderings are distilled from their locale's master.
 8. **Cadence** — when the WORK system runs it (default 05:00 and 17:00 America/Chicago).
 9. **Writer settings** — the Roster model tier, the authoring prompt and the distill prompt, and how many prior editions to feed for continuity.
 

@@ -6,7 +6,7 @@ owner: tim
 solve_for: Record the decisions and the built back-end for the FIRST concrete Readout (the Wayward channel), authored against the agnostic Readouts Contract (CIP-K03), and flag where this instance currently diverges from that contract so nothing is built on bad information.
 stage_label: trial
 domain: dat
-version: '0.1'
+version: '0.2'
 created: '2026-08-01'
 last_modified: '2026-08-01'
 last_reviewed: '2026-08-01'
@@ -22,8 +22,8 @@ references:
 
 > **Status: draft.** This records the 2026-08-01 design decisions with Tim and the read-side back-end
 > that is BUILT (cip_149). The WRITER (the FAS agent that generates and files editions) and the engine
-> internals are deliberately NOT built here (a separate FAS-agents session). Three reconciliations with
-> the agnostic contract (CIP-K03) are OPEN and marked below; resolve them before the writer is built.
+> internals are deliberately NOT built here (a separate FAS-agents session). The three reconciliations with
+> CIP-K03 are RESOLVED (contract bumped to v1.2); the writer is unblocked for the FAS-agents session.
 
 ## What this is
 
@@ -63,35 +63,30 @@ are built with real FAS agents in a separate conversation. Tracked as RDL 1.5c t
 `Readouts WRITER agent (FAS)` (d5f9d992). The on-demand/conversational path is the Project Silk chatbot
 project (PS-CHAT, e0b353d8).
 
-## OPEN reconciliations with CIP-K03 (pending Tim's ruling)
+## Resolved reconciliations with CIP-K03 (v1.2, Tim 2026-08-01)
 
-These are where the Wayward decisions currently diverge from the agnostic contract. Do not build the
-writer until they are resolved; the contract may need a v1.2.
+All three are RULED; CIP-K03 is bumped to **v1.2** to absorb them (see the READOUTS-CONTRACT.md changelog).
 
-1. **Retention vs the append-only forever ledger.** CIP-K03 section 6 says the ledger is append-only and
-   kept forever ("scroll back through every past edition"). Our decision prunes CIP to 35 days + monthly
-   summaries and relies on the FAS agent run-logs as the deep archive. Options: (a) Wayward deviates
-   (bounded CIP + agent-log archive); (b) keep the full ledger forever per the contract; (c) refine
-   CIP-K03 to allow a bounded-retention profile with a declared external archive. Lean: (c), because the
-   agent-logging rationale is sound and generalizes.
-2. **cip_149 vs the full ledger schema.** cip_149 is a SIMPLIFIED read-side stub (4 content columns +
-   two lenses) built to unblock the front end. CIP-K03 section 6 specifies a richer ledger: fact_pack
-   JSONB, a `renderings` JSONB map (one master + distilled sizes), edition_seq, audience, source_refs,
-   model_id/config_version, freshness_ok. cip_149 is therefore NOT yet a contract-conformant ledger.
-   When the writer lands, reconcile: evolve cip_149 to the full schema, or have the writer write the
-   full ledger and make cip_149's lenses a projection over it.
-3. **Per-locale masters vs one master.** CIP-K03's rendering model is "author one long master, distill
-   the rest." Because ZH is authored natively (not translated), Wayward needs a master PER locale
-   (en-master + zh-master), each with its own distilled short. Reconcile: treat locale as an
-   audience-like axis (one edition/master per locale) or extend the contract's rendering model.
+1. **Retention.** RESOLVED by refining the contract. CIP-K03 v1.2 adds a bounded **retention profile** (a
+   hot window plus rolling summaries, with a declared external archive). Wayward's profile: 35 days of full
+   editions + rolling ~2 monthly summaries in CIP; the deep archive is the FAS agent run-logs. This is now a
+   first-class contract option, not a deviation ("the old stuff ends up housed by the agent anyway").
+2. **Ledger schema.** RESOLVED: the WRITER writes the full CIP-K03 ledger (fact_pack, a renderings map with
+   a master per locale, edition_seq, audience, provenance, freshness); cip_149's two lenses
+   (current/history) become a thin **projection** over that ledger. No app rework, because the read shape the
+   app consumes is stable. cip_149 stands as the read stub until the writer lands, then is reconciled to the
+   full ledger.
+3. **Per-locale masters.** RESOLVED: locale is an **audience-like axis**. Each natively-authored locale (en,
+   zh) has its own master; its short distills from that locale's master. CIP-K03 v1.2 §5.4 and §7 now state
+   this. zh stays authored, never translated (R8).
 
 ## Implications for other systems
 
 - **FAS**: gains the readouts writer as a WORK-system capability using the LLM Roster (a generate slot +
   an independent audit slot, config-resolved, smoke-tested). This is the "readouts as a FAS-general
   capability" Tim flagged.
-- **CIP-K03**: likely a v1.2 to absorb the retention profile (recon 1) and per-locale masters (recon 3),
-  and to note the Wayward ledger's relationship to the contract schema (recon 2).
+- **CIP-K03**: bumped to v1.2 (2026-08-01) absorbing the retention profile (recon 1) and per-locale masters
+  (recon 3); the ledger relationship (recon 2) is the writer-writes-full-ledger + lenses-as-projection pattern.
 - **App (reports-project-silk)**: the masthead readback slot + the last-updated indicator wire in when
   the overview screens land; renders empty until an edition is filed.
 - **Project Silk chatbot (PS-CHAT)**: the on-demand regeneration + conversational CIP query surface.

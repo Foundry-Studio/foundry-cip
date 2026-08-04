@@ -80,6 +80,10 @@ branch_labels = None
 depends_on = None
 
 _VIEW = "lens_ps_integrity_checks"
+# Reader roles that every sibling lens (lens_ps_invariants, lens_ps_brand_status, ...) grants SELECT to. A NEW
+# view inherits NO grants (pg_default_acl carries only postgres on tables), so this must be explicit or the
+# cip_query reader and the app's ps_reporting_reader get "permission denied" on the new lens.
+_READER_ROLES = "cip_query_reader, ps_reporting_reader, cip_metabase_project_silk, cip_twenty_project_silk, metabase_reader_foundry"
 
 # Inner UNION ALL of check arms, each yielding (check_key, check_type, category, label, violations, total,
 # detail); the outer SELECT below derives passed/failed/pct/status from (violations, total), same shape as
@@ -192,6 +196,7 @@ FROM checks
 def upgrade() -> None:
     op.execute("SET LOCAL lock_timeout = '5s'")
     op.execute(f"CREATE OR REPLACE VIEW {_VIEW} AS {_DEFINITION}")
+    op.execute(f"GRANT SELECT ON {_VIEW} TO {_READER_ROLES}")
     print(
         f"cip_155: created {_VIEW} (DI-6a), 6 check arms (2 canary, 2 not_empty, 2 reconciliation). "
         "canary.gmv_total_sane and canary.gmv_deal_bound are expected to read status='fail' on live data."

@@ -82,6 +82,22 @@ def _stub_select_returns(db: MagicMock, value: object) -> None:
     db.execute.return_value.mappings.return_value.first.return_value = value
 
 
+def test_reflection_failure_raises_persistence_error_naming_table(
+    persister: CIPRowPersister, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """PERS-001: a reflection failure on an uncached table surfaces as a
+    PersistenceError naming the table, not a bare driver error from deep in the
+    batch SAVEPOINT path."""
+    import sqlalchemy as sa
+
+    def _boom(_bind: object) -> object:
+        raise sa.exc.SQLAlchemyError("connection reset during reflect")
+
+    monkeypatch.setattr("cip.integration_mesh.persister.sa.inspect", _boom)
+    with pytest.raises(PersistenceError, match="cip_deals_history"):
+        persister._get_table_columns("cip_deals_history")
+
+
 # ── Allowlist + Delta 5 (cip_views) ───────────────────────────────────────
 
 

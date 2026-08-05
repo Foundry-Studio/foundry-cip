@@ -846,11 +846,23 @@ class CIPRowPersister:
     def _get_table_columns(self, table_name: str) -> list[str]:
         """Return ordered column names of ``table_name``, lazily reflecting
         + caching. Tests pre-populate ``self._col_cache[table_name]`` to
-        avoid DB roundtrips."""
+        avoid DB roundtrips.
+
+        Reflection failure (e.g. an unstable connection on first access to a
+        history table mid-batch) is re-raised as ``PersistenceError`` naming
+        the table, so the caller's ``except PersistenceError`` rolls the batch
+        back with an explicit failure point rather than a generic driver error
+        surfaced from deep in the SAVEPOINT path (audit PERS-001).
+        """
         if table_name not in self._col_cache:
             bind = self.db.get_bind()
-            inspector = sa.inspect(bind)
-            self._col_cache[table_name] = [
-                str(c["name"]) for c in inspector.get_columns(table_name)
-            ]
+            try:
+                inspector = sa.inspect(bind)
+                self._col_cache[table_name] = [
+                    str(c["name"]) for c in inspector.get_columns(table_name)
+                ]
+            except sa.exc.SQLAlchemyError as sqle:
+                raise PersistenceError(
+                    f"failed to reflect columns for table {table_name!r}: {sqle}"
+                ) from sqle
         return self._col_cache[table_name]

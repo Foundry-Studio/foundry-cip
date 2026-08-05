@@ -1025,11 +1025,11 @@ def _run_backfill_body(
     counters = {"persisted": 0, "skipped_missing_current": 0, "failed": 0}
     differ = SCDDiffer()
 
-    # Authenticate (idempotent if already done).
-    try:
-        connector.authenticate()
-    except AuthenticationError:
-        raise
+    # Authenticate. Backfill can run standalone (not only after an incremental
+    # sync), so this is a genuine re-auth; a failure propagates as
+    # AuthenticationError. (Removed a no-op ``try/except AuthenticationError:
+    # raise`` wrapper here per audit ORCH-003 - it caught only to re-raise.)
+    connector.authenticate()
 
     # Iterate connector.backfill_history(tenant_id), chunking into batches.
     # backfill_history is optional on the Protocol; use getattr-with-default

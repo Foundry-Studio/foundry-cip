@@ -75,7 +75,8 @@ Each layer is a field (or set) at the brand×product×month grain. `→` reads "
 ### L6 · `partner_fee_owed` — what WE owe the partner
 - **Formula:** `usage_collected × partner_rate(partner, product, month)` for brands with a
   `partner_of_record` (from `ps_partner_credit`, per product), within the partner's credit window
-  (`credit_start`..`credit_end` / `partner_credit_expires`).
+  (`credit_start`..`credit_end` / `partner_credit_expires`) **AND only while `mgmt_rate = 0.10`**.
+  The partner commission ends when the management fee steps down off 10% (Tim 2026-08-10, cip_165).
 - **Rate:** `ps_partner_terms` — 5% default until Rhea's per-partner rows land. Carved FROM our 10%
   pool (PS nets `mgmt_fee_owed − partner_fee_owed`), not added on top.
 - **Edge:** eric/adina/lytasaur = no deal → `partner_fee_owed = 0` (tracked for reporting, §4).

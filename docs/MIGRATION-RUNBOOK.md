@@ -25,6 +25,16 @@ milestone: Phase-1-M7
 
 Step-by-step runbook for applying CIP migrations (cip_01–cip_08 in Phase 1) to local/dev/prod: ordering, verification, rollback, and common failure modes.
 
+## Before you author a new table or lens (check first)
+
+Before creating a NEW `ps_`/`cip_` table or lens, confirm an equivalent does not already exist:
+
+1. Grep the schema AND `scripts/` for the CONCEPT and its synonyms, not just the exact name you have in mind (e.g. "payment", "referral", "stated", "wayward" — not only "remittance").
+2. Read the `COMMENT` on candidate tables/views (`\d+` or `obj_description(...)`) — CIP tables are documented, and the comment usually tells you if it is the canonical store.
+3. If you dispatch a build-QC reviewer, make **"does an equivalent store/lens already exist, and should I extend it instead of adding one?"** an explicit question — reviewing a table in isolation only proves it is internally correct, not that it is non-redundant.
+
+Why this is a rule: cip_169 built a parallel `ps_wayward_remittance` store without discovering that `ps_payment_events` already held Wayward's monthly reports; it had to be retired in cip_170. A redundant store is worse than none — it splits the source of truth and produces misleading reconciliations.
+
 ## Who reads this
 
 - Any operator running CIP migrations (first onboard, re-seed, prod deploy).

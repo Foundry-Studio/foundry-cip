@@ -173,6 +173,10 @@ UPSERT = text("""
         determined_at      = now(),
         determination_note = EXCLUDED.determination_note,
         match_status       = EXCLUDED.match_status
+    -- Human decisions win: a hand-set attribution (scripts/add_partner_brand.py
+    -- writes determined_by='ps_manual') is left untouched by the automated rebuild
+    -- rather than silently overwritten. New/auto rows still (re)derive as before.
+    WHERE ps_partner_credit.determined_by IS DISTINCT FROM 'ps_manual'
 """)
 
 

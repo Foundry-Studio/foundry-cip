@@ -38,7 +38,7 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from uuid import UUID
 
-from sqlalchemy import text
+from sqlalchemy import create_engine, text
 from sqlalchemy.engine import Connection, Engine
 
 # Restricted non-superuser role used for RLS verification queries.
@@ -83,6 +83,38 @@ def provision_cip_rls_test_role(engine: Engine) -> None:
                 f"SCHEMA public TO {_RLS_TEST_ROLE}"
             )
         )
+
+
+# ── Reader roles the migration chain GRANTs to but never CREATEs ─────────────
+# Every reader role has its own CREATE ROLE migration (cip_09/21/25/28/31/120)
+# EXCEPT metabase_reader_foundry: it was added to the reader-role GRANT lists in
+# cip_155+ with no companion CREATE ROLE migration. Prod (+ new tenants on the
+# shared DB) has the role out-of-band, so those migrates are fine — but a
+# from-scratch `alembic upgrade head` on a fresh DB (any testcontainer) dies at
+# cip_155's GRANT. Provision it up front so the test suite can apply the full
+# chain. The proper repo fix (create it before cip_155 in the shipped chain) is
+# CIP-core and is flagged to Tim; this keeps tests green meanwhile.
+_UNCREATED_READER_ROLES = ("metabase_reader_foundry",)
+
+
+def provision_uncreated_reader_roles(database_url: str) -> None:
+    """Idempotently CREATE reader roles the migration chain GRANTs to but never
+    creates itself. Call BEFORE ``alembic upgrade head`` on a fresh DB."""
+    eng = create_engine(database_url)
+    try:
+        with eng.begin() as conn:
+            for role in _UNCREATED_READER_ROLES:
+                exists = conn.execute(
+                    text("SELECT 1 FROM pg_roles WHERE rolname = :r"), {"r": role}
+                ).fetchone()
+                if not exists:
+                    # role name is a known module constant, not user input.
+                    conn.execute(text(
+                        f"CREATE ROLE {role} NOSUPERUSER NOBYPASSRLS NOCREATEDB "
+                        f"NOCREATEROLE NOINHERIT NOREPLICATION NOLOGIN"
+                    ))
+    finally:
+        eng.dispose()
 
 
 @contextmanager

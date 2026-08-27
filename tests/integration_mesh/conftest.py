@@ -36,6 +36,7 @@ from sqlalchemy.orm import Session
 
 from tests._helpers.rls import (
     provision_cip_rls_test_role,
+    provision_uncreated_reader_roles,
     session_as_role_and_tenant,  # noqa: F401  # re-exported for test_lens_*.py
 )
 
@@ -93,6 +94,9 @@ def seeded_engine(database_url: str) -> Generator[Engine, None, None]:
 
         cfg = Config(str(REPO_ROOT / "alembic.ini"))
         cfg.set_main_option("sqlalchemy.url", database_url)
+        # Provision reader roles the chain GRANTs to but never creates, so the
+        # fresh-DB upgrade doesn't die at cip_155's GRANT to metabase_reader_foundry.
+        provision_uncreated_reader_roles(database_url)
         command.upgrade(cfg, "head")
     finally:
         if prev_url is None:

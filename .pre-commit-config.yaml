@@ -7,7 +7,12 @@
 #
 # Setup:
 #   pip install pre-commit
-#   pre-commit install
+#   pre-commit install --hook-type pre-commit --hook-type commit-msg
+#
+# NOTE the commit-msg type. Plain `pre-commit install` wires ONLY the
+# pre-commit stage, which silently leaves the FND-S14 trailer guard below
+# uninstalled — the exact gap that let a trailer-less commit reach master on
+# 2026-09-02 and red the trailer-check job.
 #
 # Bypass (FND-S14 Rule 5 escape hatch):
 #   SKIP=<hook-id> git commit ...
@@ -42,3 +47,20 @@ repos:
           - "alembic>=1.18,<2.0"
           - "psycopg[binary]>=3.1,<4.0"
           - "faker==40.15.0"
+
+  # FND-S14 Local-Verified trailer, enforced at COMMIT time.
+  #
+  # The `trailer-check` job in .github/workflows/test.yml enforces the same
+  # rule, but only on push to master — so before this hook existed, the first
+  # signal of a missing trailer was master already being red. This closes that
+  # loop locally. Patterns are kept identical to the CI job's greps, and
+  # tests/test_fnd_s14_trailer.py fails if the two ever drift apart.
+  - repo: local
+    hooks:
+      - id: fnd-s14-trailer
+        name: FND-S14 Local-Verified trailer (commit-msg)
+        entry: python scripts/check_fnd_s14_trailer.py
+        language: system
+        stages: [commit-msg]
+        always_run: true
+        pass_filenames: true

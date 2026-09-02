@@ -31,17 +31,14 @@ import os
 import re
 import sys
 from datetime import UTC, datetime
-from uuid import UUID, uuid4
+from uuid import uuid4
 
 from sqlalchemy import create_engine, text
 
 from cip.integration_mesh import run_backfill
 from cip.integration_mesh.connectors.hubspot import HubSpotConnector
-
 from cip.integration_mesh.wayward_constants import (
     ECOMLEVER_TENANT_ID,
-    WAYWARD_CLIENT_ID,
-    set_wayward_client_id_on_null_rows,
 )
 
 TENANT_WAYWARD = ECOMLEVER_TENANT_ID  # Wayward data lives at EcomLever tenant + Wayward client

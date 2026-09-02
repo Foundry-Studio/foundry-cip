@@ -6,6 +6,39 @@ is the primary audit trail.
 
 ---
 
+## 2026-08-04 — "tim_wechat_report_072926.csv" (Wayward brand export, 415 rows, 100% CN)
+
+Wayward-origin, Airbyte export of the brand table (84 cols; the useful block is `WECHAT_ID` +
+named contact `CONTACT_FIRST/LAST_NAME`/`CONTACT_EMAIL` + `SOURCE` referral). Join key `ID` =
+`wayward_brand_id`, **415/415 matched** (no missing brands). The "gold" fields (amz_seller_id,
+business_name, stripe id, parent_brand_id, shipping_source_country) are **empty again** — this is a
+WeChat + named-contact + referral sheet only. Ingested by
+`scripts/ingest_wechat_report_2026_07_29.py` (one-shot loader, not retained in-repo)
+(set-based, dry-run-first, idempotent).
+
+**Actions taken (Tim-approved, applied to prod):**
+- **Flipped 7 → china** (were `unknown`): **WATERFLY, Semderm, rinadrus, CVEN, Best Learning,
+  Pawpulse Formula (×2 brand-ids)** — via `wayward_country_cn` (confirmed/china) signals, evidence =
+  Wayward's CN tag corroborated by a provided WeChat identity. China book **2,368 → 2,375**.
+- **Excluded 1 (ERROR, not a real client):** `sheila@project-skill` /
+  sheila@project-silk.com is a **Project Silk staff test signup** (Sheila Zeng). CN tag + CN mobile
+  would otherwise sweep it in; a `manual_review → not_china` signal (asserted_by Tim, top authority
+  tier) pins it out. not_china **877 → 878**. Its contact/WeChat/referral were NOT ingested. (The
+  junk `ps_brands` row itself is left in place — dropping a brand is a separate destructive call.)
+- **Contacts:** 28 new + 386 enriched; **254 wechat_id + 160 wechat_phone** written (routing:
+  11-digit CN mobile or +86 → `wechat_phone`, else `wechat_id`, cip_100). Enrich is COALESCE-only —
+  existing WeChat values are never clobbered.
+- **Referral source → 414 `ps_brand_observations` (`field=referral_source`)** — data only, NOT wired
+  into attribution (parity with the 2026-07-15 ingest).
+- **22/22 invariants green** before and after. unknown 2,200 → 2,192.
+
+**Note:** still a MANUAL sheet load — the "automate the WeChat/brand-detail feed" ask in
+[DATA-WE-NEED.md](DATA-WE-NEED.md) stands (this is the second such hand-load). 18 sheet rows were
+`IS_DELETED=TRUE` (deactivated Wayward dupes, all already-china like NZI NZI/E500) — contacts still
+ingested, deletion treated as nothing.
+
+---
+
 ## 2026-07-15 — "Wayward Overdue Invoices 5_11" (overdue/collection sheet, 331 clients)
 
 Wayward-origin. Two tabs, same 331 clients. Keys: `stripe_customer_id`, `brand_id` (= our

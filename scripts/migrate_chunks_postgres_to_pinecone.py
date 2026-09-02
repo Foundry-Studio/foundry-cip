@@ -28,13 +28,12 @@ Usage:
 """
 from __future__ import annotations
 
-import json
 import os
 import re
 import sys
 import time
 from collections import defaultdict
-from uuid import UUID
+from datetime import UTC
 
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import Session
@@ -69,8 +68,8 @@ def main() -> int:
     # If you see RUN_BEGAN without a corresponding RUN_ENDED, the process
     # died mid-stream (the harness's "completed" notification can fire
     # on the wrapper exit even if Python crashed). PM scope 0f15a060.
-    from datetime import datetime, timezone
-    _run_began = datetime.now(timezone.utc)
+    from datetime import datetime
+    _run_began = datetime.now(UTC)
     print(f"RUN_BEGAN tag=migrate_chunks_postgres_to_pinecone at={_run_began.isoformat()}")
 
     url = os.environ.get("DATABASE_URL", "")
@@ -196,21 +195,21 @@ def main() -> int:
     print(f"\n[migrate-vectors] DONE in {elapsed/60:.1f}m")
     print(f"  Migrated: {migrated:,}")
     print(f"  Errors: {errors}")
-    print(f"  Per namespace:")
+    print("  Per namespace:")
     for ns, n in sorted(by_ns.items()):
         print(f"    {ns}: {n:,}")
 
     # Stats after — give Pinecone a moment to update
     time.sleep(3)
     post_stats = pc.describe_index_stats()
-    print(f"\n[migrate-vectors] Post-migration index stats:")
+    print("\n[migrate-vectors] Post-migration index stats:")
     print(f"  totalVectorCount: {post_stats.get('totalVectorCount', 0)}")
     namespaces = post_stats.get("namespaces", {})
     for ns, info in sorted(namespaces.items()):
         print(f"  {ns}: {info.get('vectorCount', 0):,}")
 
-    from datetime import datetime, timezone
-    print(f"RUN_ENDED tag=migrate_chunks_postgres_to_pinecone at={datetime.now(timezone.utc).isoformat()}")
+    from datetime import datetime
+    print(f"RUN_ENDED tag=migrate_chunks_postgres_to_pinecone at={datetime.now(UTC).isoformat()}")
     return 0
 
 
@@ -222,9 +221,7 @@ def _coerce_meta(meta: dict) -> dict:
     for k, v in meta.items():
         if v is None:
             continue
-        if isinstance(v, (str, int, float, bool)):
-            out[k] = v
-        elif isinstance(v, list) and all(isinstance(x, str) for x in v):
+        if isinstance(v, (str, int, float, bool)) or isinstance(v, list) and all(isinstance(x, str) for x in v):
             out[k] = v
         else:
             # Datetimes, UUIDs, complex objects -> str

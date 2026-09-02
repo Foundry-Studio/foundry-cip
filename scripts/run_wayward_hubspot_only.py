@@ -18,7 +18,6 @@ from __future__ import annotations
 import os
 import re
 import sys
-from uuid import UUID
 
 from sqlalchemy import create_engine, text
 
@@ -27,11 +26,8 @@ from cip.integration_mesh.connectors.hubspot import (
     HubSpotConnector,
     HubSpotMapper,
 )
-
 from cip.integration_mesh.wayward_constants import (
     ECOMLEVER_TENANT_ID,
-    WAYWARD_CLIENT_ID,
-    set_wayward_client_id_on_null_rows,
 )
 
 # Wayward data lives at (EcomLever tenant, Wayward client). Canonical

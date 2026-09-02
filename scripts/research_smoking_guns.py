@@ -1,12 +1,16 @@
 # foundry: kind=script domain=research
 """Smoking-gun pass: tickets that combine fee-change + complaint patterns."""
 from __future__ import annotations
-import os, re, sys
-from collections import defaultdict
+
+import os
+import re
+import sys
 from datetime import datetime
+
 from sqlalchemy import create_engine, text
 
 from cip.integration_mesh.wayward_constants import ECOMLEVER_TENANT_ID
+
 TID = str(ECOMLEVER_TENANT_ID)  # EcomLever tenant; Wayward client_id 661ecab4-...
 DATE_LO = "2026-02-01"
 DATE_HI = "2026-05-16"

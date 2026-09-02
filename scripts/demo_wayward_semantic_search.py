@@ -27,7 +27,6 @@ from cip.integration_mesh.clients import EmbeddingClient, RerankerClient
 from cip.integration_mesh.knowledge import KnowledgeRetriever
 from cip.integration_mesh.wayward_constants import ECOMLEVER_TENANT_ID
 
-
 # Realistic-ish business questions a user might ask of Wayward data.
 DEMO_QUERIES: list[tuple[str, str | None]] = [
     # (query_text, restrict_to_source_kind or None for all)

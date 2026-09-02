@@ -50,7 +50,7 @@ import argparse
 import os
 import sys
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 import boto3
@@ -58,7 +58,6 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.orm import Session
 
 from cip.integration_mesh.clients import PineconeClient
-
 
 # -- DTOs --------------------------------------------------------------------
 
@@ -533,7 +532,7 @@ def main() -> int:
             block.legacy_r2_bytes = int(legacy.get("bytes", 0))
             blocks.append(block)
 
-    md, drift = _render(blocks, datetime.now(timezone.utc))
+    md, drift = _render(blocks, datetime.now(UTC))
     out_path = args.out
     os.makedirs(os.path.dirname(out_path) or ".", exist_ok=True)
     with open(out_path, "w", encoding="utf-8", newline="\n") as fh:

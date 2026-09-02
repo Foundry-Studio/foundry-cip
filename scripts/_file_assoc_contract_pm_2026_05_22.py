@@ -15,10 +15,11 @@ the prior Phase 2.6 build).
 """
 from __future__ import annotations
 
+import json
 import os
 import sys
-import json
 from uuid import uuid4
+
 from sqlalchemy import create_engine, text
 
 PROJECT = "596825db-61bc-4899-bc6c-e207489ca35d"

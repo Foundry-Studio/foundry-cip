@@ -21,8 +21,9 @@ from __future__ import annotations
 
 import os
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
+
 from sqlalchemy import create_engine, text
 
 DEFAULT_TENANT = "dec814db-722a-4730-8e60-51afc4a5dad9"  # EcomLever
@@ -141,7 +142,7 @@ def main() -> int:
     engine = _connect()
 
     lines: list[str] = []
-    now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    now = datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC")
     # JOS-conformant frontmatter (per CIP-K01 contract). UUID is
     # deterministic per-tenant so re-generations don't change the JOS
     # identity. Required fields: id/uuid/title/type/owner/solve_for/
@@ -151,9 +152,9 @@ def main() -> int:
     tenant_manifest_uuid = str(_uuid.uuid5(
         _uuid.UUID(tenant_uuid), "cip-manifest"
     ))
-    today_iso = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    today_iso = datetime.now(UTC).strftime("%Y-%m-%d")
     lines.append("---")
-    lines.append(f"id: CIP-DIAG-102")
+    lines.append("id: CIP-DIAG-102")
     lines.append(f"uuid: {tenant_manifest_uuid}")
     lines.append(f"title: Tenant Manifest — {tenant_uuid}")
     lines.append("type: diagnostic")
@@ -165,7 +166,7 @@ def main() -> int:
     )
     lines.append("stage_label: adopt")
     lines.append("domain: dat")
-    lines.append(f"version: '1.0'")
+    lines.append("version: '1.0'")
     lines.append(f"created: '{today_iso}'")
     lines.append(f"last_modified: '{today_iso}'")
     lines.append(f"last_reviewed: '{today_iso}'")
@@ -509,7 +510,7 @@ def main() -> int:
         lines.append("- [`docs/PROPERTY-GLOSSARY-PATTERN.md`](../../PROPERTY-GLOSSARY-PATTERN.md) — the glossary pattern explained")
         lines.append("- [`docs/ONBOARDING-A-NEW-TENANT.md`](../../ONBOARDING-A-NEW-TENANT.md) — runbook for adding new tenants")
         lines.append("- [`docs/HUBSPOT-CONNECTOR-GUIDE.md`](../../HUBSPOT-CONNECTOR-GUIDE.md) + [`docs/ZENDESK-CONNECTOR-GUIDE.md`](../../ZENDESK-CONNECTOR-GUIDE.md) — per-connector operator guides")
-        lines.append(f"- PM scope `bfc3d5d0` — Tenant Manifest")
+        lines.append("- PM scope `bfc3d5d0` — Tenant Manifest")
 
     with open(out_path, "w", encoding="utf-8") as f:
         f.write("\n".join(lines))

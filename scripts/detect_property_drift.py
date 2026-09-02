@@ -40,12 +40,10 @@ NEW + updates TYPE_CHANGED/LABEL_DRIFT; never deletes):
 from __future__ import annotations
 
 import argparse
-import json
 import os
 import sys
-import time
 from collections import defaultdict
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import httpx
@@ -157,7 +155,7 @@ def main() -> int:
     # ── Render report ────────────────────────────────────────────────
     report = _render_report(findings_by_entity)
     report_path = Path(args.report_path) if args.report_path else (
-        Path("evidence") / f"drift-{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S')}.md"
+        Path("evidence") / f"drift-{datetime.now(UTC).strftime('%Y%m%dT%H%M%S')}.md"
     )
     report_path.parent.mkdir(parents=True, exist_ok=True)
     report_path.write_text(report, encoding="utf-8")
@@ -231,8 +229,8 @@ def _diff_into(bucket: dict, vendor: dict, registry: dict) -> None:
 
 def _render_report(findings_by_entity: dict) -> str:
     lines: list[str] = []
-    lines.append(f"# Property catalog drift report\n")
-    lines.append(f"_Generated: {datetime.now(timezone.utc).isoformat()}_\n")
+    lines.append("# Property catalog drift report\n")
+    lines.append(f"_Generated: {datetime.now(UTC).isoformat()}_\n")
     lines.append(f"Tenant: `{T}` (EcomLever / Wayward)\n")
     lines.append("\n## Summary\n")
     lines.append("| Connector | Entity | NEW | REMOVED | TYPE_CHANGED | LABEL_DRIFT |")

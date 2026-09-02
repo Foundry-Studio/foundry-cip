@@ -39,7 +39,6 @@ from cip.integration_mesh.scd_differ import SCDDiffer
 from cip.integration_mesh.tenant_context import apply_tenant_context
 from cip.integration_mesh.wayward_constants import (
     ECOMLEVER_TENANT_ID,
-    WAYWARD_CLIENT_ID,
     set_wayward_client_id_on_null_rows,
 )
 

@@ -6,14 +6,17 @@ Searches cip_tickets + cip_tickets_history for brand names + keywords in
 the Feb 1 - May 15, 2026 window. Emits verbatim quotes with ticket IDs.
 """
 from __future__ import annotations
+
 import os
 import re
 import sys
 from collections import defaultdict
 from datetime import datetime
+
 from sqlalchemy import create_engine, text
 
 from cip.integration_mesh.wayward_constants import ECOMLEVER_TENANT_ID
+
 TID = str(ECOMLEVER_TENANT_ID)  # EcomLever tenant; Wayward client_id 661ecab4-...
 DATE_LO = "2026-02-01"
 DATE_HI = "2026-05-16"
@@ -212,7 +215,7 @@ def main() -> int:
         # Sample quotes — up to 4 from distinct ticket IDs
         seen_ids: set[str] = set()
         n_quotes = 0
-        lines.append(f"- Notable verbatim mentions (showing up to 4 distinct tickets):")
+        lines.append("- Notable verbatim mentions (showing up to 4 distinct tickets):")
         for sid, snip, ts, layer in hits_sorted:
             if sid in seen_ids:
                 continue
@@ -311,8 +314,8 @@ def main() -> int:
     lines.append("")
     lines.append(f"- Data source: CIP (cip_tickets + cip_tickets_history), live PostgreSQL query against Railway prod, tenant_id `{TID}` (EcomLever venture; Wayward client_id `661ecab4-dddb-5924-a34d-af1c5133132d`). Original Zendesk subdomain: `waywardsupport.zendesk.com`. CIP backfill completed 2026-05-16 01:28 UTC; tenant-id correction landed 2026-05-16.")
     lines.append(f"- Date range searched: {DATE_LO} → {DATE_HI} (inclusive).")
-    lines.append(f"- Tickets in date range (audit-event activity): 1,389 unique tickets.")
-    lines.append(f"- History snapshots scanned in window: ~12,000 (Feb-May 2026 partition).")
+    lines.append("- Tickets in date range (audit-event activity): 1,389 unique tickets.")
+    lines.append("- History snapshots scanned in window: ~12,000 (Feb-May 2026 partition).")
     lines.append("- Search method: Python regex (case-insensitive for brand names, case-sensitive where ambiguous; word-boundary for short tokens). Snippet window: ~200 chars on each side of the match.")
     lines.append(f"- Brands searched: Tier 1 ({len(TIER1)}) + Tier 2 ({len(TIER2)+len(TIER2_AMBIGUOUS)}).")
     lines.append(f"- Keywords searched: {len(KEYWORDS)}.")

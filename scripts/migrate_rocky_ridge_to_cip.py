@@ -61,10 +61,8 @@ import os
 import re
 import sys
 import time
-from collections import defaultdict
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from typing import Iterable
+from datetime import UTC, datetime
 from uuid import UUID, uuid4, uuid5
 
 import boto3
@@ -78,7 +76,7 @@ from cip.integration_mesh.clients import (
     VectorUpsert,
     namespace_for,
 )
-from cip.integration_mesh.knowledge.chunker import chunk_text, ChunkSpec
+from cip.integration_mesh.knowledge.chunker import chunk_text
 from cip.integration_mesh.tenant_context import apply_tenant_context
 
 # -- Constants ---------------------------------------------------------------
@@ -235,7 +233,7 @@ def _ensure_rocky_ridge_client(db: Session, batch_id: UUID) -> None:
 
 def main() -> int:
     # Heartbeat marker — see PM scope 0f15a060.
-    print(f"RUN_BEGAN tag=migrate_rocky_ridge_to_cip at={datetime.now(timezone.utc).isoformat()}")
+    print(f"RUN_BEGAN tag=migrate_rocky_ridge_to_cip at={datetime.now(UTC).isoformat()}")
 
     url = os.environ.get("DATABASE_URL", "")
     if not url:
@@ -564,7 +562,7 @@ def main() -> int:
     print(f"  chunks embedded:          {stats.chunks_embedded}")
     print(f"  chunks upserted (PC):     {stats.chunks_upserted}")
     if stats.errors:
-        print(f"  first 10 errors:")
+        print("  first 10 errors:")
         for e in stats.errors[:10]:
             print(f"    - {e}")
 
@@ -573,7 +571,7 @@ def main() -> int:
     ns_info = (post.get("namespaces") or {}).get(ns, {})
     print()
     print(f"[migrate-rr] CIP-Pinecone namespace {ns}: {ns_info.get('vectorCount', 0):,} vectors")
-    print(f"RUN_ENDED tag=migrate_rocky_ridge_to_cip at={datetime.now(timezone.utc).isoformat()}")
+    print(f"RUN_ENDED tag=migrate_rocky_ridge_to_cip at={datetime.now(UTC).isoformat()}")
     return 0 if stats.files_errored == 0 else 1
 
 

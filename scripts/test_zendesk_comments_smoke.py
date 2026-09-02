@@ -19,7 +19,7 @@ from __future__ import annotations
 
 import os
 import sys
-from uuid import UUID, uuid4
+from uuid import uuid4
 
 from sqlalchemy import create_engine, text
 
@@ -86,11 +86,12 @@ def main() -> int:
     print(f"[smoke] All {len(rows_to_persist)} CIPRows passed mapper validation")
 
     # Try a dry-run persist against the DB (commit; we'll cleanup after)
+    from sqlalchemy.orm import Session
+
     from cip.integration_mesh import run_sync  # noqa: F401  (sanity)
     from cip.integration_mesh.persister import CIPRowPersister
     from cip.integration_mesh.scd_differ import SCDDiffer
     from cip.integration_mesh.tenant_context import apply_tenant_context
-    from sqlalchemy.orm import Session
 
     batch_id = uuid4()
     with Session(engine) as db:

@@ -57,7 +57,7 @@ def main() -> int:
     counts_per_kind = {"engagement_note": 0, "engagement_meeting": 0, "engagement_task": 0}
 
     # Limit to a few of each kind from the streamer
-    seen_per_kind: dict[str, int] = {k: 0 for k in counts_per_kind}
+    seen_per_kind: dict[str, int] = dict.fromkeys(counts_per_kind, 0)
     for rec in conn.stream_engagements(batch_size=10):
         kind = rec.get("__cip_kind__")
         if not isinstance(kind, str) or kind not in seen_per_kind:

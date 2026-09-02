@@ -23,15 +23,14 @@ import re
 import sys
 
 from sqlalchemy import create_engine, text
+from sqlalchemy.orm import Session
 
 from cip.integration_mesh.clients import EmbeddingClient, RerankerClient
 from cip.integration_mesh.knowledge import KnowledgeIndexer, KnowledgeRetriever
 from cip.integration_mesh.tenant_context import apply_tenant_context
 from cip.integration_mesh.wayward_constants import (
     ECOMLEVER_TENANT_ID,
-    WAYWARD_CLIENT_ID,
 )
-from sqlalchemy.orm import Session
 
 
 def _safety_gate(url: str) -> int | None:

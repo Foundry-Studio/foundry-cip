@@ -28,11 +28,11 @@ import sys
 import time
 
 from sqlalchemy import create_engine, text
+from sqlalchemy.orm import Session
 
 from cip.integration_mesh.clients import EmbeddingClient
 from cip.integration_mesh.knowledge import KnowledgeIndexer
 from cip.integration_mesh.wayward_constants import ECOMLEVER_TENANT_ID
-from sqlalchemy.orm import Session
 
 # Optional: cap rows-per-kind for faster runs (set to None for full)
 LIMIT_PER_KIND = int(os.environ.get("CIP_LAYER2_LIMIT", "0")) or None

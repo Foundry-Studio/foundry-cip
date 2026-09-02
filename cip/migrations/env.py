@@ -181,6 +181,53 @@ def run_migrations_offline() -> None:
         context.run_migrations()
 
 
+# ── Roles the chain GRANTs to but never CREATEs ──────────────────────────────
+# Every reader role in this repo has its own CREATE ROLE migration
+# (cip_09/21/25/28/31/120/127) EXCEPT metabase_reader_foundry, which entered the
+# reader-role GRANT lists at cip_155 with no companion CREATE. Long-lived
+# databases have it out-of-band, so their migrates were always fine and the gap
+# stayed invisible. A FROM-SCRATCH `alembic upgrade head` dies at cip_155's
+# GRANT with `role "metabase_reader_foundry" does not exist`, which is what has
+# kept foundry-cip's CI red on every push since 2026-05-11.
+#
+# WHY THIS LIVES IN env.py AND NOT IN A MIGRATION. The chain dies AT cip_155, so
+# a new migration at head never runs on the database that needs it. Fixing it in
+# cip_155 itself is barred: CLAUDE.md, "Never edit a shipped migration.
+# Migrations are immutable once merged." That leaves the pre-chain bootstrap,
+# which is this. It also covers every consumer of the chain at once (CI,
+# testcontainers, a new tenant DB) rather than one harness.
+#
+# Keep this list EMPTY-BY-DEFAULT in spirit: an entry here is a defect being
+# compensated for, not a pattern. A new role belongs in its own CREATE ROLE
+# migration, ahead of anything that grants to it.
+_GRANTED_BUT_UNCREATED_ROLES = ("metabase_reader_foundry",)
+
+
+def provision_granted_but_uncreated_roles(connection: Any) -> None:
+    """Create any role the chain grants to but never creates. Idempotent.
+
+    Attributes mirror the other grant-target reader roles: no login, no
+    inheritance, no elevated bits. This is a GRANT target, not a connecting
+    identity, so it deliberately gets NOLOGIN and no password.
+
+    Runs AFTER the cross-pollution guard so a polluted database is still
+    rejected before anything is created in it.
+    """
+    for role in _GRANTED_BUT_UNCREATED_ROLES:
+        exists = connection.execute(
+            text("SELECT 1 FROM pg_roles WHERE rolname = :r"), {"r": role}
+        ).fetchone()
+        if exists:
+            continue
+        # Role names here are module constants, never user input.
+        connection.execute(
+            text(
+                f"CREATE ROLE {role} NOSUPERUSER NOBYPASSRLS NOCREATEDB "
+                f"NOCREATEROLE NOINHERIT NOREPLICATION NOLOGIN"
+            )
+        )
+
+
 def run_migrations_online() -> None:
     config_dict = config.get_section(config.config_ini_section) or {}
     config_dict["sqlalchemy.url"] = get_url()
@@ -205,6 +252,10 @@ def run_migrations_online() -> None:
             # Removed transaction_per_migration=True too — redundant with the explicit
             # begin_transaction wrapper and contributed to the same autobegin trap.
             assert_no_cross_pollution(connection)
+            # Must precede run_migrations: cip_155 GRANTs to metabase_reader_foundry
+            # and the chain cannot create it in time on a fresh database. See the
+            # note on _GRANTED_BUT_UNCREATED_ROLES above.
+            provision_granted_but_uncreated_roles(connection)
             context.run_migrations()
 
 

@@ -17,7 +17,6 @@ alembic upgrade head incl. cip_32). Cleanup via tenant-scoped DELETE.
 from __future__ import annotations
 
 import json
-import os
 from typing import Any
 from uuid import UUID, uuid4
 
@@ -25,6 +24,8 @@ import psycopg
 import pytest
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import Engine
+
+from tests._helpers.role_passwords import role_password
 
 PS_TENANT = UUID("078a37d6-6ae2-4e22-869e-cc08f6cb2787")
 EC_TENANT = UUID("dec814db-722a-4730-8e60-51afc4a5dad9")
@@ -186,7 +187,7 @@ def test_deal_financials_isolation(fin_seeded: Engine) -> None:
 def test_metabase_role_can_read_lens_not_raw_deals(fin_seeded: Engine) -> None:
     url = fin_seeded.url.set(
         username=_METABASE_PS_ROLE,
-        password=os.environ.get("PROJECT_SILK_METABASE_DB_PASSWORD", _TEST_PASSWORD_FALLBACK),
+        password=role_password("cip_metabase_project_silk"),
     )
     reng = create_engine(url, pool_pre_ping=True)
     try:

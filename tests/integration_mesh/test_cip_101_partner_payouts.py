@@ -10,7 +10,10 @@ from sqlalchemy.engine import Engine
 @pytest.mark.requires_postgres
 def test_partner_payouts_table_exists_with_rls(seeded_engine: Engine) -> None:
     with seeded_engine.connect() as conn:
-        assert conn.execute(text("SELECT to_regclass('public.ps_partner_payouts')")).scalar() is not None
+        reg = conn.execute(
+            text("SELECT to_regclass('public.ps_partner_payouts')")
+        ).scalar()
+        assert reg is not None
         forced = conn.execute(
             text("SELECT relforcerowsecurity FROM pg_class WHERE relname='ps_partner_payouts'")
         ).scalar()

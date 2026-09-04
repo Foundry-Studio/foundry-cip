@@ -124,6 +124,11 @@ plugins = ["sqlalchemy.ext.mypy.plugin"]
 module = "cip.migrations.versions.*"
 disallow_untyped_defs = false
 disallow_incomplete_defs = false
+# Same immutability argument as the ruff exemption above. cip_58 (type-arg) and
+# cip_154 / cip_158 (no-any-return) each need a signature edit to satisfy mypy,
+# and CLAUDE.md forbids editing a shipped migration. Scoped to this module path
+# only, so cip/ proper stays strict.
+disable_error_code = ["type-arg", "no-any-return"]
 
 [tool.pytest.ini_options]
 minversion = "8.0"
@@ -165,5 +170,8 @@ ignore = []
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**/*.py" = ["S101", "PLR2004"]
-"cip/migrations/versions/*.py" = ["E501"]
+# I001 joins E501 here for the same reason: CLAUDE.md forbids editing a shipped
+# migration, so a lint rule whose only remedy is reformatting an applied file can
+# never be satisfied. cip_158 carries an unsorted import block and is immutable.
+"cip/migrations/versions/*.py" = ["E501", "I001"]
 "cip/migrations/env.py" = ["E501"]   # operator warning messages — readable beats wrapped

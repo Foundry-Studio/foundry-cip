@@ -351,7 +351,7 @@ INVARIANTS: tuple[Invariant, ...] = (
 )
 
 
-def run_ps_invariants(db: Any, *, ps_tenant_id: str = PS_TENANT) -> dict:
+def run_ps_invariants(db: Any, *, ps_tenant_id: str = PS_TENANT) -> dict[str, Any]:
     """Run every invariant. Returns a JSON-safe dict; RAISES if any fails.
 
     Raising is deliberate: a violated invariant means a number somewhere is lying, and the
@@ -375,7 +375,7 @@ def run_ps_invariants(db: Any, *, ps_tenant_id: str = PS_TENANT) -> dict:
     )
 
     passed: list[str] = []
-    failed: list[dict] = []
+    failed: list[dict[str, Any]] = []
 
     for inv in INVARIANTS:
         try:

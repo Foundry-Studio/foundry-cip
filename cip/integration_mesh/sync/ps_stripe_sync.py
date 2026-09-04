@@ -480,7 +480,9 @@ class _RealStripeTransport:
             try:
                 time.sleep(THROTTLE_SECONDS)  # polite self-throttle
                 with urllib.request.urlopen(req) as r:
-                    return json.load(r)
+                    # json.load is Any; the caller's contract is dict[str, Any].
+                    payload: dict[str, Any] = json.load(r)
+                    return payload
             except urllib.error.HTTPError as ex:  # noqa: PERF203
                 if ex.code == 429 and attempt < 4:  # rate limited — back off
                     time.sleep(2 ** attempt)
@@ -842,8 +844,12 @@ def _probe_cursor(ctx: _Ctx) -> dict[str, Any]:
     rows = page.get("data", [])
     if rows:
         e = rows[0]
+        # _ts maps a falsy epoch to None; fall back to ctx.now rather than
+        # dereferencing None. A Stripe event at epoch 0 is not reachable in
+        # practice, but the guard costs nothing and removes the sharp edge.
+        seed_ts = _ts(e["created"]) or ctx.now
         return {
-            "last_event_created": _ts(e["created"]).isoformat(),
+            "last_event_created": seed_ts.isoformat(),
             "last_event_id": e["id"],
         }
     return {"last_event_created": ctx.now.isoformat(), "last_event_id": None}
@@ -898,8 +904,10 @@ def _run_incremental(
             continue
         _apply_event(ctx, e)
 
+    # Same guard as the seed path above: _ts() is Optional by contract.
+    hw_ts = _ts(hw_created) or ctx.now
     new_cursor = {
-        "last_event_created": _ts(hw_created).isoformat(),
+        "last_event_created": hw_ts.isoformat(),
         "last_event_id": hw_id or None,
     }
     _propagate_and_prune(ctx)

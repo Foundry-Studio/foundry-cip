@@ -6,7 +6,7 @@ Covers PM cip_34 (china-commission-audit):
      finders_fee unless Exhibit A, no-source→unclassified.
   2. Backfill run (DB): seeds the 3 derived keys per brand; idempotent
      (re-run = 0 updated); never touches ps_sales_lead/ps_cs_lead.
-  3. lens_ps_china_commission: per-brand billed/paid/gap/commission +
+  3. lens_ps_china_commission: RETIRED by cip_154 (H4, wrong basis). Only
      attribution fields; GUC isolation.
 """
 from __future__ import annotations
@@ -199,40 +199,37 @@ def test_backfill_preserves_other_companion_keys(comm_seeded: Engine) -> None:
     assert cd["ps_attribution_owner"] == "PS"        # added
 
 
-# ── 3. lens_ps_china_commission ───────────────────────────────────────────
-
-@pytest.mark.requires_postgres
-def test_commission_lens_projection(comm_seeded: Engine) -> None:
-    run_backfill(comm_seeded, _EXHIBIT_A)
-    with comm_seeded.connect() as conn:
-        _guc(conn, PS_TENANT)
-        rows = conn.execute(text(
-            "SELECT brand_name, attribution_owner, conditional, ps_lead_source, "
-            "total_fees_billed, total_fees_paid, ar_gap, commission_10pct_of_paid "
-            "FROM lens_ps_china_commission ORDER BY brand_name"
-        )).mappings().all()
-    by = {r["brand_name"]: r for r in rows}
-    # EricBrand: billed 5000, paid 3000, gap 2000, commission 300
-    e = by["EricBrand"]
-    assert e["attribution_owner"] == "Eric"
-    assert e["conditional"] == "finders_fee"
-    assert float(e["total_fees_billed"]) == 5000
-    assert float(e["total_fees_paid"]) == 3000
-    assert float(e["ar_gap"]) == 2000
-    assert float(e["commission_10pct_of_paid"]) == 300.0
-    # TimBrand → PS
-    assert by["TimBrand"]["attribution_owner"] == "PS"
-    # NoSourceBrand → unclassified
-    assert by["NoSourceBrand"]["attribution_owner"] == "unclassified"
+# ── 3. lens_ps_china_commission — RETIRED 2026-09-04 ─────────────────────
+#
+# test_commission_lens_projection and test_commission_lens_isolation lived here
+# and are REMOVED, not retargeted.
+#
+# cip_154 dropped lens_ps_china_commission as finding H4: "wrong basis (10% of
+# stated total_fees_paid, no china filter), UNWIRED, no dependent view. RETIRE
+# via DROP; a correct rebuild is deferred to DI-5e."
+#
+# That matters for what to do with the tests. They did not merely reference a
+# view that moved. They asserted the SPECIFIC NUMBERS the retired lens produced,
+# including the 10%-of-paid basis that was the defect. Retargeting them onto
+# lens_ps_commission_ledger would carry a known-wrong calculation forward under
+# a name that implies it was checked. Deleting them is the correct outcome.
+#
+# The replacement assertion below is deliberately narrow: it holds the retirement
+# in place, so a downgrade or a careless rebuild that resurrects the wrong-basis
+# view fails here. When DI-5e lands a correct commission lens, test IT, with
+# numbers derived from the rebuilt definition rather than copied from these.
 
 
 @pytest.mark.requires_postgres
-def test_commission_lens_isolation(comm_seeded: Engine) -> None:
-    run_backfill(comm_seeded, _EXHIBIT_A)
+def test_wrong_basis_commission_lens_stays_retired(comm_seeded: Engine) -> None:
+    """cip_154 H4: the wrong-basis commission lens must not come back."""
     with comm_seeded.connect() as conn:
-        # EcomLever GUC → 0 (PS-pinned)
-        _guc(conn, EC_TENANT)
-        assert conn.execute(text("SELECT COUNT(*) FROM lens_ps_china_commission")).scalar() == 0
-        # no GUC → 0
-        conn.execute(text("RESET app.current_tenant"))
-        assert conn.execute(text("SELECT COUNT(*) FROM lens_ps_china_commission")).scalar() == 0
+        n = conn.execute(text(
+            "SELECT count(*) FROM pg_views "
+            "WHERE schemaname = 'public' AND viewname = 'lens_ps_china_commission'"
+        )).scalar()
+    assert n == 0, (
+        "lens_ps_china_commission is back. cip_154 retired it as H4 for using a "
+        "wrong basis (10% of stated total_fees_paid, no china filter). If a "
+        "correct rebuild has landed, give it a new name and its own tests."
+    )

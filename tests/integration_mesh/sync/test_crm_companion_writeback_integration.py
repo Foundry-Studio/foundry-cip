@@ -307,8 +307,15 @@ def test_dangling_cip_client_id_is_skipped_and_alerted(
 
 @pytest.mark.requires_postgres
 def test_writeback_activates_onboarded_lens(crm_tables: Engine) -> None:
-    """End-to-end: write ps_onboarded_status='onboarded' via Leg B, then
-    confirm lens_ps_china_brands_onboarded returns that brand under PS GUC.
+    """End-to-end: Leg B writes ps_onboarded_status='onboarded' into
+    cip_clients.companion_data for the mapped brand.
+
+    RETARGETED 2026-09-04. This previously observed the result through
+    lens_ps_china_brands_onboarded, retired by cip_156 as unwired legacy. The
+    lens was only the observation window; the behaviour under test is the
+    writeback itself. Asserting companion_data directly is both still valid and
+    tighter, since it no longer passes or fails for reasons belonging to a view
+    this module does not own.
     """
     cip_id = uuid4()
     _seed_cip_client(crm_tables, cip_id=cip_id, name="BrandLensTest")
@@ -324,15 +331,25 @@ def test_writeback_activates_onboarded_lens(crm_tables: Engine) -> None:
         finally:
             teng.dispose()
 
-        # Verify via the lens — use the superuser engine with PS GUC.
+        # Verify on the row Leg B actually writes, under the PS GUC.
         with crm_tables.connect() as conn:
             conn.execute(
                 text("SELECT set_config('app.current_tenant', :t, true)"),
                 {"t": str(PS_TENANT_ID)},
             )
-            names = conn.execute(text(
-                "SELECT client_name FROM lens_ps_china_brands_onboarded"
-            )).scalars().all()
-        assert "BrandLensTest" in names
+            status = conn.execute(
+                text(
+                    # NOTE: _seed_cip_client passes cip_id as the `id` column;
+                    # `client_id` is a separate random uuid. Filtering on
+                    # client_id here matches nothing.
+                    "SELECT companion_data ->> 'ps_onboarded_status' "
+                    "FROM cip_clients "
+                    "WHERE id = :cid AND tenant_id = :t"
+                ),
+                {"cid": str(cip_id), "t": str(PS_TENANT_ID)},
+            ).scalar()
+        assert status == "onboarded", (
+            f"Leg B did not set ps_onboarded_status on the mapped client; got {status!r}"
+        )
     finally:
         _cleanup_ps_clients(crm_tables)

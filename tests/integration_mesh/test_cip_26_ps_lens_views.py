@@ -1,17 +1,17 @@
 # foundry: kind=test domain=client-intelligence-platform
 """Tests for cip_26 — Project Silk destination-side lens views (Phase 2.7).
 
-Five tests covering the locked design from CIP-SPEC-012 + PM scope 250:
+Originally five tests over the locked design from CIP-SPEC-012 + PM scope 250.
+cip_156 (2026-08-04) retired four of the five lens_ps_china_brands_* views as
+unwired legacy, so this file now covers what remains:
 
-  1. View existence — all five lens_ps_china_brands_* views registered.
-  2. Cross-tenant isolation — non-PS GUC returns zero rows from the master
-     view (double-scoped: hardcoded PS_TENANT clause + GUC equality).
-  3. Companion-data filter semantics — `_onboarded` and `_producing`
-     filtered views surface only the matching companion_data states.
-  4. Attribution sourcer SUBSTRING — `_by_original_attribution` correctly
-     extracts the EcomLever 'China Referral - <name>' sourcer; rows that
-     don't match the prefix fall through to `(other)`.
-  5. Financial summary aggregation — sums + counts + close-date min/max
+  1. Retirement completeness: the four retired views are gone and the
+     surviving _financial_summary lens is present.
+  2. Cross-tenant isolation: non-PS GUC returns zero rows (double-scoped:
+     hardcoded PS_TENANT clause + GUC equality). Retargeted onto the
+     surviving lens after its original subject was retired.
+  3 + 4. Removed. Their subject views no longer exist; see the note below.
+  5. Financial summary aggregation: sums + counts + close-date min/max
      compute correctly per client, including LEFT JOIN behavior for
      clients with zero deals.
 
@@ -245,16 +245,29 @@ def ps_seeded(seeded_engine: Engine) -> Engine:
 
 # ── 1. View existence ─────────────────────────────────────────────────────
 
+# cip_26 shipped FIVE lens_ps_china_brands_* views. cip_156 (2026-08-04)
+# deliberately retired four of them as "unwired legacy china_brands_* lenses",
+# leaving only _financial_summary. This test asserted all five and went red the
+# moment they were dropped; because CI had been red since 2026-05-11 nobody saw
+# it, and it stayed broken for a month.
+#
+# It is rewritten rather than deleted. Asserting that a retirement ACTUALLY
+# HAPPENED is worth more than asserting nothing: a migration that silently fails
+# to drop a view, or a later change that resurrects one, now fails here.
+_RETIRED_BY_CIP_156 = {
+    "lens_ps_china_brands_all",
+    "lens_ps_china_brands_onboarded",
+    "lens_ps_china_brands_producing",
+    "lens_ps_china_brands_by_original_attribution",
+}
+_SURVIVING = {"lens_ps_china_brands_financial_summary"}
+
+
 @pytest.mark.requires_postgres
-def test_all_five_lens_views_registered(seeded_engine: Engine) -> None:
-    """All five PS lens views are present in pg_views after cip_26."""
-    expected = {
-        "lens_ps_china_brands_all",
-        "lens_ps_china_brands_onboarded",
-        "lens_ps_china_brands_producing",
-        "lens_ps_china_brands_by_original_attribution",
-        "lens_ps_china_brands_financial_summary",
-    }
+def test_cip_156_lens_retirement_is_complete_and_survivor_remains(
+    seeded_engine: Engine,
+) -> None:
+    """Exactly the surviving cip_26 lens exists; the four retired ones do not."""
     with seeded_engine.connect() as conn:
         rows = conn.execute(
             text(
@@ -263,89 +276,71 @@ def test_all_five_lens_views_registered(seeded_engine: Engine) -> None:
             )
         ).all()
     actual = {r.viewname for r in rows}
-    assert expected.issubset(actual), f"missing views: {expected - actual}"
+
+    still_present = _RETIRED_BY_CIP_156 & actual
+    assert not still_present, (
+        f"cip_156 was supposed to retire these, but they exist: {sorted(still_present)}"
+    )
+    missing = _SURVIVING - actual
+    assert not missing, f"surviving cip_26 lens went missing: {sorted(missing)}"
 
 
 # ── 2. Cross-tenant isolation ─────────────────────────────────────────────
 
 @pytest.mark.requires_postgres
 def test_master_lens_isolates_to_ps_tenant(ps_seeded: Engine) -> None:
-    """GUC=PS returns the three seeded brands; GUC=other returns zero;
-    GUC unset returns zero. The hardcoded PS_TENANT clause is what defeats
-    a superuser peek at non-PS rows."""
+    """GUC=PS returns rows; GUC=other returns zero; GUC unset returns zero.
+    The hardcoded PS_TENANT clause is what defeats a superuser peek at non-PS
+    rows.
+
+    RETARGETED 2026-09-04. This originally probed lens_ps_china_brands_all,
+    retired by cip_156. The three-way GUC property is the point of the test and
+    is still worth asserting, so it now runs against the surviving cip_26 lens
+    rather than being deleted alongside its former subject. Counts are asserted
+    as "some" / "none" instead of an exact 3, because _financial_summary
+    aggregates per client and coupling this test to the aggregation shape would
+    make it fail for reasons that have nothing to do with isolation.
+    """
+    view = "lens_ps_china_brands_financial_summary"
     with ps_seeded.connect() as conn:
         # PS GUC
         conn.execute(text("SET app.current_tenant = '078a37d6-6ae2-4e22-869e-cc08f6cb2787'"))
-        ps_count = conn.execute(text("SELECT COUNT(*) FROM lens_ps_china_brands_all")).scalar()
-        assert ps_count == 3, f"expected 3 PS brands, got {ps_count}"
+        ps_count = conn.execute(text(f"SELECT COUNT(*) FROM {view}")).scalar()
+        assert ps_count and ps_count > 0, f"expected PS rows from {view}, got {ps_count}"
 
         # Other tenant (EcomLever, which has 1 cip_clients row)
         conn.execute(text("SET app.current_tenant = 'dec814db-722a-4730-8e60-51afc4a5dad9'"))
-        ec_count = conn.execute(text("SELECT COUNT(*) FROM lens_ps_china_brands_all")).scalar()
+        ec_count = conn.execute(text(f"SELECT COUNT(*) FROM {view}")).scalar()
         assert ec_count == 0, f"PS view leaked to EcomLever GUC: {ec_count} rows"
 
         # No GUC
         conn.execute(text("RESET app.current_tenant"))
-        no_count = conn.execute(text("SELECT COUNT(*) FROM lens_ps_china_brands_all")).scalar()
+        no_count = conn.execute(text(f"SELECT COUNT(*) FROM {view}")).scalar()
         assert no_count == 0, f"PS view returned rows without GUC: {no_count}"
 
 
-# ── 3. Companion-data filter semantics ─────────────────────────────────────
-
-@pytest.mark.requires_postgres
-def test_companion_data_filters_select_correct_subsets(ps_seeded: Engine) -> None:
-    """`_onboarded` returns BrandA + BrandB (two onboarded); `_producing`
-    returns only BrandA. BrandC (prospect / unknown) appears in neither."""
-    with ps_seeded.connect() as conn:
-        conn.execute(text("SET app.current_tenant = '078a37d6-6ae2-4e22-869e-cc08f6cb2787'"))
-
-        onboarded = conn.execute(
-            text("SELECT client_name FROM lens_ps_china_brands_onboarded ORDER BY client_name")
-        ).scalars().all()
-        assert onboarded == ["BrandA", "BrandB"]
-
-        producing = conn.execute(
-            text("SELECT client_name FROM lens_ps_china_brands_producing ORDER BY client_name")
-        ).scalars().all()
-        assert producing == ["BrandA"]
-
-
-# ── 4. Attribution sourcer SUBSTRING ───────────────────────────────────────
-
-@pytest.mark.requires_postgres
-def test_attribution_sourcer_extracted_correctly(ps_seeded: Engine) -> None:
-    """`China Referral - Eric` -> `Eric`; `China Referral - Tim` -> `Tim`.
-    BrandC has no deals so it doesn't appear at all (per-deal view).
-    Inserting a deal whose source DOESN'T match the prefix falls through
-    to the `(other)` sentinel."""
-    with ps_seeded.begin() as conn:
-        conn.execute(text("SET app.current_tenant = '078a37d6-6ae2-4e22-869e-cc08f6cb2787'"))
-        # Add an off-prefix deal under BrandA
-        brand_a = conn.execute(
-            text("SELECT client_id FROM cip_clients WHERE name = 'BrandA' AND tenant_id = :t"),
-            {"t": str(PS_TENANT)},
-        ).scalar()
-        _insert_deal(
-            conn, tenant_id=PS_TENANT, client_id=brand_a,
-            source_id="d-offprefix", name="BrandA misc",
-            amount=100.0, close_date="2026-03-01",
-            attribution_source="Hyphen Social Migration",  # NOT 'China Referral - X'
-        )
-
-    with ps_seeded.connect() as conn:
-        conn.execute(text("SET app.current_tenant = '078a37d6-6ae2-4e22-869e-cc08f6cb2787'"))
-        rows = conn.execute(
-            text(
-                "SELECT attribution_sourcer, COUNT(*) "
-                "FROM lens_ps_china_brands_by_original_attribution "
-                "GROUP BY attribution_sourcer "
-                "ORDER BY attribution_sourcer"
-            )
-        ).all()
-    by_sourcer = {r[0]: r[1] for r in rows}
-    assert by_sourcer.get("Eric") == 2, by_sourcer
-    assert by_sourcer.get("Tim") == 1, by_sourcer
-    assert by_sourcer.get("(other)") == 1, by_sourcer
+# ── 3 + 4. RETIRED 2026-09-04 ───────────────────────────────────────
+#
+# Two tests lived here and were removed, not disabled:
+#
+#   test_companion_data_filters_select_correct_subsets
+#       asserted lens_ps_china_brands_onboarded / _producing
+#   test_attribution_sourcer_extracted_correctly
+#       asserted lens_ps_china_brands_by_original_attribution
+#
+# cip_156 (2026-08-04) dropped all three of those views as "unwired legacy
+# china_brands_* lenses". The behaviour these tests covered no longer exists,
+# so there is nothing left to assert about it. Keeping them as xfail would
+# imply the feature is coming back; it is not.
+#
+# What replaces them: the retirement itself is now asserted in
+# test_cip_156_lens_retirement_is_complete_and_survivor_remains above, so a
+# migration that fails to drop these, or a change that resurrects one, fails
+# loudly. Cross-tenant isolation, the one property here worth keeping, was
+# retargeted onto the surviving lens rather than deleted.
+#
+# These went red on 2026-08-04 and nobody noticed for a month because CI had
+# been red since 2026-05-11. A red suite hides its own new failures.
 
 
 # ── 5. Financial summary aggregation ───────────────────────────────────────

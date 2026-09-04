@@ -145,7 +145,10 @@ def test_reader_can_select_lens_views(seeded_engine: Engine) -> None:
                 "lens_companies_history",      # cip_10
                 "lens_deals_history",          # cip_29
                 "lens_china_companies",        # cip_24
-                "lens_ps_china_brands_all",    # cip_26
+                # cip_26. Was lens_ps_china_brands_all until cip_156 retired it;
+                # retargeted 2026-09-04 onto the surviving cip_26 lens so this
+                # keeps sampling the same migration's grant surface.
+                "lens_ps_china_brands_financial_summary",
             ):
                 n = conn.execute(text(f"SELECT COUNT(*) FROM {view}")).scalar()
                 assert isinstance(n, int) and n >= 0

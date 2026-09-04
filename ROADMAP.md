@@ -26,7 +26,7 @@ diataxis_type: explanation
 
 Since mid-2026, CIP has been the **substrate** for one program it never named: the Wayward China Commission recovery and the Project Silk reporting platform it feeds. Roughly 250 of the 261 commits and 147 of the 156 migrations landed since 2026-05-21 belong to that program, not to any declared phase.
 
-Head is `cip_175_writer_contacts` (174 migration files; `cip_96` was never authored, numbering gap only). Product vision and the 2027-05 horizon are unchanged and live in [`VISION.md`](VISION.md); this file no longer claims phase-dated horizons, because every one of them was falsified.
+Head is `cip_176_rls_tenant_gaps` (175 migration files; `cip_96` was never authored, numbering gap only). Product vision and the 2027-05 horizon are unchanged and live in [`VISION.md`](VISION.md); this file no longer claims phase-dated horizons, because every one of them was falsified.
 
 ## Why the phase model was retired
 
@@ -74,7 +74,7 @@ These are the real units of work since 2026-05-21. They are recorded here becaus
 
 **None of the eight phases.** The live workstream is program project **P4, Reporting Frontend** (`b3efe08b`), plan of record `WORKBENCH/china-audit/REPORTING-REBUILD-PLAN.md`.
 
-The last four weeks were Wayward remittance reconciliation (`cip_169`-`cip_172`), partner-attribution accuracy for the reports app (`cip_173`-`cip_175`), and repo/CI hygiene. No migration has landed since 2026-08-28. The current mode is hardening, not building.
+The last four weeks were Wayward remittance reconciliation (`cip_169`-`cip_172`), partner-attribution accuracy for the reports app (`cip_173`-`cip_175`), and repo/CI hygiene. On 2026-09-04 `cip_176` closed three tenant-isolation gaps and the test suite went green for the first time since 2026-05-10. The current mode is hardening, not building.
 
 ## Linked to PM
 
@@ -89,10 +89,10 @@ This doc does NOT carry weekly status.
 Previous reviews recorded "on-track / no at-risk / no stalled" indicators. All three were false and are corrected here.
 
 - **Stalled:** Phases 2.5 and 3 have been stalled since May 2026. Phase 4 shipped out of dependency order.
-- **At risk, quality:** the repo's `test` workflow was red on every push from 2026-05-11 to 2026-09-02, so roughly four months of merges landed unverified on a public repo that publishes to PyPI. One root cause is fixed (`569130c`); stale tests and lockfile drift remain, tracked in the repo-health workstream.
+- **Quality, recovering:** the `test` workflow was red on every push from 2026-05-11 to 2026-09-04, so roughly four months of merges landed unverified. All three causes are now fixed: the missing DB role (`569130c`), eight tests stranded by deliberate lens retirements, and lockfile drift. The suite is green (600 local / 636 with a live Postgres). NOTE the gate is not durable: `lockfile-freshness` resolves against a live unpinned index with no `--exclude-newer`, so it re-reds whenever any transitive dependency publishes. Pinning that boundary is tracked in the repo-health workstream.
 - **At risk, operations:** a tripped consecutive-failure breaker latches a feed off permanently and silently. On 2026-09-02 four Project Silk feeds died from a dependency-pin regression; the code recovered within hours but the feeds stayed dead until manually re-enabled on 2026-09-04.
-- **Incidents worth remembering:** PS china dimension data silently frozen 2026-08-04 to 2026-08-12 when the mirror matched zero rows (`cip_166`); ten lenses carried a dead connector literal (`cip_153`); three apply-blocking migration bugs found only on production (`cip_130`, `cip_131`).
-- **Maturity grades are unmeasured.** No `maturity:` value in `capabilities.yaml` has changed since 2026-05-21, so the pillar grades predate 261 commits and 156 migrations. They are stale in both directions and should not be cited until re-measured.
+- **Incidents worth remembering:** PS china dimension data silently frozen 2026-08-04 to 2026-08-12 when the mirror matched zero rows (`cip_166`); ten lenses carried a dead connector literal (`cip_153`); three apply-blocking migration bugs found only on production (`cip_130`, `cip_131`). A pattern runs through these and through the four-month CI blackout: the defect is usually detectable and the detection is usually absent, silenced, or unread.
+- **Maturity grades were re-measured 2026-09-04** against an industry benchmark, and every one now carries `maturity_evidence`. All eight pillars are bronze; `structured-store` moved down from gold and `access-and-operations` from silver. CIP overall is bronze because those two are gating. The caps are unchanged by the September work: the app path still connects as `postgres` with `rolbypassrls`, no `ps_*` table has a two-tenant isolation test, and no restore drill has ever been performed.
 
 ## Known-stale companions
 

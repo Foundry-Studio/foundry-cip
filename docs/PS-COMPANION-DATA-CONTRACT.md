@@ -48,8 +48,8 @@ The structural enforcement is **column-level GRANT UPDATE (companion_data)** on 
 | Key                       | Type     | Required | Description                                                                          |
 | ------------------------- | -------- | -------- | ------------------------------------------------------------------------------------ |
 | `ps_segment`              | enum     | yes      | Which PS sub-business this brand belongs to. Currently single-valued: `china_referral`. |
-| `ps_onboarded_status`     | enum     | yes      | Where in the PS onboarding funnel. Drives the `lens_ps_china_brands_onboarded` view. |
-| `ps_engagement_health`    | enum     | yes      | Current health signal. Drives the `lens_ps_china_brands_producing` view.             |
+| `ps_onboarded_status`     | enum     | yes      | Where in the PS onboarding funnel. Consumed directly; formerly drove `lens_ps_china_brands_onboarded`, retired by cip_156. |
+| `ps_engagement_health`    | enum     | yes      | Current health signal. Consumed directly; formerly drove `lens_ps_china_brands_producing`, retired by cip_156. |
 | `ps_local_alias_zh`       | string   | no       | Chinese-language brand alias used by the PS China CS team.                           |
 | `ps_local_alias_en`       | string   | no       | English alias if different from the HubSpot/EcomLever canonical `name`.              |
 | `ps_team_notes`           | string   | no       | Free-form notes from the PS team (rendered in Twenty).                               |
@@ -60,13 +60,13 @@ The structural enforcement is **column-level GRANT UPDATE (companion_data)** on 
 | `ps_lead_owner_email`     | string   | no       | PS-team person responsible for this brand. Email key (matches `cip_owners`).         |
 | `ps_first_onboarded_date` | date     | no       | ISO-8601 date string. The date PS started managing this brand (NOT the EcomLever close date). |
 | `ps_last_reviewed_date`   | date     | no       | ISO-8601 date string. Set when a PS rep does the periodic engagement review.         |
-| `ps_attribution_owner`    | enum     | no       | Whose 10% commission this brand's book is. `PS` = ours (even when a partner referred — we split). A partner value = their book. See §3.4. Drives `lens_ps_china_commission`. |
+| `ps_attribution_owner`    | enum     | no       | Whose 10% commission this brand's book is. `PS` = ours (even when a partner referred — we split). A partner value = their book. See §3.4. Formerly drove `lens_ps_china_commission`, RETIRED by cip_154 as finding H4 (wrong basis: 10% of stated total_fees_paid, no china filter). A correct rebuild is deferred to DI-5e. |
 | `ps_conditional`          | enum     | no       | `finders_fee` flags Eric/Adina one-time-paid, flippable brands (partner referred but not earning ongoing). Blank otherwise. See §3.5. |
 | `ps_lead_source`          | enum     | no       | Referrer for PS-owned brands — the commission-split key (pairs with `ps_commission_pct`). Same value set as `ps_attribution_owner` minus `unclassified`/`heavy_producer`. See §3.4. |
 | `ps_sales_lead`           | string   | no       | PS staff email — sales owner → sales commission. CRM-filled going forward (users/owners table incoming). |
 | `ps_cs_lead`              | string   | no       | PS staff email — CS owner → CS comp (usually a different person than sales). CRM-filled going forward. |
 
-**Why these 18:** the first 13 are Tim's 2026-05-22 design (onboarding + health + financial annotations + ownership). The five added 2026-05-25 (PM cip_34 / china-commission-audit) are the **attribution layer**: who owns each brand's 10%, the finder's-fee flag, the lead-source split key, and the sales/CS commission owners. They make the China book's partner/staff commission splits computable off CIP (the `lens_ps_china_commission` reporting lens).
+**Why these 18:** the first 13 are Tim's 2026-05-22 design (onboarding + health + financial annotations + ownership). The five added 2026-05-25 (PM cip_34 / china-commission-audit) are the **attribution layer**: who owns each brand's 10%, the finder's-fee flag, the lead-source split key, and the sales/CS commission owners. They make the China book's partner/staff commission splits computable off CIP. NOTE: the lens that consumed them, `lens_ps_china_commission`, was RETIRED by cip_154 (finding H4, wrong basis) and its rebuild is deferred to DI-5e; the companion fields below remain the contract regardless.
 
 ## 3. Enumerations
 
@@ -84,7 +84,7 @@ Future segments are added by Tim-gated review only (not Twenty-editable in the m
 | -------------- | ---------------------------------------------------------------------- |
 | `prospect`     | Brand exists in PS's view but no contract yet.                         |
 | `contracted`   | Agreement signed; not yet shipping.                                    |
-| `onboarded`    | Active PS-managed brand. Surfaced by `lens_ps_china_brands_onboarded`. |
+| `onboarded`    | Active PS-managed brand. (Its former surface `lens_ps_china_brands_onboarded` was retired by cip_156.) |
 | `paused`       | Temporarily inactive (e.g. seasonal, dispute).                         |
 | `offboarded`   | Relationship ended.                                                    |
 
@@ -92,7 +92,7 @@ Future segments are added by Tim-gated review only (not Twenty-editable in the m
 
 | Value           | Meaning                                                                            |
 | --------------- | ---------------------------------------------------------------------------------- |
-| `producing`     | Brand is actively producing revenue. Surfaced by `lens_ps_china_brands_producing`. |
+| `producing`     | Brand is actively producing revenue. (Its former surface `lens_ps_china_brands_producing` was retired by cip_156.) |
 | `green`         | Healthy but not yet producing material revenue.                                    |
 | `yellow`        | At-risk signal (slow communication, late payment, partial delivery).               |
 | `red`           | Critical signal (escalation or dispute open).                                      |

@@ -24,7 +24,6 @@ Covers PM scope a0aebe06 ASK 6:
 from __future__ import annotations
 
 import json
-import os
 from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID, uuid4
@@ -39,6 +38,7 @@ from cip.integration_mesh.base import CIPRow
 from cip.integration_mesh.persister import CIPRowPersister
 from cip.integration_mesh.scd_differ import SCDDiffer
 from scripts.backfill_ps_deal_history import run_backfill
+from tests._helpers.role_passwords import role_password
 
 PS_TENANT = UUID("078a37d6-6ae2-4e22-869e-cc08f6cb2787")
 EC_TENANT = UUID("dec814db-722a-4730-8e60-51afc4a5dad9")
@@ -55,10 +55,14 @@ _TEST_PASSWORD_FALLBACK = "pytest_test_password_DO_NOT_USE_IN_PROD"  # noqa: S10
 
 
 def _role_engine(seeded_engine: Engine, role: str, pw_env: str) -> Engine:
-    """Engine bound to a grantee role. Caller MUST dispose()."""
+    """Engine bound to a grantee role. Caller MUST dispose().
+
+    Uses the shared resolver so the fallback chain matches the migration that
+    created the role; see tests/_helpers/role_passwords.py.
+    """
     url = seeded_engine.url.set(
         username=role,
-        password=os.environ.get(pw_env, _TEST_PASSWORD_FALLBACK),
+        password=role_password(role),
     )
     return create_engine(url, pool_pre_ping=True)
 

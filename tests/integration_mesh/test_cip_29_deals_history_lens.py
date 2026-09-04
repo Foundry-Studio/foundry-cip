@@ -9,7 +9,6 @@ Per PM scope a0aebe06 ASK 1.
 """
 from __future__ import annotations
 
-import os
 import uuid
 
 import psycopg
@@ -17,16 +16,24 @@ import pytest
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import Engine
 
+from tests._helpers.role_passwords import role_password
+
 _METABASE_ROLE = "cip_metabase_role"
 _METABASE_PS_ROLE = "cip_metabase_project_silk"
 _TEST_PASSWORD_FALLBACK = "pytest_test_password_DO_NOT_USE_IN_PROD"  # noqa: S105
 
 
 def _role_engine(seeded_engine: Engine, role: str, pw_env: str) -> Engine:
-    """Engine bound to a Metabase role. Caller MUST dispose()."""
+    """Engine bound to a Metabase role. Caller MUST dispose().
+
+    Password resolution goes through the shared helper so it mirrors the
+    creating migration's fallback chain. Reading only ``pw_env`` here silently
+    skipped METABASE_DB_PASSWORD and broke this test in CI, where that is the
+    variable that is actually set.
+    """
     url = seeded_engine.url.set(
         username=role,
-        password=os.environ.get(pw_env, _TEST_PASSWORD_FALLBACK),
+        password=role_password(role),
     )
     return create_engine(url, pool_pre_ping=True)
 

@@ -33,7 +33,8 @@ def _seed_credit(conn: Any, wbid: UUID, partner: str) -> None:
         "ON CONFLICT (wayward_brand_id) DO NOTHING"
     ), {"b": str(wbid), "t": PS_TENANT, "n": f"brand-{partner}"})
     conn.execute(text(
-        "INSERT INTO ps_partner_credit (tenant_id, wayward_brand_id, product_id, partner_of_record, "
+        "INSERT INTO ps_partner_credit "
+        "(tenant_id, wayward_brand_id, product_id, partner_of_record, "
         "determined_by, determined_at, match_status) "
         "VALUES (:t, :b, 'connect', :p, 'test', now(), 'confirmed')"
     ), {"t": PS_TENANT, "b": str(wbid), "p": partner})
@@ -51,15 +52,20 @@ def stale_seeded(seeded_engine: Engine) -> Any:
     with seeded_engine.begin() as conn:
         _guc(conn)
         for w in WB.values():
-            conn.execute(text("DELETE FROM ps_partner_credit WHERE tenant_id=:t AND wayward_brand_id=:b"),
-                         {"t": PS_TENANT, "b": str(w)})
+            conn.execute(text(
+                "DELETE FROM ps_partner_credit "
+                "WHERE tenant_id=:t AND wayward_brand_id=:b"
+            ), {"t": PS_TENANT, "b": str(w)})
             conn.execute(text("DELETE FROM ps_brands WHERE tenant_id=:t AND wayward_brand_id=:b"),
                          {"t": PS_TENANT, "b": str(w)})
 
 
 def _por(conn: Any, wbid: UUID) -> str | None:
     return conn.execute(
-        text("SELECT partner_of_record FROM ps_partner_credit WHERE tenant_id=:t AND wayward_brand_id=:b"),
+        text(
+            "SELECT partner_of_record FROM ps_partner_credit "
+            "WHERE tenant_id=:t AND wayward_brand_id=:b"
+        ),
         {"t": PS_TENANT, "b": str(wbid)},
     ).scalar()
 

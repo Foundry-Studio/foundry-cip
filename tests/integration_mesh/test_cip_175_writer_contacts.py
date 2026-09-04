@@ -13,10 +13,16 @@ def test_writer_can_write_partner_contacts(seeded_engine: Engine) -> None:
     with seeded_engine.connect() as conn:
         for verb in ("SELECT", "INSERT", "UPDATE"):
             can = conn.execute(
-                text("SELECT has_table_privilege('ps_reporting_writer', 'ps_partner_contacts', :v)"),
+                text(
+                    "SELECT has_table_privilege("
+                    "'ps_reporting_writer', 'ps_partner_contacts', :v)"
+                ),
                 {"v": verb},
             ).scalar()
             assert can is True, f"writer missing {verb} on ps_partner_contacts"
         assert conn.execute(
-            text("SELECT has_table_privilege('ps_reporting_writer', 'ps_partner_contacts', 'DELETE')")
+            text(
+                "SELECT has_table_privilege("
+                "'ps_reporting_writer', 'ps_partner_contacts', 'DELETE')"
+            )
         ).scalar() is False

@@ -267,7 +267,7 @@ def _parse_hubspot_datetime(value: object) -> object:
     from datetime import datetime as _dt
     if isinstance(value, _dt):
         return value
-    if isinstance(value, (int, float)):
+    if isinstance(value, int | float):
         # Unix millis
         try:
             return _dt.fromtimestamp(int(value) / 1000.0, tz=UTC)

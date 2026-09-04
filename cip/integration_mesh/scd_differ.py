@@ -110,14 +110,14 @@ class SCDDiffer:
     @staticmethod
     def _normalize(v: object) -> object:
         # Containers → canonical JSON.
-        if isinstance(v, (dict, list)):
+        if isinstance(v, dict | list):
             return json.dumps(v, sort_keys=True, default=str)
         # Δ7: numeric scalars → Decimal(str(v)) for cross-type comparability.
         # ``str()`` avoids float-binary loss (str(0.1) == '0.1', not '0.1000...').
         # ``isinstance(True, int)`` is True, so guard against bool first.
         if isinstance(v, bool):
             return v
-        if isinstance(v, (int, float, Decimal)):
+        if isinstance(v, int | float | Decimal):
             return Decimal(str(v))
         return v
 

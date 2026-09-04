@@ -43,7 +43,8 @@ def partner_seeded(seeded_engine: Engine) -> Any:
         ), {"t": PS_TENANT, "p": PID})
         # party + handle alias so the lens can bridge partner_id (slug) -> party_id (UUID).
         conn.execute(text(
-            "INSERT INTO ps_party (party_id, tenant_id, display_name, status, created_at, updated_at) "
+            "INSERT INTO ps_party "
+            "(party_id, tenant_id, display_name, status, created_at, updated_at) "
             "VALUES (:pty, :t, 'Detail Test', 'active', now(), now()) ON CONFLICT DO NOTHING"
         ), {"pty": PARTY, "t": PS_TENANT})
         conn.execute(text(
@@ -57,8 +58,10 @@ def partner_seeded(seeded_engine: Engine) -> Any:
         _guc(conn)
         conn.execute(text("DELETE FROM ps_partner_contacts WHERE tenant_id=:t AND partner_id=:p"),
                      {"t": PS_TENANT, "p": PID})
-        conn.execute(text("DELETE FROM ps_party_alias WHERE tenant_id=:t AND alias_value=:p AND alias_kind='handle'"),
-                     {"t": PS_TENANT, "p": PID})
+        conn.execute(text(
+            "DELETE FROM ps_party_alias "
+            "WHERE tenant_id=:t AND alias_value=:p AND alias_kind='handle'"
+        ), {"t": PS_TENANT, "p": PID})
         conn.execute(text("DELETE FROM ps_party WHERE tenant_id=:t AND party_id=:pty"),
                      {"t": PS_TENANT, "pty": PARTY})
         conn.execute(text("DELETE FROM ps_partner_registry WHERE tenant_id=:t AND partner_id=:p"),
@@ -74,7 +77,8 @@ def test_lens_projects_detail_and_primary_contact(partner_seeded: Engine) -> Non
             "primary_contact_email, contact_count, contacts "
             "FROM lens_ps_partner_detail WHERE partner_id = :p"
         ), {"p": PID}).one()
-    assert str(row.party_id) == PARTY                    # bridged slug -> party_id for the reports drill
+    # bridged slug -> party_id for the reports drill
+    assert str(row.party_id) == PARTY
     assert row.entity_type == "agent"
     assert row.company_name == "Acme Agency" and row.country == "CN"
     assert row.primary_contact_name == "Alice"          # is_primary wins

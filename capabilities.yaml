@@ -1,11 +1,19 @@
 # foundry-cip — Product-root capabilities.yaml
 # Per JOS-SPEC-011 v1.1. Each capability = one of the 8 pillars locked per D-117.
 # Granular features live in features.yaml (tagged by pillar:<slug>).
+#
+# MATURITY RE-GRADE 2026-09-04. Every grade below is now measured against an industry
+# benchmark rather than self-asserted, and each carries maturity_evidence. Before this,
+# no maturity: value had changed since 2026-05-21 -- they predated 262 commits and 156
+# migrations. Four moved DOWN (ingestion, structured-store, lens-engine, access-and-ops);
+# four were already bronze and are confirmed. Two pillars are GATING (structured-store,
+# access-and-operations), so CIP overall is BRONZE. The grading rule applied: a level
+# claimed without a citable artifact is regraded to the highest level that has one.
 
 declared_thing: foundry-cip
 parent: foundry-studio
-last_modified: 2026-05-21
-last_reviewed: 2026-05-21
+last_modified: 2026-09-04
+last_reviewed: 2026-09-04
 review_cadence: 90
 
 capabilities:
@@ -18,7 +26,15 @@ capabilities:
       backfills source-system history on first sync (D-159), and passes the
       8-test conformance harness.
     status: shipped
-    maturity: silver
+    maturity: bronze
+    maturity_measured: '2026-09-04'
+    maturity_evidence: |
+      164 sync runs stuck in 'running' (161 >24h, back to 2026-06-10); no reaper exists.
+      No dead-letter/quarantine for bad records. Schema drift is counted but never alerted,
+      and collapses into rows_skipped so it is not separable after the fact. features.yaml
+      omits 4 live production feeds (Stripe, LensMirror, Slack brand-connections, signal harvest).
+      Bronze criteria all met: durable run ledger, backoff with Retry-After, durable cursor,
+      idempotent writes, advisory-lock dual-run prevention. Measured 2026-09-04.
     created: 2026-04-17
     last_modified: 2026-05-14
     shipped_date: 2026-04-30
@@ -53,7 +69,17 @@ capabilities:
       Every row knows where it came from, when CIP knew about it, and what its
       authority level is.
     status: shipped
-    maturity: gold
+    maturity: bronze
+    maturity_measured: '2026-09-04'
+    maturity_evidence: |
+      GATING PILLAR. The main application connects as postgres (rolsuper, rolbypassrls),
+      so RLS does not fence the FAS app path, including /api/v1/cip/search. 7 tables carry
+      tenant_id with no RLS at all; ps_nationality_review_state is ENABLEd but not FORCEd
+      (the schema invariant test is red on this today). 0 of 54 ps_* tables have a
+      two-tenant isolation test. No backup configuration and no restore drill exist anywhere.
+      Genuine strengths: 174-revision chain with 1 root / 1 head / 0 branches, 0 provenance
+      orphans across 148,006 rows, 2.06M SCD history rows, correct SET LOCAL usage.
+      Was gold. Measured 2026-09-04.
     created: 2026-04-17
     last_modified: 2026-05-11
     shipped_date: 2026-04-17
@@ -87,6 +113,15 @@ capabilities:
       hook and provenance.
     status: in-progress
     maturity: bronze
+    maturity_measured: '2026-09-04'
+    maturity_evidence: |
+      CONFIRMED bronze, and effectively dormant. Corpus frozen: 36,492 chunks, newest
+      2026-05-22, nothing indexed in 3.5 months; the Project Silk tenant has 0 chunks.
+      ZERO tests for chunker, indexer, retriever, embedding or reranker. No golden set,
+      no recall measurement, no retrieval regression harness. Failed embeddings are
+      silently dropped; Pinecone write failures and rerank errors are swallowed. Three
+      different embedding_model strings coexist in the corpus. Pure vector, no hybrid.
+      knowledge_hook is still an M2 no-op stub. Measured 2026-09-04.
     created: 2026-05-01
     last_modified: 2026-05-12
     owner: tim
@@ -113,7 +148,16 @@ capabilities:
       no schema or code change. Golden-file snapshot harness locks
       determinism.
     status: shipped
-    maturity: silver
+    maturity: bronze
+    maturity_measured: '2026-09-04'
+    maturity_evidence: |
+      No view-level contract: nothing declares a lens's columns or detects a breaking change.
+      cip_154/cip_156 retired 5 views and the tests asserting them were never updated, which
+      is 6 of the 13 currently-failing CI tests. docs/LENS-INVENTORY.md lists 57 views against
+      92 live. No lens-drift, orphan, or grant-staleness gate in CI.
+      Genuine strengths: golden-file snapshot harness, compiler guards (reserved-column
+      allow-list, $-prefix rejection, key cap), and 0 of 92 live views missing reader grants.
+      Measured 2026-09-04.
     created: 2026-04-30
     last_modified: 2026-05-09
     shipped_date: 2026-04-30
@@ -141,6 +185,15 @@ capabilities:
       foundry_mcp_cip_* tools + /cip/* REST. Phase 5 brings the chatbot.
     status: in-progress
     maturity: bronze
+    maturity_measured: '2026-09-04'
+    maturity_evidence: |
+      CONFIRMED bronze. 3 REST routes + 3 MCP tools + Metabase (still live, verified in
+      pg_stat_activity) + an 18-page reports app. No pagination anywhere (caps only; /query
+      returns a truncated flag with no cursor). No rate limiting on any CIP route.
+      /openapi.json and /docs serve without the internal token. enforce_actor_tenant_authz
+      is attached but no-ops: a missing X-Actor-ID returns early and the registry holds one
+      unrelated entry. /search bypasses cip_query_reader and uses the app engine. REST usage
+      is stdout-only and unqueryable. Measured 2026-09-04.
     created: 2026-05-09
     last_modified: 2026-05-12
     owner: tim
@@ -166,6 +219,16 @@ capabilities:
       validated) for write-back governance.
     status: planned
     maturity: bronze
+    maturity_measured: '2026-09-04'
+    maturity_evidence: |
+      CONFIRMED bronze. ZERO outbound writes to any external system; every external call in
+      integration_mesh is a pull. crm_companion_writeback is INBOUND despite its name and is
+      orphaned (no schedule references it). The governed write path has NEVER committed in
+      production: ps_reporting_write_log is 0 rows, and its INSERT shares the business write's
+      transaction, so 0 rows means 0 writes. 3 of 13 actions are provably broken by missing
+      GRANTs (ps_nationality_request_log, ps_gate_policy, ps_figure_catalog).
+      Idempotency is built but inert: the sole client mints a fresh UUID per call.
+      No approval gate, no dry-run, no rollback. Measured 2026-09-04.
     created: 2026-05-09
     last_modified: 2026-05-21
     owner: tim
@@ -188,6 +251,18 @@ capabilities:
       scheduled analytical reports. Phase 7 adds investigative agents.
     status: planned
     maturity: bronze
+    maturity_measured: '2026-09-04'
+    maturity_evidence: |
+      CONFIRMED bronze, but for a different reason than assumed. Absence detection GENUINELY
+      WORKS: cip_freshness_watchdog reads cip_sync_runs for missing runs and posted to Slack
+      104 times across the 2026-09-02 outage (104 of 106 runs, verified), distinguishing dead
+      from failing via attempts_in_window=0. What is missing is RESPONSE: no deduplication
+      (104 identical messages), no escalation beyond one channel, no runbook link, and no
+      auto-recovery, so feeds stayed dead 46h after the code was fixed.
+      Readouts: storage shipped, 0 rows, no writer, no tests. Anomaly detection absent.
+      ps_feed_registry is seeded-once with a registry/reality mismatch and no gap detection.
+      alert_evaluation_sweep auto-disabled 2026-09-02 after ~6 minutes and is still off.
+      Measured 2026-09-04.
     created: 2026-05-09
     last_modified: 2026-05-21
     owner: tim
@@ -212,7 +287,18 @@ capabilities:
       ship together). Phase 8 extracts the cip_* tables to a dedicated
       Postgres for scale.
     status: shipped
-    maturity: silver
+    maturity: bronze
+    maturity_measured: '2026-09-04'
+    maturity_evidence: |
+      GATING PILLAR. Fails two BRONZE criteria outright. (1) A red build does not block merge:
+      master has no branch protection and test.yml has failed 253 consecutive runs with no
+      success since 2026-05-10. (2) No secret scanner runs anywhere: gitleaks is configured
+      but pre-commit is not installed, it is absent from CI, and GitHub secret scanning is
+      disabled on the repo. Also: 7 role migrations fall back to a literal sentinel password
+      with no prod guard in a public repo; 2 CodeQL error-severity alerts unremediated ~7 weeks;
+      no metrics/tracing/structured logging in cip/; incident-response doc is a 38-line stub
+      never filled across 9 incidents; MIGRATION-RUNBOOK is 164 migrations out of date;
+      no backup or restore drill. Was silver. Measured 2026-09-04.
     created: 2026-04-17
     last_modified: 2026-04-30
     shipped_date: 2026-04-17

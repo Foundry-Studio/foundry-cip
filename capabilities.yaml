@@ -73,11 +73,19 @@ capabilities:
     maturity_measured: '2026-09-04'
     maturity_evidence: |
       GATING PILLAR. The main application connects as postgres (rolsuper, rolbypassrls),
-      so RLS does not fence the FAS app path, including /api/v1/cip/search. 7 tables carry
-      tenant_id with no RLS at all; ps_nationality_review_state is ENABLEd but not FORCEd
-      (the schema invariant test is red on this today). 0 of 54 ps_* tables have a
-      two-tenant isolation test. No backup configuration and no restore drill exist anywhere.
-      Genuine strengths: 174-revision chain with 1 root / 1 head / 0 branches, 0 provenance
+      so RLS does not fence the FAS app path, including /api/v1/cip/search. That is the
+      finding that caps this pillar, and cip_176 does not change it.
+      CORRECTED 2026-09-04: an earlier draft of this note said "7 tables carry tenant_id
+      with no RLS at all". That conflated two counts. 7 tables had no RLS, but only 2 of
+      them carried tenant_id (ps_nationality_request_log, ps_readout_editions); the other 5
+      are config/global tables that are correctly exempt. Of 82 tenant-scoped tables, 79
+      were fenced and 3 were not. cip_176 closed all three, so the enumerative invariant
+      now reports 82 of 82. Note FORCE is inert against a BYPASSRLS owner, so the real
+      gain there is fencing the non-superuser reader roles on the two previously
+      unprotected tables.
+      Still open and still gating: 0 of 54 ps_* tables have a two-tenant isolation test,
+      and no backup configuration or restore drill exists anywhere.
+      Genuine strengths: 175-revision chain with 1 root / 1 head / 0 branches, 0 provenance
       orphans across 148,006 rows, 2.06M SCD history rows, correct SET LOCAL usage.
       Was gold. Measured 2026-09-04.
     created: 2026-04-17

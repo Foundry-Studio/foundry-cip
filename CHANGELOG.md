@@ -28,7 +28,40 @@ Pre-1.0.0 (current): minor versions may include breaking changes per SemVer pre-
 
 ## [Unreleased]
 
-_Nothing yet. Accumulate post-0.2.0 changes here; roll into the next version heading on publish._
+### Security
+- `cip_176` fences the three tenant-scoped tables that were not fenced.
+  `ps_nationality_request_log` and `ps_readout_editions` had NO row security and
+  were readable across tenants by the five non-superuser reader roles;
+  `ps_nationality_review_state` was ENABLEd but not FORCEd. Note FORCE is inert
+  against the current `postgres` owner (superuser, BYPASSRLS), so the real gain
+  is the two new ENABLE+policy pairs.
+
+### Fixed
+- The test suite is green for the first time since 2026-05-10. Three independent
+  causes: a GRANT to a role no migration creates (`569130c`), eight tests
+  stranded by the deliberate lens retirements in `cip_154`/`cip_156`, and
+  `requirements-dev.txt` drift. `mypy cip/` and `ruff check` also pass, which
+  matters because both are blocking steps in the same CI job.
+- Two unguarded `None` dereferences on the Stripe incremental cursor path. The
+  high-water site now raises rather than substituting `now()`, because silently
+  advancing that cursor would skip events permanently.
+
+### Changed
+- Pillar maturity in `capabilities.yaml` re-measured against an industry
+  benchmark; all eight are bronze, each with `maturity_evidence`.
+- `ROADMAP.md` rewritten: the eight-phase model is retired as the organizing
+  frame, replaced by the workstreams that actually shipped.
+- `requirements-dev.txt` refreshed (dev-only): alembic 1.18.4 -> 1.19.2, mypy
+  2.0.0 -> 2.3.1, pytest 9.0.3 -> 9.1.1, psycopg 3.3.4 -> 3.3.5.
+- Lint/type exemptions for `cip/migrations/versions/*` extended to `I001`,
+  `type-arg` and `no-any-return`, joining the existing `E501` exemption. Shipped
+  migrations are immutable, so those rules had no satisfiable remedy.
+
+### Docs
+- `docs/LENS-INVENTORY.md` regenerated: 57 -> 92 lenses, and the five views
+  retired by `cip_154`/`cip_156` are no longer listed as live with grants.
+- `docs/PS-COMPANION-DATA-CONTRACT.md` no longer describes retired views as the
+  surfaces for companion fields.
 
 ## [0.2.0] - 2026-07-06
 

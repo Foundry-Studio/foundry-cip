@@ -904,8 +904,22 @@ def _run_incremental(
             continue
         _apply_event(ctx, e)
 
-    # Same guard as the seed path above: _ts() is Optional by contract.
-    hw_ts = _ts(hw_created) or ctx.now
+    # _ts() is Optional by contract, so this needs a guard. It must NOT be the
+    # `or ctx.now` fallback used on the seed path: this value is the incremental
+    # high-water mark, and substituting now() here would advance the cursor PAST
+    # events that were never processed, losing them permanently and silently.
+    # Failing loudly leaves the previous cursor intact and the run retryable,
+    # which is what the unguarded `.isoformat()` did before by accident.
+    # Unreachable in practice (hw_created is a running max seeded from the prior
+    # cursor, so it can never be the falsy epoch), which is why this is a raise
+    # rather than a recovery path.
+    hw_ts = _ts(hw_created)
+    if hw_ts is None:  # pragma: no cover - defensive, see note above
+        raise ValueError(
+            "refusing to write an incremental Stripe cursor from a falsy "
+            f"high-water timestamp ({hw_created!r}); the previous cursor is "
+            "left intact so the run can be retried safely"
+        )
     new_cursor = {
         "last_event_created": hw_ts.isoformat(),
         "last_event_id": hw_id or None,

@@ -41,6 +41,7 @@ from cip.integration_mesh.clients import (
     namespace_for,
 )
 from cip.integration_mesh.knowledge.chunker import ChunkSpec, chunk_text
+from cip.integration_mesh.knowledge.tombstone import vector_id_for
 from cip.integration_mesh.tenant_context import apply_tenant_context
 
 # Pinecone metadata cap (40 KB per value; we cap content at 30 KB for safety).
@@ -245,7 +246,10 @@ class KnowledgeIndexer:
                         if self.pinecone is not None:
                             ns = namespace_for(self.tenant_id, item["client_id"])
                             pinecone_pending.setdefault(ns, []).append(VectorUpsert(
-                                id=f"cip-{source_kind}-{item['src_id']}-{item['chunk_index']}",
+                                id=vector_id_for(
+                                    source_kind, str(item["src_id"]),
+                                    int(item["chunk_index"]),
+                                ),
                                 values=[float(x) for x in emb],
                                 metadata={
                                     "tenant_id": str(self.tenant_id),

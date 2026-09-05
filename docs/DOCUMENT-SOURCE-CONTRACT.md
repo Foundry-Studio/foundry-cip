@@ -94,26 +94,55 @@ place. `content_hash` was computed and never consulted.
 **Rejected: full re-embed every run.** Correct but wasteful, and it would make
 a scheduled run expensive enough that nobody would schedule it.
 
-## Ruling 3: deletion is a TOMBSTONE
+## Ruling 3: deletion tombstones the FILE and deletes its chunks
 
-**LOCKED by Tim, 2026-09-04** (PM decision `505da403-6a0a-437a-ac90-e369e684ee5c`).
+**LOCKED by Tim, 2026-09-04** (PM decisions `505da403-6a0a-437a-ac90-e369e684ee5c`
+then amended by `7d1c0148-e53e-4c1b-8ee8-d43fa5b58902`).
 
-A file that vanishes upstream is tombstoned, not hard-deleted. Reversible,
-keeps the audit trail, and a retrieval filter is cheap.
+A file that vanishes upstream is tombstoned: `cip_files.tombstoned_at` is set
+and the row survives with its `r2_path` and `sha256`, so the audit trail records
+exactly what was removed and when. **Its derived chunks are DELETED** from
+`cip_knowledge_chunks` and from the Pinecone namespace, scoped by `source_kind`.
 
-What this obliges, all of which is testable:
+### Correcting the first version of this ruling
 
-1. A tombstone state on the record.
-2. **Every** retrieval path filters tombstoned chunks. A tombstone that
-   retrieval ignores is exactly as wrong as no tombstone.
-3. Pinecone handled explicitly. A vector left in the namespace is still
-   returned by a vector search, so either delete it there or filter on
-   metadata. The choice must be stated in code, not left implied.
-4. A test proving a tombstoned document does not surface.
+As first written, this ruling said "every retrieval path filters tombstoned
+chunks". That was unimplementable and shipped anyway, in this document, in
+`cip_177`, and in the connector built against it. The retriever queries
+`cip_knowledge_chunks` directly and never joins `cip_files`, where
+`tombstoned_at` lives. There was no predicate to add. All three pieces reasoned
+about the file record; none checked what retrieval actually reads.
 
-**Rejected: hard delete**, a one-way door with no recovery for a reversible
-problem. **Rejected: defer to v2**, which leaves removed documents retrievable,
-a correctness defect rather than a staleness one.
+Deleting the derived rows makes the property **structural** rather than a rule
+every future query has to remember. Retrieval needs no change, and a retrieval
+path written next year cannot forget to honour something it never has to do.
+That is the same reasoning that unified the duplicated rerank swallow: an
+obligation copied into N places is an obligation that will be dropped from one
+of them.
+
+Chunks are derived data. If the file returns, re-ingest regenerates them.
+
+### What this obliges
+
+1. Every delete is scoped by `source_kind`. `cip_knowledge_chunks` has a second
+   producer (row-derived chunks under `cip_ticket_comment`,
+   `cip_engagement_*`, `cip_ticket`); an unscoped delete destroys its rows.
+2. **Pinecone is deleted BEFORE Postgres.** The two are separate calls and the
+   Pinecone one is the one that fails or gets forgotten. Postgres-first would,
+   on a Pinecone failure, leave the database saying the chunks are gone while a
+   vector search still returned them: retrievable content nothing knows about,
+   which is worse than not deleting because it looks correct. This order fails
+   safe.
+3. The vector id used to delete must be the id used to upsert. Both come from
+   `knowledge.tombstone.vector_id_for` so they cannot drift; a mismatch leaves
+   orphaned vectors no delete will ever find.
+4. A purge without a Pinecone client is permitted but must WARN, because it
+   leaves the vectors retrievable.
+
+**Rejected: retrieval-side filtering**, for the reason above. **Rejected: hard
+delete of the file record**, which loses the audit trail. **Rejected:
+denormalising the flag onto chunks**, which leaves two tables to keep in step
+with nothing enforcing it.
 
 ## Ruling 4: addressing is a library list, and it absorbs the source registry
 

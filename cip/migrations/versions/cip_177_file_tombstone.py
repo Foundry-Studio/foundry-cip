@@ -24,12 +24,20 @@ connector observed the file gone from its source library.
     ``tombstoned_at IS NULL`` and that predicate should not cost a seq scan
     once a library has a long tail of removed files.
 
-WHAT THIS MIGRATION DELIBERATELY DOES NOT DO. It does not filter anything.
-Adding the column cannot by itself stop a tombstoned document surfacing —
-every retrieval path has to honour it, and a vector left in a Pinecone
-namespace is still returned by a vector search regardless of what Postgres
-says. Those are code obligations, enforced by tests, not schema obligations.
-A tombstone that retrieval ignores is exactly as wrong as no tombstone.
+WHAT THIS MIGRATION DELIBERATELY DOES NOT DO. It does not remove anything.
+Setting tombstoned_at cannot by itself stop a tombstoned document surfacing;
+the DERIVED CHUNKS have to go, from cip_knowledge_chunks and from the Pinecone
+namespace. That is a code obligation (knowledge/tombstone.py::purge_file_chunks),
+enforced by tests, not a schema obligation.
+
+AMENDED 2026-09-04. This docstring previously said retrieval-side FILTERING was
+the code obligation. It was wrong, and so was CIP-SPEC-014 ruling 3 as first
+written: the retriever queries cip_knowledge_chunks directly and never joins
+cip_files, so there was no predicate for it to apply. Tim ruled (PM decision
+7d1c0148) that tombstoning deletes the derived chunks instead, which makes the
+property structural rather than a rule every future query must remember. The
+partial index below is retained: it is still the right shape for scanning live
+files, which is what the connector does on every run.
 
 Revision ID: cip_177_file_tombstone
 Revises: cip_176_rls_tenant_gaps

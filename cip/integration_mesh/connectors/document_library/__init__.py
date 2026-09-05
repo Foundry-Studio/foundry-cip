@@ -14,6 +14,7 @@ from .connector import (
     sha256_of,
 )
 from .mapper import DocumentLibraryMapper
+from .r2_store import R2ConfigError, R2ObjectStore
 
 __all__ = [
     "CONNECTOR_ID",
@@ -23,6 +24,8 @@ __all__ = [
     "DocumentLibraryConnector",
     "DocumentLibraryMapper",
     "ObjectStore",
+    "R2ConfigError",
+    "R2ObjectStore",
     "StoredObject",
     "sha256_of",
 ]

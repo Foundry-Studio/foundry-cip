@@ -43,6 +43,13 @@ class EmbeddingError(RuntimeError):
     """Raised when both primary and fallback embedding backends fail."""
 
 
+# The width every vector in cip_knowledge_chunks actually is. Measured
+# 2026-09-04 via array_length(embedding,1) across all 36,492 rows: one value,
+# 2560, for Qwen3-Embedding-4B Q8_0. It is a module constant rather than a
+# magic number because the guard below is only as good as its expectation.
+DEFAULT_VECTOR_DIM = 2560
+
+
 class EmbeddingClient:
     """Generate embeddings for short text via Ollama primary + OpenRouter fallback.
 
@@ -63,6 +70,7 @@ class EmbeddingClient:
         timeout_s: float | None = None,
         openrouter_api_key: str | None = None,
         healthcheck: bool | None = None,
+        expected_dim: int | None = None,
     ) -> None:
         self.protocol = (
             protocol
@@ -114,8 +122,17 @@ class EmbeddingClient:
         self.openrouter_api_key = (
             openrouter_api_key or os.environ.get("OPENROUTER_API_KEY", "")
         )
-        # Populated on first successful call so callers can validate
-        # downstream storage allocates the right column size
+        # The width every returned vector MUST have. Resolved once, at
+        # construction, so that a mid-run backend swap cannot quietly redefine
+        # what "correct" means. Override only to declare a DELIBERATE model
+        # change; an accidental one is exactly what this exists to catch.
+        self.expected_dim = int(
+            expected_dim
+            or os.environ.get("CIP_EMBEDDING_EXPECTED_DIM")
+            or DEFAULT_VECTOR_DIM
+        )
+        # Width actually observed. Set only from a vector that PASSED
+        # validation, so a rejected response can never become the record.
         self.vector_dim: int | None = None
         # Stats — bumped per call; useful for backfill scripts
         self.primary_successes = 0
@@ -174,7 +191,7 @@ class EmbeddingClient:
         if not isinstance(text, str) or not text.strip():
             raise ValueError("EmbeddingClient.embed requires non-empty text")
         try:
-            vec = self._embed_primary(text)
+            vec = self._validated(self._embed_primary(text), "primary")
             self.primary_successes += 1
             self.vector_dim = len(vec)
             return vec
@@ -185,7 +202,7 @@ class EmbeddingClient:
             )
             # Fall through to fallback
         try:
-            vec = self._embed_fallback(text)
+            vec = self._validated(self._embed_fallback(text), "fallback")
             self.fallback_successes += 1
             self.vector_dim = len(vec)
             return vec
@@ -196,6 +213,35 @@ class EmbeddingClient:
                 f"fallback: {type(fallback_exc).__name__}: "
                 f"{str(fallback_exc)[:200]}"
             ) from fallback_exc
+
+    def _validated(self, vec: list[float], source: str) -> list[float]:
+        """Return ``vec`` if it is the expected width; otherwise raise.
+
+        This is a COMPARISON where the code used to have an assignment. Both
+        the primary and fallback paths previously ended with
+        ``self.vector_dim = len(vec)``, which recorded whatever width arrived
+        and compared it to nothing.
+
+        The widths genuinely differ between the two backends. The corpus is
+        2560-wide; the LLM roster describes the OpenRouter fallback
+        ``qwen/qwen3-embedding-4b`` as emitting 1024-dimensional MRL vectors.
+        So a server-b outage mid-run would route to a narrower model, and
+        nothing downstream would object: cip_knowledge_chunks.embedding is
+        ``double precision[]`` with no length constraint, and the Pinecone
+        write that WOULD have rejected it is non-fatal in the indexer. The
+        result is incomparable vectors in Postgres, absent from Pinecone, and
+        a run that reports success.
+
+        Raising here is deliberate. A short vector is not a degraded answer
+        that a caller might reasonably accept; it is unusable data, and
+        writing it is worse than failing the run.
+        """
+        if len(vec) != self.expected_dim:
+            raise EmbeddingError(
+                f"embedding width {len(vec)} != expected {self.expected_dim} "
+                f"(source={source}, model={self.primary_model})"
+            )
+        return vec
 
     def _embed_primary(self, text: str) -> list[float]:
         """Primary embedding call — OpenAI-style by default, Ollama if configured."""

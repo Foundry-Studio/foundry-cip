@@ -405,7 +405,7 @@ Phase 5 lights up a **chatbot capability inside CIP**. Its scope is **internal /
 
 - **Tim** — asking questions across all tenants he has access to (including cross-tenant via grants).
 - **Foundry agents** — pulling conversational context via `foundry_mcp_cip_*` tools rather than a UI.
-- **Rocky Ridge staff** — Q&A over Rocky Ridge's document corpus and records (first non-Tim tenant for this surface; likely the Phase 5C first-tenant pilot per the Task #14 kickoff).
+- **Rocky Ridge staff** — Q&A over Rocky Ridge's document corpus and records.
 - **Project Silk staff** — Q&A over PS-internal client deliverables + the grant-in view of Wayward.
 - **EcomLever staff** — Q&A over EcomLever's consulting clients.
 

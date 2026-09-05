@@ -58,14 +58,14 @@ def test_missing_config_fails_at_construction_naming_what_is_absent(
     """Fail here, not deep inside the first listing. This repo has a cautionary
     tale about a stale endpoint that ran silently for three days because the
     first failure surfaced far from its cause."""
-    for var in ("CIP_R2_ENDPOINT", "CIP_R2_ACCESS_KEY_ID", "CIP_R2_SECRET_ACCESS_KEY"):
+    for var in ("CIP_R2_ENDPOINT_URL", "CIP_R2_ACCESS_KEY_ID", "CIP_R2_SECRET_ACCESS_KEY"):
         monkeypatch.delenv(var, raising=False)
 
     with pytest.raises(R2ConfigError) as exc:
         R2ObjectStore()
 
     msg = str(exc.value)
-    for var in ("CIP_R2_ENDPOINT", "CIP_R2_ACCESS_KEY_ID", "CIP_R2_SECRET_ACCESS_KEY"):
+    for var in ("CIP_R2_ENDPOINT_URL", "CIP_R2_ACCESS_KEY_ID", "CIP_R2_SECRET_ACCESS_KEY"):
         assert var in msg, f"the error must name {var} so it can be fixed"
 
 

@@ -5,14 +5,20 @@ The connector is written against the two-method ``ObjectStore`` Protocol so
 that its whole classification path stays testable without network or
 credentials. This module is the one place that actually talks to R2.
 
-Credentials follow the pattern already established by
-``scripts/migrate_rocky_ridge_to_cip.py``, so an operator who has run that has
-the environment this needs:
+Environment, in the names the FAS Railway deployment actually uses (verified
+2026-09-04 against the Foundry-Agent-System service):
 
-    CIP_R2_BUCKET             (default: foundry-agent-system)
-    CIP_R2_ENDPOINT           https://<account>.r2.cloudflarestorage.com
+    CIP_R2_BUCKET_NAME        (default: foundry-agent-system)
+    CIP_R2_ENDPOINT_URL       https://<account>.r2.cloudflarestorage.com
     CIP_R2_ACCESS_KEY_ID
     CIP_R2_SECRET_ACCESS_KEY
+
+The shorter ``CIP_R2_BUCKET`` / ``CIP_R2_ENDPOINT`` spellings are also accepted,
+because that is what ``scripts/migrate_rocky_ridge_to_cip.py`` documents in its
+usage block. Those names do NOT exist in the deployment: the script was run with
+hand-exported variables, and anything written against its docstring would fail
+with "R2 configuration incomplete" in production. Accepting both is cheaper than
+leaving that trap for the next reader, and the deployed spelling wins.
 
 DELIBERATELY READ-ONLY. There is no put or delete here. The connector's job is
 to observe a library and mirror it into CIP; it has no business writing to a
@@ -53,12 +59,21 @@ class R2ObjectStore:
                 environment reading, which is what lets this class be exercised
                 against a stub without the ``CIP_R2_*`` variables being set.
         """
-        self.bucket = bucket or os.environ.get("CIP_R2_BUCKET") or DEFAULT_BUCKET
+        self.bucket = (
+            bucket
+            or os.environ.get("CIP_R2_BUCKET_NAME")
+            or os.environ.get("CIP_R2_BUCKET")
+            or DEFAULT_BUCKET
+        )
         if client is not None:
             self._s3 = client
             return
 
-        endpoint = endpoint or os.environ.get("CIP_R2_ENDPOINT")
+        endpoint = (
+            endpoint
+            or os.environ.get("CIP_R2_ENDPOINT_URL")
+            or os.environ.get("CIP_R2_ENDPOINT")
+        )
         key = access_key_id or os.environ.get("CIP_R2_ACCESS_KEY_ID")
         secret = secret_access_key or os.environ.get("CIP_R2_SECRET_ACCESS_KEY")
 
@@ -69,7 +84,7 @@ class R2ObjectStore:
         missing = [
             name
             for name, value in (
-                ("CIP_R2_ENDPOINT", endpoint),
+                ("CIP_R2_ENDPOINT_URL", endpoint),
                 ("CIP_R2_ACCESS_KEY_ID", key),
                 ("CIP_R2_SECRET_ACCESS_KEY", secret),
             )

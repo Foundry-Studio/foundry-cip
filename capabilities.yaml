@@ -12,7 +12,7 @@
 
 declared_thing: foundry-cip
 parent: foundry-studio
-last_modified: 2026-09-04
+last_modified: 2026-09-05
 last_reviewed: 2026-09-04
 review_cadence: 90
 
@@ -190,7 +190,8 @@ capabilities:
     description: |
       M5 shipped Metabase with cip_metabase_role + lens_* grants enforcing P-21
       structurally (REVOKE on cip_*, GRANT only on lens_*). Phase 4 brings
-      foundry_mcp_cip_* tools + /cip/* REST. Phase 5 brings the chatbot.
+      foundry_mcp_cip_* tools + /cip/* REST. Phase 5 brings a thin conversational
+      client (no standalone service, no per-tenant deployment; see D-238).
     status: in-progress
     maturity: bronze
     maturity_measured: '2026-09-04'
@@ -199,11 +200,12 @@ capabilities:
       pg_stat_activity) + an 18-page reports app. No pagination anywhere (caps only; /query
       returns a truncated flag with no cursor). No rate limiting on any CIP route.
       /openapi.json and /docs serve without the internal token. enforce_actor_tenant_authz
-      is attached but no-ops: a missing X-Actor-ID returns early and the registry holds one
-      unrelated entry. /search bypasses cip_query_reader and uses the app engine. REST usage
+      is attached but no-ops: a missing X-Actor-ID returns early and the registry holds
+      zero entries (dormant per D-238). /search bypasses cip_query_reader and uses the
+      app engine. REST usage
       is stdout-only and unqueryable. Measured 2026-09-04.
     created: 2026-05-09
-    last_modified: 2026-05-12
+    last_modified: 2026-09-05
     owner: tim
     domain: eng
     audience: [internal-team, client, agent]
@@ -211,7 +213,7 @@ capabilities:
       - metabase-platform-service
       - rest-api-endpoints
       - mcp-tool-surface
-    value_delivered: Pick the right consumer surface per audience — dashboards for humans, APIs for systems, MCP for agents, chatbot for conversational consumption.
+    value_delivered: "Pick the right consumer surface per audience: dashboards for humans, APIs for systems, MCP for agents, the thin conversational client for conversational consumption."
     tags: [pillar:consumption-surfaces]
     references:
       - id: D-117

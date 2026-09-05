@@ -6,7 +6,7 @@ declared_thing_kind: product-internal
 owner: tim
 status: active
 created: 2026-05-21
-last_modified: 2026-09-04
+last_modified: 2026-09-05
 last_reviewed: 2026-09-04
 review_cadence: 90
 audience: [strategist, stakeholder, leadership, agent]
@@ -48,7 +48,7 @@ Retiring the frame is not a retreat from the vision. The [north star](VISION.md)
 | 2.5: Self-Tenant + Write-Back | next | **NOT STARTED as specified.** No `cip_pending_writes` / `cip_write_authorities` / `cip_write_decisions`, no `cip_write()`. A narrower governed write path shipped instead (see W5). |
 | 3: Multi-Tenant + Grants Runtime | future | **Grants runtime NOT STARTED and effectively superseded.** `cross_tenant_grants` appears nowhere in `cip/`. Multi-tenancy was proven by the mirror pattern, not the grant pattern. Rocky Ridge exists as a tenant but holds knowledge chunks only, with zero rows in every structured table. |
 | 4: Agent Access Surfaces | future (2027-Q1) | **PARTIALLY SHIPPED, ~2 quarters early.** `/cip/query`, `/cip/search`, `/cip/registries` live in FAS `cip_router.py`; three MCP tools live. `/cip/files` signed-R2 resolver not shipped. |
-| 5: Chatbot | future | **NOT STARTED.** No vision doc, no architecture doc, zero code. |
+| 5: Chatbot | future | **NOT STARTED, restated by D-238.** No vision doc, no architecture doc, zero code. Scope is now a thin conversational client over the knowledge fabric: thin means no standalone service and no per-tenant deployment, not fewer constraints. Grounding, refusal, citation-density and lens/grant-awareness requirements stand unchanged. |
 | 6: Intelligence & Alerts | future | **PARTIALLY SHIPPED and reframed** as Readouts (CIP-K03, `CIP-CAP-007`). Back-end shipped (`cip_149`); the writer is deliberately deferred (Tim, 2026-08-01), so reader lenses return nothing until an edition is filed. Anomaly detection and alert channel not started. |
 | 7: Investigative Agents | future | **NOT STARTED.** |
 | 8: Scale & Extract | future | **NOT STARTED for extraction.** `cip_*` still shares the Foundry PostgreSQL. No retention policies. Performance tuning did land early (`cip_35`, `cip_136`, `cip_139`). |

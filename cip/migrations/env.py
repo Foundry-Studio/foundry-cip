@@ -26,7 +26,26 @@ config = context.config
 # (programmatic invocation, e.g. from tests), it's None and fileConfig(None)
 # raises TypeError. Guard before calling.
 if config.config_file_name is not None:
-    fileConfig(config.config_file_name)
+    # disable_existing_loggers=False is LOAD-BEARING, not tidiness.
+    #
+    # logging.config.fileConfig defaults it to True, which disables every
+    # logger that already exists at the moment it runs. Because migrations are
+    # applied in-process, that means: run a migration, and from then on the
+    # whole application's logging is dead. Every logger created at import time
+    # (which is all of them, since modules do
+    # `logger = logging.getLogger(__name__)` at module scope) is silenced, and
+    # nothing reports that it happened.
+    #
+    # Found 2026-09-04 by a retriever test that asserted a WARNING is emitted
+    # when the reranker degrades. It passed alone and failed in the full suite,
+    # because a Postgres-backed test had run a migration first. The test was
+    # right and the logging was gone.
+    #
+    # This repo has a pattern of defects that are detectable but undetected —
+    # a four-month red CI nobody read, a two-day feed outage that alerted 104
+    # times, a knowledge corpus frozen since May. Silently disabling the logs
+    # is that pattern at the root: it removes the evidence for everything else.
+    fileConfig(config.config_file_name, disable_existing_loggers=False)
 
 # foundry-cip doesn't bundle ORM models — migrations are explicit op.create_table().
 target_metadata = None

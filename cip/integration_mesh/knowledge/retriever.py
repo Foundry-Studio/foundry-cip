@@ -30,6 +30,7 @@ Usage:
 """
 from __future__ import annotations
 
+import logging
 from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Any
@@ -47,6 +48,8 @@ from cip.integration_mesh.clients import (
     namespace_for,
 )
 from cip.integration_mesh.tenant_context import apply_tenant_context
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -90,6 +93,10 @@ class KnowledgeRetriever:
         self.engine = engine
         self.client = embedding_client
         self.reranker = reranker_client
+        # Count of reranker failures this instance has degraded through.
+        # Degradation is legitimate; invisible degradation is not, and a
+        # counter is the cheapest thing that makes it visible to a caller.
+        self.rerank_failures = 0
         self.pinecone = pinecone_client
         self.prefer_pinecone = prefer_pinecone
 
@@ -182,30 +189,67 @@ class KnowledgeRetriever:
                 reranked=False,
             ))
 
-        if rerank and self.reranker and candidates:
-            try:
-                rer_input = [
-                    {
-                        "id": f"{c.source_kind}|{c.source_id}|{c.chunk_index}",
-                        "text": c.content,
-                        "candidate": c,
-                    }
-                    for c in candidates
-                ]
-                ranked = self.reranker.rerank(
-                    query=query, candidates=rer_input, top_k=top_k,
-                )
-                out: list[RetrievalResult] = []
-                for rk in ranked:
-                    cand = rk["candidate"]
-                    cand.score = float(rk["score"])
-                    cand.reranked = True
-                    out.append(cand)
-                return out
-            except Exception:
-                # Reranker failure → graceful degrade to similarity ranking
-                pass
-        return candidates[:top_k]
+        return self._apply_rerank(
+            query=query, candidates=candidates, top_k=top_k,
+            rerank=rerank, tenant_id=tenant_id, path="postgres",
+        )
+
+    def _apply_rerank(
+        self,
+        *,
+        query: str,
+        candidates: list[RetrievalResult],
+        top_k: int,
+        rerank: bool,
+        tenant_id: UUID,
+        path: str,
+    ) -> list[RetrievalResult]:
+        """Re-rank ``candidates``, degrading VISIBLY if the reranker is down.
+
+        Both retrieval paths (Postgres cosine and Pinecone) had a byte-identical
+        copy of this block, each ending in a bare ``except Exception: pass``.
+        Unifying them is not just tidiness: two copies meant two places to
+        forget, and the duplication is why one copy carried an explanatory
+        comment and the other carried nothing at all.
+
+        Degrading to similarity order when the reranker fails is deliberate and
+        correct — a ranking refinement being unavailable should not fail a
+        search. What was wrong was doing it silently. The caller received
+        measurably worse ordering with no signal, so a reranker down for weeks
+        was indistinguishable from one that was working. The counter and the
+        WARNING are the minimum that makes the degradation observable.
+        """
+        if not (rerank and self.reranker and candidates):
+            return candidates[:top_k]
+        try:
+            rer_input = [
+                {
+                    "id": f"{c.source_kind}|{c.source_id}|{c.chunk_index}",
+                    "text": c.content,
+                    "candidate": c,
+                }
+                for c in candidates
+            ]
+            ranked = self.reranker.rerank(
+                query=query, candidates=rer_input, top_k=top_k,
+            )
+            out: list[RetrievalResult] = []
+            for rk in ranked:
+                cand = rk["candidate"]
+                cand.score = float(rk["score"])
+                cand.reranked = True
+                out.append(cand)
+            return out
+        except Exception as e:  # noqa: BLE001
+            self.rerank_failures += 1
+            logger.warning(
+                "reranker failed on the %s path; degrading to similarity "
+                "order (tenant=%s, candidates=%d, failures_this_instance=%d): "
+                "%s: %s",
+                path, tenant_id, len(candidates), self.rerank_failures,
+                type(e).__name__, str(e)[:200],
+            )
+            return candidates[:top_k]
 
     def _search_pinecone(
         self,
@@ -262,27 +306,8 @@ class KnowledgeRetriever:
                 reranked=False,
             ))
 
-        # Reranker pass (same as Postgres path)
-        if rerank and self.reranker and candidates:
-            try:
-                rer_input = [
-                    {
-                        "id": f"{c.source_kind}|{c.source_id}|{c.chunk_index}",
-                        "text": c.content,
-                        "candidate": c,
-                    }
-                    for c in candidates
-                ]
-                ranked = self.reranker.rerank(
-                    query=query, candidates=rer_input, top_k=top_k,
-                )
-                out: list[RetrievalResult] = []
-                for rk in ranked:
-                    cand = rk["candidate"]
-                    cand.score = float(rk["score"])
-                    cand.reranked = True
-                    out.append(cand)
-                return out
-            except Exception:
-                pass
-        return candidates[:top_k]
+        # Reranker pass (same contract as the Postgres path)
+        return self._apply_rerank(
+            query=query, candidates=candidates, top_k=top_k,
+            rerank=rerank, tenant_id=tenant_id, path="pinecone",
+        )

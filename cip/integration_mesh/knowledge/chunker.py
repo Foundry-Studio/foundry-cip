@@ -32,10 +32,15 @@ def chunk_text(text: str, spec: ChunkSpec | None = None) -> list[str]:
 
     Strategy:
       - Short text (≤ target_chars): return [text] verbatim.
-      - Long text: greedy windowing — start at 0, slide by
-        (target_chars - overlap_chars) each step, until we cover
-        everything. Try to break on paragraph/sentence boundaries
+      - Long text: greedy windowing — start at 0, and after each chunk
+        resume overlap_chars before that chunk ACTUALLY ended, until we
+        cover everything. Try to break on paragraph/sentence boundaries
         near the end of each window.
+
+    Resuming from the real end (rather than a fixed stride) is what
+    guarantees full coverage: the boundary search can pull a chunk's end
+    backward, and a fixed stride would then skip the difference. See the
+    comment at the advance step.
 
     Returns a list of strings (raw chunks). Caller is responsible
     for embedding + persistence.
@@ -49,7 +54,6 @@ def chunk_text(text: str, spec: ChunkSpec | None = None) -> list[str]:
 
     chunks: list[str] = []
     pos = 0
-    step = spec.target_chars - spec.overlap_chars
     while pos < len(text):
         end = min(pos + spec.target_chars, len(text))
         # Try to break on a paragraph boundary (\n\n) near end, then \n,
@@ -69,7 +73,26 @@ def chunk_text(text: str, spec: ChunkSpec | None = None) -> list[str]:
         chunks.append(text[pos:end].strip())
         if end >= len(text):
             break
-        pos = pos + step
+        # Advance from where this chunk ACTUALLY ended, not by a fixed step.
+        #
+        # This used to be ``pos = pos + step``. When the boundary search above
+        # snapped ``end`` backward (it can land as early as target_chars // 2),
+        # the next window still started at pos + step, and every character
+        # between the two belonged to no chunk at all. Measured 2026-09-04 on a
+        # 4,101-char input with a single space at index 1100 followed by an
+        # unbroken run: 448 characters silently absent from every chunk.
+        #
+        # It needs a long boundary-free run to trigger, which is what an
+        # unbroken identifier, a base64 blob, or a dense table of NRCS
+        # ecological site codes looks like. Nothing errored and nothing logged;
+        # the text simply stopped being retrievable.
+        #
+        # Anchoring to ``end`` also makes the overlap mean what it says: the
+        # next chunk begins overlap_chars before this one finished, whatever
+        # the boundary search decided. max(..., pos + 1) is belt-and-braces
+        # against a non-advancing window; in practice end >= pos + 1025 and
+        # overlap is 500, so progress is always >= ~525 chars.
+        pos = max(end - spec.overlap_chars, pos + 1)
         if pos >= len(text):
             break
     return [c for c in chunks if c]

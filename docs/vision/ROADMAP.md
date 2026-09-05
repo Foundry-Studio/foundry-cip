@@ -478,7 +478,7 @@ Previous 8-phase roadmap (2026-04-13 draft) was release-shaped rather than pilla
 |--------|------|-----|
 | Phase 3 scope | Multi-tenant + Agent Access (MCP tools + chatbot bundled) | **Multi-tenant proof + grant runtime only.** MCP tools/REST → Phase 4. Chatbot → Phase 5. |
 | Phase 4 | Intelligence & Alerts | **NEW: Agent Access Surfaces (MCP + REST)** — `foundry_mcp_cip_query`, `foundry_mcp_cip_search`, `foundry_mcp_cip_files`, REST parallel, discoverability endpoints. Chatbot excluded. Old Phase 4 → Phase 6. |
-| Phase 5 | Investigative Agents + Write-Back | **NEW: Chatbot Capability (Internal / Staff-Facing)** with three sub-stages 5A / 5B / 5C. First tenant Rocky Ridge, then Wayward. Grounded, lens+grant-aware, read-only. Old Phase 5 → Phase 7. |
+| Phase 5 | Investigative Agents + Write-Back | **NEW: Chatbot Capability (Internal / Staff-Facing)** with three sub-stages 5A / 5B / 5C. Grounded, lens+grant-aware, read-only. Old Phase 5 → Phase 7. *(Records the 2026-04-20 rescope. Its first-tenant pilot naming was dropped by D-238; see the Phase 5 section above and the root ROADMAP.)* |
 | Phase 6 | Scale & Extract | **Intelligence & Alerts** (renumbered from old Phase 4). |
 | Phase 7 | (no Phase 7 previously) | **Investigative Agents + Advanced Write-Back** (renumbered + renamed — was old Phase 5; "advanced" reflects write-back infra already ships in Phase 2.5). |
 | Phase 8 | (no Phase 8 previously) | **Scale & Extract** (renumbered from old Phase 6). |

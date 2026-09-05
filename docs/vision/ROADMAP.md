@@ -276,6 +276,11 @@ Ships the tool surfaces that let Foundry agents consume CIP programmatically wit
 
 ## Phase 5 — Chatbot Capability (Internal / Staff-Facing) (Provisional · NEW 2026-04-20 hardening)
 
+> **Superseded by D-238.** Phase 5 is restated as a thin conversational client over the
+> knowledge fabric: no standalone service, no per-tenant deployment. See root
+> [`ROADMAP.md`](../../ROADMAP.md) for the canonical statement; this section is retained
+> as history of the original three-stage shape.
+
 **Primary pillar:** Consumption Surfaces (conversational light). **Intended consumers** (per VISION §7h): Tim, Foundry agents, Rocky Ridge staff, Project Silk staff, EcomLever staff.
 
 The chatbot is its own phase because chatbot-specific constraints (grounding, refusal patterns, citation density, lens+grant awareness in a conversational surface) are heavier than a generic query tool — heavy enough to warrant a Vision → Architecture → Implementation split. Client-facing chatbots are a **separate product** (`products/foundry-chatbot/`), blocked until this phase ships.
@@ -290,7 +295,7 @@ Deliverable: `architecture/CHATBOT-ARCHITECTURE.md` documenting: retrieval pipel
 
 ### 5C — Chatbot Implementation
 
-First tenant Rocky Ridge (PDF-Q&A-native use case — original CIP braindump named this specifically). Second tenant Wayward, tested through both the EcomLever full-view lens and the Project Silk grant-in. Validates the multi-tenant, grant-aware, lens-aware chatbot behavior under real traffic before client-facing work starts in Foundry Chatbot.
+First tenant Wayward, tested through both the EcomLever full-view lens and the Project Silk grant-in. Validates the multi-tenant, grant-aware, lens-aware chatbot behavior under real traffic before client-facing work starts in Foundry Chatbot.
 
 **Constraints enforced across 5A/5B/5C:**
 - Grounded only — no ungrounded generation

@@ -6,13 +6,13 @@ declared_thing_kind: product-internal
 owner: tim
 status: active
 created: 2026-05-21
-last_modified: 2026-05-21
+last_modified: 2026-09-05
 last_reviewed: 2026-05-21
 vision_horizon: "2027-05"
 review_cadence: 180
 audience: [strategist, stakeholder, leadership, agent]
 diataxis_type: explanation
-d_numbers: [D-117, D-118, D-119, D-120, D-121, P-21]
+d_numbers: [D-117, D-118, D-119, D-120, D-121, D-238, P-21]
 ---
 
 # Vision — Foundry Client Intelligence Platform (CIP)
@@ -32,9 +32,9 @@ d_numbers: [D-117, D-118, D-119, D-120, D-121, P-21]
 
 ## What "full strength" looks like at the horizon (summary)
 
-1. **Multi-tenant in production** — at least Wayward + Rocky Ridge + Foundry self-tenant operating concurrently, each with their own lenses, dashboards, chatbots, write-back surfaces.
+1. **Multi-tenant in production.** At least Wayward + Rocky Ridge + Foundry self-tenant operating concurrently, each with their own lenses, dashboards, and write-back surfaces, served by one thin conversational client rather than a per-tenant chatbot deployment.
 2. **Connector inventory** — HubSpot + Zendesk shipped + battle-tested; Plaid (financial) + Chatwoot + Google Drive landing through Phase 2-2.5.
-3. **All 8 pillars at silver-or-better** — Phase 6 lights up Intelligence & Alerts; Phase 7 turns on investigative agents and chatbot-initiated writes.
+3. **All 8 pillars at silver-or-better.** Phase 6 lights up Intelligence & Alerts; Phase 7 turns on investigative agents and writes initiated through the conversational client.
 4. **Self-service onboarding** — `docs/DEPLOYING-FOUNDRY-CIP-FOR-A-NEW-VENTURE.md` is the canonical path; no Tim-in-the-loop required for tenants 2-N.
 
 The 473-line [`docs/vision/VISION.md`](docs/vision/VISION.md) elaborates §6 (current stage), §7 (architecture sketch), §10 (10-phase roadmap), and the full solve-for surface.
@@ -46,7 +46,7 @@ Per the full vision:
 2. **Authority model + write-back** — Phase 2.5 ships `cip_write()` across REST/MCP/Python surfaces with the three-tier authority model (`agent_discovered` / `ingested` / `validated`).
 3. **Cross-tenant grants runtime** — Phase 3 ships `cip_09_cross_tenant_grants` schema + runtime together (deferred from Phase 1 explicitly so they ship as a unit).
 4. **Agent access surface** — Phase 4 ships `foundry_mcp_cip_query` / `_search` / `_files` + REST parallels.
-5. **Chatbot capability** — Phase 5 ships the internal chatbot pattern (grounded, lens-aware, grant-aware, citations mandatory).
+5. **Chatbot capability.** Phase 5 ships a thin conversational client over the knowledge fabric: no standalone service, no per-tenant deployment, though grounded, lens-aware, grant-aware, and citations remain mandatory (D-238).
 6. **Intelligence & Alerts pillar** — Phase 6 lights up anomaly detection + freshness signals + scheduled analytical reports.
 
 See [`docs/vision/VISION.md` §6-7](docs/vision/VISION.md) for the full problem surface.

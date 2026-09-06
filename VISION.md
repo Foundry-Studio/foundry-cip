@@ -12,7 +12,7 @@ vision_horizon: "2027-05"
 review_cadence: 180
 audience: [strategist, stakeholder, leadership, agent]
 diataxis_type: explanation
-d_numbers: [D-117, D-118, D-119, D-120, D-121, D-238, P-21]
+d_numbers: [D-117, D-118, D-119, D-120, D-121, D-239, P-21]
 ---
 
 # Vision — Foundry Client Intelligence Platform (CIP)
@@ -46,7 +46,7 @@ Per the full vision:
 2. **Authority model + write-back** — Phase 2.5 ships `cip_write()` across REST/MCP/Python surfaces with the three-tier authority model (`agent_discovered` / `ingested` / `validated`).
 3. **Cross-tenant grants runtime** — Phase 3 ships `cip_09_cross_tenant_grants` schema + runtime together (deferred from Phase 1 explicitly so they ship as a unit).
 4. **Agent access surface** — Phase 4 ships `foundry_mcp_cip_query` / `_search` / `_files` + REST parallels.
-5. **Chatbot capability.** Phase 5 ships a thin conversational client over the knowledge fabric: no standalone service, no per-tenant deployment, though grounded, lens-aware, grant-aware, and citations remain mandatory (D-238).
+5. **Chatbot capability.** Phase 5 ships a thin conversational client over the knowledge fabric: no standalone service, no per-tenant deployment, though grounded, lens-aware, grant-aware, and citations remain mandatory (D-239).
 6. **Intelligence & Alerts pillar** — Phase 6 lights up anomaly detection + freshness signals + scheduled analytical reports.
 
 See [`docs/vision/VISION.md` §6-7](docs/vision/VISION.md) for the full problem surface.

@@ -191,7 +191,7 @@ capabilities:
       M5 shipped Metabase with cip_metabase_role + lens_* grants enforcing P-21
       structurally (REVOKE on cip_*, GRANT only on lens_*). Phase 4 brings
       foundry_mcp_cip_* tools + /cip/* REST. Phase 5 brings a thin conversational
-      client (no standalone service, no per-tenant deployment; see D-238).
+      client (no standalone service, no per-tenant deployment; see D-239).
     status: in-progress
     maturity: bronze
     maturity_measured: '2026-09-04'
@@ -201,7 +201,7 @@ capabilities:
       returns a truncated flag with no cursor). No rate limiting on any CIP route.
       /openapi.json and /docs serve without the internal token. enforce_actor_tenant_authz
       is attached but no-ops: a missing X-Actor-ID returns early and the registry holds
-      zero entries (dormant per D-238). /search bypasses cip_query_reader and uses the
+      zero entries (dormant per D-239). /search bypasses cip_query_reader and uses the
       app engine. REST usage
       is stdout-only and unqueryable. Measured 2026-09-04.
     created: 2026-05-09

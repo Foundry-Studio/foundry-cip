@@ -8,15 +8,16 @@ solve_for: Canonical rule for what data goes into CIP infrastructure vs Foundry/
   infrastructure. The 'hard split' architectural boundary.
 stage_label: adopt
 domain: meta
-version: '1.0'
+version: '1.1'
 created: '2026-05-19'
-last_modified: '2026-05-19'
-last_reviewed: '2026-05-19'
+last_modified: '2026-09-06'
+last_reviewed: '2026-09-06'
 review_cadence: 90
 authority_decisions:
 - d83c7e1d
 - 859c0bd9
 - c575c81c
+- 9c866f55
 ---
 
 # CIP Hard Split — Data-Plane Architecture
@@ -67,13 +68,16 @@ This doc is the canonical reference. **If a contributor is deciding "where does 
 |---|---|
 | A Foundry agent uses CIP via MCP — where does its conversation log live? | Foundry memory subsystem. The agent's interactions are internal to FAS; CIP is just a data source the agent queries. |
 | A venture wants to upload their internal SOPs and have a CIP agent answer questions about them | CIP — but file under "tenant-uploaded knowledge docs". The venture is acting as a CIP tenant whose CLIENT is itself. This is the future tenant-document-upload capability. |
-| Foundry's internal `knowledge_chunks` has chunks tagged `cip_doc` from earlier work | These were a legacy bridge attempt (pre-hard-split). Migrate OUT of Foundry-Knowledge, INTO CIP-Pinecone, drop the `cip_*` source_type values from Foundry. |
+| Foundry's internal `knowledge_chunks` has chunks tagged `cip_doc` from earlier work | These were a legacy bridge attempt (pre-hard-split). Migrate OUT of Foundry-Knowledge, INTO the CIP tenant's namespace on the fabric (Path B), drop the `cip_*` source_type values from Foundry. The destination changed 2026-09-06 (see §2.5); the rule that this data does not belong in Foundry's own plane did not change. |
 | A connector emits both metadata AND a recording URL (HubSpot Call with hs_call_recording_url) | Structured fields go to `cip_engagements`; recording URL gets staged to CIP-R2 (when Layer 3 ships) and its `cip_files` row links back to the engagement. |
 | Cross-tenant lookups (e.g., "show me all CIP content matching X across all tenants") | Foundry agents query via MCP bridge tool with explicit tenant_id list. Pinecone namespace isolation means each tenant query is separate; aggregation happens app-side. |
 
 ## §2 — CIP infrastructure
 
 ### CIP-Pinecone
+
+> **Retiring under Path B, see §2.5.** Ratified 2026-09-06 (FAS PM decision `9c866f55`). CIP-Pinecone stops being the hot-retrieval surface once the per-tenant cutover completes; it is decommissioned after the FR-53 coexistence bridge (60-90 days). Until then it keeps serving reads exactly as described below.
+
 - **Index name**: `foundry-cip`
 - **Host**: `foundry-cip-h705p9t.svc.aped-4627-b74a.pinecone.io`
 - **Dimension**: 2,560 (full Qwen3-Embedding-4B Q8_0 output)
@@ -95,6 +99,9 @@ This doc is the canonical reference. **If a contributor is deciding "where does 
   - `CIP_R2_BUCKET_NAME`, `CIP_R2_ACCESS_KEY_ID`, `CIP_R2_SECRET_ACCESS_KEY`, `CIP_R2_ENDPOINT_URL`, `CIP_R2_PATH_PREFIX`
 
 ### CIP-Embedding
+
+> **Retiring under Path B, see §2.5.** Ratified 2026-09-06 (FAS PM decision `9c866f55`). The CIP embedding pipeline is superseded by ingestion re-pointed at the FAS knowledge fabric; it is retired third in the cutover order, after the FR-53 coexistence bridge (60-90 days). Until then it keeps producing embeddings exactly as described below.
+
 - **Model**: Qwen3-Embedding-4B Q8_0 (2,560 dim)
 - **Endpoint**: server-b Ollama via Tailscale (`http://100.100.10.110:11434`) or tunneled hostname
 - **Fallback**: OpenRouter `qwen/qwen3-embedding-4b` (1024 dim — incompatible with CIP-Pinecone; fallback is for DEGRADED reads, not writes)
@@ -105,6 +112,54 @@ This doc is the canonical reference. **If a contributor is deciding "where does 
 - **Phase 8 evolution**: extracted to dedicated PostgreSQL instance per Phase 0 decision #1
 - **Tenant isolation**: RLS on every `cip_*` table via `app.current_tenant` GUC
 - **Knowledge fabric staging**: `cip_knowledge_chunks` table still carries embeddings as the source-of-truth + audit layer; CIP-Pinecone is the hot-retrieval surface. (Two stores; CIP-Pinecone is derived from `cip_knowledge_chunks`.)
+  **Superseded 2026-09-06 (Path B), see §2.5.** The FAS knowledge fabric (`kf_*` schema) becomes the hot-retrieval surface as each tenant cuts over; CIP-Pinecone's role above is what is being replaced. `cip_knowledge_chunks` keeps its audit/staging role for the duration of the FR-53 bridge. Its disposition after the bridge (retained as permanent audit trail vs. retired once the fabric's own audit layer is trusted) is not decided here; it is FAS S6-D, task 38.
+
+## §2.5 — Knowledge-host relocation (Path B, ratified 2026-09-06)
+
+Tim ruled 2026-09-06 (FAS PM decision `9c866f55`, "Path B") that the KNOWLEDGE layer of CIP infrastructure relocates. Nothing else in this document changes. This section states what moves, what does not, the order it moves in, how tenant isolation is preserved at the new host, and how this ruling relates to other canon.
+
+### What moves
+
+The canonical host for CIP knowledge (chunks, embeddings, retrieval) becomes the FAS knowledge fabric: the `kf_*` schema on the shared Postgres, using pgvector, addressed through one fabric router and one grants model. This is a relocation of the host, not a fragmentation of the retrieval surface. CIP-Pinecone and CIP-Embedding (§2 above) are the infrastructure being replaced.
+
+### The retrieval API does not fork
+
+`foundry_mcp_cip_semantic_search` (§4) keeps its name and its signature. Its implementation re-points at the fabric, per tenant, canary-gated. There is no second retrieval surface for CIP content; callers of the MCP tool see no interface change.
+
+### Cutover order
+
+1. **Consumer cutover, per tenant, canary-gated.** `foundry_mcp_cip_semantic_search` re-points at the fabric one tenant at a time behind a canary gate. This step is mandatory and comes first: nothing else in this relocation proceeds ahead of proving reads are correct against the new host for a given tenant.
+2. **Ingestion re-point.** New content for a cutover tenant is embedded and written to the fabric instead of to CIP-Embedding / CIP-Pinecone.
+3. **CIP-Pinecone and CIP-Embedding retirement.** Both retire after the FR-53 coexistence bridge (60-90 days), which runs so that dual-write and dual-read paths can be compared before the legacy infrastructure is switched off.
+
+### What does NOT move
+
+- CIP-R2 originals (§2, `cip-originals/...`) stay the immutable record. Unchanged.
+- `cip_files`: unchanged.
+- All structured `cip_*` tables (CRM contacts, companies, deals, tickets, engagements, property registry, etc.): unchanged.
+- Lens views (`cip_views` + `lens_*` SQL views): unchanged.
+- RLS on `cip_*` tables: unchanged.
+- CIP-SPEC-010 §1 (the data classification rule: client-of-a-venture data goes into CIP): unchanged. Path B is a hosting-mechanics decision, not a reclassification of what counts as CIP data.
+
+### Tenant isolation on the fabric
+
+The fabric enforces tenant isolation the same way FAS's own knowledge does, applied to CIP tenants as well:
+
+- `tenant_id` on every row.
+- Grants pushdown: a query only reaches rows its caller's grants cover.
+- A fail-closed post-check after retrieval, so a grants-model gap fails the read rather than silently over-returning.
+- Row-level security: threaded in shadow mode before GATE B, then forced (enforced, not advisory) after GATE B.
+
+### Relationship to other canon
+
+- **JOS-D0076** ("CIP as the canonical KB host for the portfolio") stays parked and unamended. Its purpose is to forbid parallel retrieval surfaces across the portfolio, not to pin the hosting mechanics underneath a single surface. Path B keeps one retrieval surface (`foundry_mcp_cip_semantic_search`) and one grants model; it changes what sits behind that surface. Confirmed by the JOS trunk session reading D0076 on `origin/main`.
+- **CIP-SPEC-010 §1** is unchanged, per above.
+- **FAS PM decision `9c866f55`** is this ruling's authority (Path B itself).
+- **FAS decision `03865891`** (the audience-tier classification ruling) is a separate, unrelated decision and is unaffected by this section.
+
+### Consequences for tooling (not fixed in this amendment)
+
+`scripts/generate_cip_cheatsheet.py`'s `_is_drift` function and its `_pinecone_inventory` helper assume CIP-Pinecone is the hot-retrieval surface, and on that assumption treat venture rows appearing on the Foundry side as drift. Under Path B that assumption stops holding: once a tenant is cut over, venture rows living on the FAS fabric under a CIP-registered source are the correct, expected state, not drift. `generate_cip_cheatsheet.py` and FAS's `cip_hard_split_drift_sweep` both need their drift rule updated to account for this before the first venture is migrated to the fabric. This amendment does not change the script; it flags the gap so the update happens before it causes false drift alarms.
 
 ## §3 — Foundry / venture infrastructure (off-limits to CIP)
 

@@ -7,6 +7,23 @@ last_modified: 2026-07-06
 last_reviewed: 2026-07-06
 review_cadence: 180
 ---
+
+> ## ⚠️ THIS REPOSITORY IS PUBLIC
+>
+> `foundry-cip` is world-readable on GitHub. Anyone, with no account, can read
+> and clone every file here. Treat everything you add as published.
+>
+> **Never commit to this repo:** client names or rosters, tenant data exports,
+> billing or revenue figures, email addresses or any third-party personal data,
+> CRM exports, credentials, or internal working notes (`WORKBENCH/`).
+>
+> Internal and client-bearing material belongs in a private venture repo.
+> If you are an agent working here, this rule overrides convenience: when in
+> doubt, put it in the private repo and link to it, or ask.
+>
+> The deny rules in `.gitignore` are deliberately tree-shaped rather than
+> path-shaped. Do not narrow them.
+
 # Client Intelligence Platform (CIP) — Product
 
 > **PM Project:** CIP (596825db-61bc-4899-bc6c-e207489ca35d)

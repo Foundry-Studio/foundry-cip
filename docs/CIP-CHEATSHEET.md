@@ -64,8 +64,7 @@ generator: scripts/generate_cip_cheatsheet.py (PM scope 9cd4071c)
 ## Ecomlever
 
 - `tenant_id` = `dec814db-722a-4730-8e60-51afc4a5dad9`  ·  type = venture  ·  status = active
-- **Clients (1):**
-  - `wayward` — Wayward · *amazon-affiliate-marketing* — `661ecab4-dddb-5924-a34d-af1c5133132d`
+- **Clients (1):** identities not listed here — public repo; query `cip_clients` (RLS-scoped) or the `foundry_mcp_cip_query` tool.
 - **Structured:** `cip_clients`=1  ·  `cip_companies`=119,729  ·  `cip_contacts`=68,084  ·  `cip_deals`=3,057  ·  `cip_tickets`=2,890  ·  `cip_ticket_comments`=10,971  ·  `cip_engagements`=12,552  ·  `cip_owners`=5  ·  `cip_pipeline_stages`=49
 - **Derived:** `cip_knowledge_chunks` 32,088  ·  CIP-Pinecone 32,088  ·  parity ✓ · embed: `qwen/qwen3-embedding-4b (primary=qwen3-embedding:4b-q8_0)` @ 2560d
   - by source_kind: `cip_engagement_meeting`=3,050  ·  `cip_engagement_note`=14,909  ·  `cip_ticket_comment`=14,129
@@ -97,18 +96,7 @@ generator: scripts/generate_cip_cheatsheet.py (PM scope 9cd4071c)
 ## Project Silk
 
 - `tenant_id` = `078a37d6-6ae2-4e22-869e-cc08f6cb2787`  ·  type = venture  ·  status = active
-- **Clients (1404):**
-  - `wayward-china-100030771899` — iDaPro · *n/a* — `59054012-e9e2-520f-98ef-f3adee8899ad`
-  - `wayward-china-100133192384` — Indelala · *n/a* — `e16816ab-459d-5946-bd64-2b06760ab50b`
-  - `wayward-china-100142914286` — Funistree · *n/a* — `982e37b4-0a0b-5b33-ac9b-ae042f356504`
-  - `wayward-china-100204518122` — zofgenow · *n/a* — `47748f56-a76a-594f-ad37-bebaf300ec29`
-  - `wayward-china-100213502666` — Redliro · *n/a* — `47068cb1-ebf3-5460-9fed-ee020a30a3f8`
-  - `wayward-china-100581992156` — Zooplan · *n/a* — `c15a5435-0a57-5c8f-88fa-6b32e82cdc78`
-  - `wayward-china-100582063827` — Julysuns · *n/a* — `3d15322e-6574-5fa4-a9f9-c809a55bc3a4`
-  - `wayward-china-100666606307` — maleous · *n/a* — `5f6c3806-188e-5fc7-ab8f-e769c26eee3a`
-  - `wayward-china-100841802432` — Housavvy · *n/a* — `ae1533b2-1efe-5673-9e6d-59e529aeaacb`
-  - `wayward-china-101596648129` — KZ · *n/a* — `da73f702-e279-5b53-a4ae-72d09a0eaf08`
-  - … and 1,394 more — see [`docs/tenants/078a37d6-6ae2-4e22-869e-cc08f6cb2787/MANIFEST.md`](tenants/078a37d6-6ae2-4e22-869e-cc08f6cb2787/MANIFEST.md)
+- **Clients (1404):** identities not listed here — public repo; query `cip_clients` (RLS-scoped) or the `foundry_mcp_cip_query` tool.
 - **Structured:** `cip_clients`=1,404  ·  `cip_companies`=1,404  ·  `cip_contacts`=1,014  ·  `cip_deals`=1,407
 - **Derived:** `cip_knowledge_chunks` 0  ·  CIP-Pinecone 0  ·  parity ✓
 - **Originals:** `cip_files` 0  ·  CIP-R2 0 B across 0 files
@@ -118,8 +106,7 @@ generator: scripts/generate_cip_cheatsheet.py (PM scope 9cd4071c)
 ## Rocky Ridge Land Management
 
 - `tenant_id` = `80252ad9-72d5-4c5a-b273-af804224872e`  ·  type = venture  ·  status = active
-- **Clients (1):**
-  - `rocky-ridge` — Rocky Ridge · *land-management* — `23f09caf-9dcc-51d6-a64d-5ec3172071cc`
+- **Clients (1):** identities not listed here — public repo; query `cip_clients` (RLS-scoped) or the `foundry_mcp_cip_query` tool.
 - **Structured:** `cip_clients`=1  ·  `cip_files`=65
 - **Derived:** `cip_knowledge_chunks` 4,404  ·  CIP-Pinecone 4,404  ·  parity ✓ · embed: `Qwen3-Embedding-4B-Q8_0.gguf` @ 2560d
   - by source_kind: `cip_client_document`=4,404

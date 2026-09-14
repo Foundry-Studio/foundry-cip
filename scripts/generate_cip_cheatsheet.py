@@ -231,6 +231,35 @@ def _r2_inventory(s3, bucket: str) -> dict[str, dict[str, dict[str, int]]]:
 
 # -- Rendering ---------------------------------------------------------------
 
+def render_client_line(client_count: int) -> str:
+    """Render the per-tenant '- **Clients:**' summary line WITHOUT client
+    identities.
+
+    A prior version of this function (inlined in `_render`) listed the
+    first 10 clients' `slug` / `name` / `industry` / `client_id` for every
+    tenant, capped with "... and N more" past 10 — which is how
+    docs/CIP-CHEATSHEET.md ended up carrying 10 real client names/slugs/ids
+    for Project Silk plus "Clients (1404)" / "... and 1,394 more", world-
+    readable, alongside the sibling fix in
+    scripts/generate_tenant_manifest.py::render_clients_section (same
+    incident, second generator).
+
+    Takes ONLY a count (a plain int), never the client rows — structural,
+    not a filter, for the same reason as render_clients_section there:
+    a function that is never handed names/slugs/ids cannot leak them.
+
+    Pure function (no DB, no I/O) — see
+    tests/test_generate_cip_cheatsheet_render.py.
+    """
+    if client_count <= 0:
+        return "- **Clients:** (none yet)"
+    return (
+        f"- **Clients ({client_count}):** identities not listed here — "
+        "public repo; query `cip_clients` (RLS-scoped) or the "
+        "`foundry_mcp_cip_query` tool."
+    )
+
+
 def _human_bytes(n: int) -> str:
     f = float(n)
     for unit in ("B", "KB", "MB", "GB", "TB"):
@@ -325,27 +354,7 @@ def _render(blocks: list[TenantBlock], generated_at: datetime) -> tuple[str, boo
         lines.append(f"## {b.tenant_name}")
         lines.append("")
         lines.append(f"- `tenant_id` = `{b.tenant_id}`  ·  type = {b.tenant_type}  ·  status = {b.tenant_status}")
-        # Clients — cap the inline list at 10 to keep the cheatsheet
-        # scannable. Tenants with many clients (PS lens-mirror = 1,404
-        # at write-time) get a summary line + the first 10 + an overflow
-        # link to the per-tenant MANIFEST.
-        CLIENT_LIST_CAP = 10
-        if b.clients:
-            lines.append(f"- **Clients ({len(b.clients)}):**")
-            for c in b.clients[:CLIENT_LIST_CAP]:
-                indus = f" · *{c.get('industry') or 'n/a'}*"
-                lines.append(
-                    f"  - `{c['slug']}` — {c['name']}{indus} — `{c['client_id']}`"
-                )
-            if len(b.clients) > CLIENT_LIST_CAP:
-                remaining = len(b.clients) - CLIENT_LIST_CAP
-                lines.append(
-                    f"  - … and {remaining:,} more — see "
-                    f"[`docs/tenants/{b.tenant_id}/MANIFEST.md`]"
-                    f"(tenants/{b.tenant_id}/MANIFEST.md)"
-                )
-        else:
-            lines.append("- **Clients:** (none yet)")
+        lines.append(render_client_line(len(b.clients)))
         # Structured
         struct_items = [
             f"`{tbl}`={n:,}"

@@ -31,23 +31,21 @@ Auto-generated 2026-05-22 16:36 UTC. **Do not edit by hand** — re-run `scripts
 
 ## Clients (1)
 
-| Client name | Slug | client_id | Industry |
-|---|---|---|---|
-| Wayward | `wayward` | `661ecab4-dddb-5924-a34d-af1c5133132d` | amazon-affiliate-marketing |
+Client identities are deliberately not written to this file — `foundry-cip` is a public repository. Authorized readers query the `cip_clients` table (RLS tenant-scoped) or use the `foundry_mcp_cip_query` tool.
 
 ## Tables populated
 
 | Table | Rows | Per-client breakdown |
 |---|---|---|
-| `cip_companies` | 119,729 | 661ecab4=119,729 |
-| `cip_contacts` | 68,084 | 661ecab4=68,084 |
-| `cip_deals` | 3,057 | 661ecab4=3,057 |
-| `cip_tickets` | 2,890 | 661ecab4=2,890 |
-| `cip_ticket_comments` | 10,971 | 661ecab4=10,971 |
-| `cip_engagements` | 12,552 | 661ecab4=12,552 |
-| `cip_owners` | 5 | 661ecab4=5 |
-| `cip_pipeline_stages` | 49 | 661ecab4=49 |
-| `cip_knowledge_chunks` | 32,088 | 661ecab4=32,088 |
+| `cip_companies` | 119,729 | across 1 client |
+| `cip_contacts` | 68,084 | across 1 client |
+| `cip_deals` | 3,057 | across 1 client |
+| `cip_tickets` | 2,890 | across 1 client |
+| `cip_ticket_comments` | 10,971 | across 1 client |
+| `cip_engagements` | 12,552 | across 1 client |
+| `cip_owners` | 5 | across 1 client |
+| `cip_pipeline_stages` | 49 | across 1 client |
+| `cip_knowledge_chunks` | 32,088 | across 1 client |
 | `cip_files` | 0 | — |
 | `cip_companies_history` | 58,390 | — |
 | `cip_contacts_history` | 732,356 | — |

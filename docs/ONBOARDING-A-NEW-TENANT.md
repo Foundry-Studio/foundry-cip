@@ -80,7 +80,7 @@ Before any code runs, answer these:
 - **What's the ingestion budget?** (HubSpot's API has 100k req/day cap on some plans; large tenants may need a paid uplift.)
 - **What's the historical depth we need?** (HubSpot retains 20-revision property history by default; full audit-trail history requires Enterprise. Zendesk audit log retention depends on plan.)
 
-Output: a 1-page **Tenant Profile** doc filed in `docs/tenants/<tenant_uuid>/PROFILE.md`. Even a rough version is fine; it gets refined through onboarding.
+Output: a 1-page **Tenant Profile** doc filed in `docs/tenants/<tenant_uuid>/PROFILE.md`. Even a rough version is fine; it gets refined through onboarding. Generate/keep this locally — `docs/tenants/*` is `.gitignore`d (and `public-repo-guard`-enforced) for every tenant except the registered CIP-DIAG-102 exemption, so this file is not committed to foundry-cip master for a normal onboarding.
 
 ### Phase 1 — Credential acquisition + permission audit
 
@@ -101,7 +101,7 @@ For EACH source × entity:
    - HubSpot: `GET /crm/v3/properties/{companies|contacts|deals|tickets|notes|...}` — returns every property the portal exposes, including custom ones
    - Zendesk: `GET /api/v2/ticket_fields.json`, `GET /api/v2/organization_fields.json`, `GET /api/v2/user_fields.json`
    - Other sources: equivalent
-2. **Save the catalog** to `docs/tenants/<tenant_uuid>/discovery/<source>-<entity>-properties.json` — raw response, no transformation.
+2. **Save the catalog** to `docs/tenants/<tenant_uuid>/discovery/<source>-<entity>-properties.json` — raw response, no transformation. Same gitignore/guard caveat as PROFILE.md above: keep this local, do not commit it (outside the CIP-DIAG-102 exemption).
 3. **Build a per-entity field summary**: count of total properties, count of custom (non-vendor-defined), grouping by "group" / "category" if the source provides it. Flag anything that looks important (`*owner*`, `*segment*`, `*market*`, `*region*`, `*partner*`, `*referral*`, etc.).
 4. **Show the summary to Tim** before authoring the mapper.
 
@@ -130,7 +130,7 @@ The interview, per entity:
 3. Operator either **confirms** (bumps confidence to `verified`), **corrects** (overwrites + marks `verified`), or **skips** ("I don't know" — stays `tentative`).
 4. Repeat for every JSONB key the tenant cares about. Long tail of unused vendor fields stays `tentative` indefinitely (per the not-every-column rule in the pattern doc).
 
-Output: `docs/tenants/<tenant_uuid>/GLOSSARY.md` with at least `verified` entries for every domain column and `verified` or `inferred` for every key used in any planned query.
+Output: `docs/tenants/<tenant_uuid>/GLOSSARY.md` with at least `verified` entries for every domain column and `verified` or `inferred` for every key used in any planned query. Generate locally; do not commit outside the CIP-DIAG-102 exemption (same gitignore/guard caveat as Phase 0/1 above).
 
 **Skipping this phase is not allowed.** The 2026-05-16 affiliate-owner search (where Claude took 4 round-trips guessing at `paid_referral` / `rev_share_partner` / `deal_owner` before finding `source`) is exactly what this phase prevents. Lessons table at the end of this doc has the citation.
 
@@ -163,7 +163,7 @@ After current-state succeeds:
 ### Phase 7 — Manifest + validation + handoff
 
 1. **Generate the tenant manifest** — once `lens_tenant_manifest` ships (scope to be filed alongside this runbook), running the manifest query against the new tenant produces a complete inventory: connectors active, tables populated, property catalog, lenses available, knowledge sources, last-sync timestamps.
-2. **Save the manifest** to `docs/tenants/<tenant_uuid>/MANIFEST.md` (markdown export of the SQL view) so it's discoverable in the repo + readable without DB access.
+2. **Save the manifest** to `docs/tenants/<tenant_uuid>/MANIFEST.md` (markdown export of the SQL view) so it's discoverable in the repo + readable without DB access — locally; do not commit outside the CIP-DIAG-102 exemption, and note the file never contains client names/slugs/ids regardless of tenant (see `render_clients_section` in the generator).
 3. **Smoke-test the four access paths** (per VISION §7g):
    - SQL via `foundry_mcp_db_query` with RLS — returns tenant rows
    - Vector retrieval via Knowledge Subsystem — returns embeddings of derived knowledge
@@ -234,7 +234,7 @@ The standard 7-phase discovery flow STILL APPLIES alongside if the destination t
 
 ## Outputs of a complete onboarding
 
-For each newly-onboarded tenant, the repo should contain:
+For each newly-onboarded tenant, the repo should contain (locally — `.gitignore`/`public-repo-guard` keep this whole tree out of foundry-cip master except the registered CIP-DIAG-102 exemption):
 
 ```
 docs/tenants/<tenant_uuid>/

@@ -48,16 +48,7 @@ repos:
           - "psycopg[binary]>=3.1,<4.0"
           - "faker==40.15.0"
 
-  # FND-S14 Local-Verified trailer, enforced at COMMIT time.
-  #
-  # The `trailer-check` job in .github/workflows/test.yml enforces the same
-  # rule, but only on push to master — so before this hook existed, the first
-  # signal of a missing trailer was master already being red. This closes that
-  # loop locally. Patterns are kept identical to the CI job's greps, and
-  # tests/test_fnd_s14_trailer.py fails if the two ever drift apart.
-  #
-  # public-repo-guard, enforced at PRE-COMMIT time (stages default —
-  # includes pre-commit).
+  # public-repo-guard, enforced at PRE-COMMIT time.
   #
   # foundry-cip is a PUBLIC repo. A client roster, revenue CSVs, and
   # third-party emails sat here world-readable for months before being
@@ -67,16 +58,37 @@ repos:
   # (`.github/workflows/public-repo-guard.yml`) only detects, since on a
   # public repo a pushed branch is already public by the time CI runs it.
   # See scripts/check_public_repo_guard.py for the rules.
+  #
+  # `language: python`, NOT `system`: a `system`-language hook shells out to
+  # the literal string "python" on PATH, and on a machine with no "python"
+  # (or "py", or a `pre-commit` console-script) anywhere on PATH — real,
+  # verified condition on at least one dev machine this repo is used from —
+  # that hook silently can never run, so the only real prevention layer
+  # would be zero. `language: python` has pre-commit provision its OWN
+  # interpreter for the hook's venv instead of shelling out blind.
   - repo: local
     hooks:
       - id: public-repo-guard
         name: public-repo-guard (denied paths / data files / emails / roster rows)
         entry: python scripts/check_public_repo_guard.py --staged
-        language: system
+        language: python
         stages: [pre-commit]
         always_run: true
         pass_filenames: false
 
+  # FND-S14 Local-Verified trailer, enforced at COMMIT time.
+  #
+  # The `trailer-check` job in .github/workflows/test.yml enforces the same
+  # rule, but only on push to master — so before this hook existed, the first
+  # signal of a missing trailer was master already being red. This closes that
+  # loop locally. Patterns are kept identical to the CI job's greps, and
+  # tests/test_fnd_s14_trailer.py fails if the two ever drift apart.
+  #
+  # NOTE (same latent issue as above, not fixed here): this hook is still
+  # `language: system`, i.e. still depends on a literal "python" on PATH.
+  # Left alone in this change because the ask was to fix the NEW hook, not
+  # audit the existing one — but it has the identical failure mode and
+  # should get the same `language: python` treatment in a follow-up.
   - repo: local
     hooks:
       - id: fnd-s14-trailer

@@ -120,26 +120,27 @@ def _foundry_drift_for_tenant(c, tenant_uuid: str) -> tuple[int, list[tuple[str,
         return 0, []
 
 
-def render_clients_section(client_rows: list) -> list[str]:
+def render_clients_section(client_count: int) -> list[str]:
     """Render the '## Clients' section WITHOUT client identities.
 
     This repo is public (see CLAUDE.md's "THIS REPOSITORY IS PUBLIC"
     banner). A prior version of this generator wrote every client's name,
     slug, and client_id into `MANIFEST.md`, which is how a 1,404-name
-    client roster ended up committed and world-readable for months. The fix
-    is structural, not a filter: this function has no access to names,
-    slugs, or client_ids at all — only a count — so there is nothing for a
-    future edit to accidentally start printing again.
+    client roster ended up committed and world-readable for months.
 
-    `client_rows` is accepted (rather than just an int) to keep the call
-    site unchanged and to make `len(client_rows)` explicit about what's
-    being counted; the row contents themselves are never read.
+    Takes ONLY a count (a plain int), not the row objects — this is what
+    makes the fix structural rather than a filter this function chooses to
+    apply: it is physically incapable of reading a name/slug/client_id,
+    because it is never handed one. A prior version of this function took
+    the full row list and simply chose not to read the fields; that's a
+    convention a future edit can accidentally violate. This signature
+    can't be.
 
     Pure function (no DB, no I/O) so it's unit-testable without Postgres —
     see tests/test_generate_tenant_manifest_render.py.
     """
     lines: list[str] = []
-    lines.append(f"## Clients ({len(client_rows)})")
+    lines.append(f"## Clients ({client_count})")
     lines.append("")
     lines.append(
         "Client identities are deliberately not written to this file — "
@@ -151,27 +152,27 @@ def render_clients_section(client_rows: list) -> list[str]:
     return lines
 
 
-def format_client_breakdown(bd_rows: list) -> str:
+def format_client_breakdown(distinct_client_count: int) -> str:
     """Render a table's per-client row-count breakdown for the manifest.
 
-    At >10 distinct clients, listing every `client_id[:8]=count` pair is
-    itself a roster in miniature — enough client_id prefixes, cross-
-    referenced against `cip_clients`, to reconstruct who's in the system.
-    Collapse to a bare count instead. At <=10, the existing itemized format
-    is kept (it's diagnostic signal, not a roster, at that size).
+    Takes ONLY the count of distinct clients touching this table — not the
+    per-client rows — and ALWAYS collapses to a bare count, at any client
+    count including 1. Listing `client_id[:8]=count` pairs is itself a
+    roster in miniature — enough client_id prefixes, cross-referenced
+    against `cip_clients`, to reconstruct who's in the system — and a
+    threshold ("itemize at <=10") is exactly the kind of conditional that
+    silently stops applying once a tenant crosses it from below without
+    anyone noticing this file needs regenerating differently. Collapsing
+    unconditionally means the shape of this output never depends on how
+    many clients happen to exist right now.
 
     Pure function (no DB, no I/O) — see
     tests/test_generate_tenant_manifest_render.py.
     """
-    if not bd_rows:
+    if distinct_client_count <= 0:
         return ""
-    if len(bd_rows) > 10:
-        return f"across {len(bd_rows)} clients"
-    parts = []
-    for bd in bd_rows:
-        cid = str(bd[0])[:8] if bd[0] else "NULL"
-        parts.append(f"{cid}={bd[1]:,}")
-    return ", ".join(parts)
+    plural = "client" if distinct_client_count == 1 else "clients"
+    return f"across {distinct_client_count} {plural}"
 
 
 def _connect() -> object:
@@ -274,7 +275,7 @@ def main() -> int:
             ),
             {"t": tenant_uuid},
         ).all()
-        lines.extend(render_clients_section(client_rows))
+        lines.extend(render_clients_section(len(client_rows)))
 
         # ── Table row counts ─────────────────────────────────────────────
         lines.append("## Tables populated")
@@ -316,7 +317,7 @@ def main() -> int:
                         ),
                         {"t": tenant_uuid},
                     ).all()
-                    breakdown = format_client_breakdown(bd_rows)
+                    breakdown = format_client_breakdown(len(bd_rows))
                 lines.append(f"| `{tbl}` | {n:,} | {breakdown or '—'} |")
                 sp.commit()
             except Exception as e:  # noqa: BLE001

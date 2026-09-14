@@ -17,6 +17,7 @@ Open an issue using one of the templates. Include:
 
 Foundry's working convention is master-branch development inside controlled environments. Pull requests from external contributors are accepted but reviewed against the same governance bar applied internally:
 
+0. Install the pre-commit hooks — `pip install pre-commit && pre-commit install --hook-type pre-commit --hook-type commit-msg` (both `--hook-type` flags are required; see CLAUDE.md's "Pre-commit hooks" section for why).
 1. Run the test suite locally — `pytest` against a real Postgres (testcontainers handles this).
 2. Confirm `mypy cip/` passes (strict mode).
 3. Confirm `ruff check cip/ tests/` passes.

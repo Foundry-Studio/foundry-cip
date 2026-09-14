@@ -3,9 +3,12 @@
 
 `render_clients_section` and `format_client_breakdown` are the two spots
 that used to write client identities (names, slugs, client_ids) straight
-into a public repo. They're extracted as pure functions so this can be
-tested without a database — see docstrings on the functions themselves for
-why the shape changed.
+into a public repo. Both now take ONLY a count (a plain int) — never the
+row objects — so leaking an identity isn't just "the function chooses not
+to read a field", it's "the function was never handed the field". See the
+docstrings on the functions themselves for the full incident context
+(docs/CIP-CHEATSHEET.md and docs/tenants/dec814db.../MANIFEST.md both had
+to be hand-redacted because of this — see the commit body).
 """
 from __future__ import annotations
 
@@ -17,34 +20,14 @@ from scripts.generate_tenant_manifest import (
 # ── render_clients_section ───────────────────────────────────────────────
 
 def test_render_clients_section_emits_count_only() -> None:
-    client_rows = [
-        ("11111111-1111-1111-1111-111111111111", "Acme Corp", "acme-corp", "retail"),
-        ("22222222-2222-2222-2222-222222222222", "Widget Co", "widget-co", "manufacturing"),
-        ("33333333-3333-3333-3333-333333333333", "Foo Ltd", "foo-ltd", None),
-    ]
-
-    lines = render_clients_section(client_rows)
+    lines = render_clients_section(3)
     rendered = "\n".join(lines)
 
     assert "## Clients (3)" in rendered
 
 
-def test_render_clients_section_never_leaks_identities() -> None:
-    client_rows = [
-        ("11111111-1111-1111-1111-111111111111", "Acme Corp", "acme-corp", "retail"),
-        ("22222222-2222-2222-2222-222222222222", "Widget Co", "widget-co", "manufacturing"),
-    ]
-
-    rendered = "\n".join(render_clients_section(client_rows))
-
-    for cid, name, slug, _industry in client_rows:
-        assert cid not in rendered
-        assert name not in rendered
-        assert slug not in rendered
-
-
 def test_render_clients_section_zero_rows() -> None:
-    lines = render_clients_section([])
+    lines = render_clients_section(0)
     rendered = "\n".join(lines)
 
     assert "## Clients (0)" in rendered
@@ -55,42 +38,24 @@ def test_render_clients_section_zero_rows() -> None:
 
 # ── format_client_breakdown ──────────────────────────────────────────────
 
-def test_format_client_breakdown_at_or_under_ten_keeps_itemized_format() -> None:
-    bd_rows = [
-        ("11111111-aaaa-aaaa-aaaa-aaaaaaaaaaaa", 42),
-        ("22222222-bbbb-bbbb-bbbb-bbbbbbbbbbbb", 7),
-    ]
+def test_format_client_breakdown_collapses_unconditionally_at_low_counts() -> None:
+    """Even a single client collapses to a count -- no threshold below
+    which itemized client_id prefixes reappear."""
+    result = format_client_breakdown(1)
 
-    result = format_client_breakdown(bd_rows)
-
-    assert result == "11111111=42, 22222222=7"
+    assert result == "across 1 client"
 
 
-def test_format_client_breakdown_over_ten_collapses_to_count() -> None:
-    bd_rows = [(f"{i:08d}-0000-0000-0000-000000000000", i) for i in range(11)]
+def test_format_client_breakdown_collapses_at_high_counts() -> None:
+    result = format_client_breakdown(1404)
 
-    result = format_client_breakdown(bd_rows)
-
-    assert result == "across 11 clients"
-    # Must not contain any client_id prefix once collapsed.
-    for cid, _n in bd_rows:
-        assert cid[:8] not in result
+    assert result == "across 1404 clients"
 
 
-def test_format_client_breakdown_exactly_ten_keeps_itemized_format() -> None:
-    bd_rows = [(f"{i:08d}-0000-0000-0000-000000000000", i) for i in range(10)]
-
-    result = format_client_breakdown(bd_rows)
-
-    assert "across" not in result
-    assert result.count("=") == 10
+def test_format_client_breakdown_pluralizes_correctly() -> None:
+    assert format_client_breakdown(1) == "across 1 client"
+    assert format_client_breakdown(2) == "across 2 clients"
 
 
-def test_format_client_breakdown_empty() -> None:
-    assert format_client_breakdown([]) == ""
-
-
-def test_format_client_breakdown_null_client_id() -> None:
-    result = format_client_breakdown([(None, 5)])
-
-    assert result == "NULL=5"
+def test_format_client_breakdown_zero() -> None:
+    assert format_client_breakdown(0) == ""

@@ -84,7 +84,7 @@ You are onboarding a new venture as a CIP tenant. The venture has at least one s
 | Step | Action | Verify |
 |------|--------|--------|
 | 4.5.1 | Auto-baseline discovery: query each source's properties endpoint (e.g., HubSpot `/crm/v3/properties/{type}`) — pulls labels + vendor descriptions | All columns listed under each entity in a discovery report |
-| 4.5.2 | Create `docs/tenants/<tenant_uuid>/GLOSSARY.md` with one section per entity, one row per column | Frontmatter includes `tenant_uuid` and (per-client) `client_uuid` |
+| 4.5.2 | Create `docs/tenants/<tenant_uuid>/GLOSSARY.md` with one section per entity, one row per column — generate it locally; do NOT commit it unless this is the registered CIP-DIAG-102 exemption (`.gitignore` denies `docs/tenants/*` for every other tenant, and `public-repo-guard` backs that up in CI/pre-commit) | Frontmatter includes `tenant_uuid` and (per-client) `client_uuid` |
 | 4.5.3 | For high-traffic columns (top ~30 per entity), do the operator interview: confirm meaning, mark `verified` | Each verified entry has plain-English meaning + top values + coverage stats |
 | 4.5.4 | For medium-confidence columns, mark `inferred` with caveat | Description includes "Inferred from name + sample data; verify before relying on this" |
 | 4.5.5 | Long-tail columns stay `tentative` (auto-baseline only) — fine | Confidence distribution: ≥10 verified, rest tentative; no `unknown` for active columns |
@@ -117,7 +117,7 @@ You are onboarding a new venture as a CIP tenant. The venture has at least one s
 |------|--------|--------|
 | 7.1 | `DATABASE_URL=$DATABASE_PUBLIC_URL python scripts/generate_tenant_manifest.py <tenant_uuid>` | Writes `docs/tenants/<tenant_uuid>/MANIFEST.md` — this path is `.gitignore`d for any tenant other than the one registered exemption (CIP-DIAG-102), and the file itself never contains client names, slugs, or client_ids regardless (see `render_clients_section` in the generator) |
 | 7.2 | Manifest sections present: Tenant identity, Clients, Tables populated, Connector sync health, Property catalog, Lenses, Cross-references | All sections non-empty (except Lenses if Phase 6 deferred) |
-| 7.3 | Per-client row breakdowns match Phase 4 counts | No rows attributed to NULL client_id (unless intentional) |
+| 7.3 | Per-client row breakdowns match Phase 4 counts — the manifest's "Per-client breakdown" column now shows a collapsed `across N clients` count, not itemized `client_id[:8]=count` pairs (see `format_client_breakdown`), so verify by comparing N against Phase 4's distinct-client count, not by eyeballing individual client_ids | Distinct-client count matches; no rows attributed to NULL client_id (unless intentional, and confirmed via a direct query, not the manifest) |
 
 ## Phase 8 — Four-access-paths gate
 
@@ -135,7 +135,7 @@ You are onboarding a new venture as a CIP tenant. The venture has at least one s
 
 | Step | Action | Verify |
 |------|--------|--------|
-| 9.1 | Commit `docs/tenants/<tenant_uuid>/GLOSSARY.md` + `MANIFEST.md` to foundry-cip master | `git log -1 --stat` shows both files |
+| 9.1 | For the registered CIP-DIAG-102 exemption tenant only: commit `docs/tenants/<tenant_uuid>/GLOSSARY.md` + `MANIFEST.md` to foundry-cip master. For every other tenant, `.gitignore` denies `docs/tenants/*` and `public-repo-guard` backs that up — do NOT commit these files; they stay local/regenerated-on-demand | For the exemption tenant, `git log -1 --stat` shows both files; for every other tenant, `git status` shows them as untracked/ignored |
 | 9.2 | File a PM decision summarizing the onboarding (rows ingested, glossary coverage, deferred items) | `foundry_mcp_pm_decision_create` with `decision_type='configuration'` |
 | 9.3 | Update the Wayward-v1-style PM scope (`da6a0110` is Wayward's; new tenants get their own) with status + remaining work | Scope comment on PM |
 | 9.4 | (Optional) Update `wayward_constants.py`-style module if new canonical UUIDs need centralization | Module exports |
@@ -148,7 +148,7 @@ You are onboarding a new venture as a CIP tenant. The venture has at least one s
 | 10.2 | Decide on data: delete via migration vs preserve for audit | Decision recorded in PM |
 | 10.3 | If deleting: `DELETE FROM cip_companies WHERE tenant_id = '<t>'` (cascades via FK chains where defined) | Row counts hit 0 |
 | 10.4 | Revoke source-system credentials at the vendor side | Vendor token list shows revoked |
-| 10.5 | Archive `docs/tenants/<tenant_uuid>/` to `docs/tenants/_archived/<tenant_uuid>-<YYYY-MM-DD>/` | Files moved; replace with a single tombstone note linking the rollback decision |
+| 10.5 | Archive `docs/tenants/<tenant_uuid>/` locally to `docs/tenants/_archived/<tenant_uuid>-<YYYY-MM-DD>/` — this path is still under `docs/tenants/*` and NOT the CIP-DIAG-102 exemption, so it stays gitignored/uncommitted like the source files did | Files moved locally; replace with a single tombstone note linking the rollback decision (the tombstone itself is the only piece that may be worth committing elsewhere, e.g. the PM decision record) |
 
 ## Onboarding "good looks like" — the green light
 

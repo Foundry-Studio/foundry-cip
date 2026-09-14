@@ -370,16 +370,23 @@ Local-Verify-Bypass: <one-line reason>
 
 ## Pre-commit hooks
 
-`.pre-commit-config.yaml` wires three fast-fail hooks:
+`.pre-commit-config.yaml` wires five fast-fail hooks:
 
 - **gitleaks** (FND-S13 §CVE incident playbook companion) — secret scan against the working tree, using `.gitleaks.toml` for project allowlists.
 - **ruff** (FND-S14 Tier B fast-fail lint) — auto-fix on `cip/`, `tests/`.
 - **mypy strict** (FND-S14 Tier B type check) — `cip/` scope only; tests use less-strict typing by repo convention.
+- **public-repo-guard** (pre-commit stage) — blocks the client-roster/data-file/third-party-email/roster-row content class described in the "THIS REPOSITORY IS PUBLIC" banner above. See `scripts/check_public_repo_guard.py`.
+- **fnd-s14-trailer** (commit-msg stage) — enforces the `Local-Verified:`/`Local-Verify-Bypass:` trailer this section documents.
 
 Setup:
 ```bash
 pip install pre-commit
-pre-commit install
+pre-commit install --hook-type pre-commit --hook-type commit-msg
 ```
+
+Plain `pre-commit install` wires ONLY the pre-commit stage and silently
+leaves the commit-msg-stage hook (fnd-s14-trailer) uninstalled — both
+hook types are required. See the fuller warning at the top of
+`.pre-commit-config.yaml`.
 
 Bypass (with `Local-Verify-Bypass: <reason>` trailer required in the commit body): `SKIP=<hook-id> git commit ...`

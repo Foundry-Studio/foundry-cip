@@ -20,6 +20,13 @@ name: public-repo-guard
 # `.github/workflows/test.yml`: that workflow is red most of the time on
 # unrelated failures, which would bury this signal. A content-leak tripwire
 # needs to be legible on its own, every time.
+#
+# The script scans every first-parent commit in the range individually
+# (against its own parent), not just the net BASE..HEAD diff — an
+# add-then-remove within one push nets to an empty diff but the blob was
+# still pushed and is still public. It also suppresses email-domain detail
+# in --range mode (shown only in the local --staged hook): CI logs on a
+# public repo are public too.
 
 on:
   push:
@@ -35,6 +42,7 @@ concurrency:
 jobs:
   guard:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
         with:
@@ -48,7 +56,13 @@ jobs:
         id: range
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
-            echo "base=${{ github.event.pull_request.base.sha }}" >> "$GITHUB_OUTPUT"
+            # merge-base, not pull_request.base.sha directly: base.sha is a
+            # snapshot of the target branch at whatever moment GitHub last
+            # recorded it, which can drift from the PR branch's actual
+            # fork point. The merge-base is the PR's real fork point, so
+            # the scan covers exactly the PR's own commits.
+            base="$(git merge-base '${{ github.event.pull_request.base.sha }}' '${{ github.event.pull_request.head.sha }}')"
+            echo "base=$base" >> "$GITHUB_OUTPUT"
             echo "head=${{ github.event.pull_request.head.sha }}" >> "$GITHUB_OUTPUT"
           else
             echo "base=${{ github.event.before }}" >> "$GITHUB_OUTPUT"

@@ -30,6 +30,9 @@ review_cadence: 90
 >
 > The deny rules in `.gitignore` are deliberately tree-shaped rather than
 > path-shaped. Do not narrow them.
+>
+> A pre-commit hook and the `public-repo-guard` CI workflow catch some of
+> this automatically — they are tripwires, not a guarantee.
 
 # Foundry Client Intelligence Platform — foundry-cip
 

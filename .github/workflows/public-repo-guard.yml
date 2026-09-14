@@ -1,0 +1,61 @@
+name: public-repo-guard
+
+# foundry-cip is a PUBLIC repo (see CLAUDE.md's "THIS REPOSITORY IS PUBLIC"
+# banner). This workflow runs scripts/check_public_repo_guard.py in
+# --range mode over what a push or PR introduced, catching the class of
+# content that leaked here before (client rosters, revenue exports,
+# third-party emails, denied data-file types landing outside the paths
+# meant to hold them).
+#
+# THIS IS DETECTION, NOT PREVENTION. On a public repo, GitHub push rules
+# aren't available, and any branch that's been pushed is already world-
+# readable the moment it lands — CI running afterward can only notice, not
+# stop. The pre-commit hook (`.pre-commit-config.yaml`, `public-repo-guard`
+# local hook, `--staged` mode) is the only point where this can actually be
+# prevented, and only for contributors who have it installed and don't
+# bypass it. Treat a red run here as a real incident (rotate/purge), not
+# just something to fix forward.
+#
+# Kept as its OWN workflow, deliberately NOT folded into
+# `.github/workflows/test.yml`: that workflow is red most of the time on
+# unrelated failures, which would bury this signal. A content-leak tripwire
+# needs to be legible on its own, every time.
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Resolve BASE/HEAD for this event
+        id: range
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "base=${{ github.event.pull_request.base.sha }}" >> "$GITHUB_OUTPUT"
+            echo "head=${{ github.event.pull_request.head.sha }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "base=${{ github.event.before }}" >> "$GITHUB_OUTPUT"
+            echo "head=${{ github.sha }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Public-repo content guard
+        run: |
+          python scripts/check_public_repo_guard.py \
+            --range "${{ steps.range.outputs.base }}..${{ steps.range.outputs.head }}"

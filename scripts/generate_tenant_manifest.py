@@ -120,6 +120,60 @@ def _foundry_drift_for_tenant(c, tenant_uuid: str) -> tuple[int, list[tuple[str,
         return 0, []
 
 
+def render_clients_section(client_rows: list) -> list[str]:
+    """Render the '## Clients' section WITHOUT client identities.
+
+    This repo is public (see CLAUDE.md's "THIS REPOSITORY IS PUBLIC"
+    banner). A prior version of this generator wrote every client's name,
+    slug, and client_id into `MANIFEST.md`, which is how a 1,404-name
+    client roster ended up committed and world-readable for months. The fix
+    is structural, not a filter: this function has no access to names,
+    slugs, or client_ids at all — only a count — so there is nothing for a
+    future edit to accidentally start printing again.
+
+    `client_rows` is accepted (rather than just an int) to keep the call
+    site unchanged and to make `len(client_rows)` explicit about what's
+    being counted; the row contents themselves are never read.
+
+    Pure function (no DB, no I/O) so it's unit-testable without Postgres —
+    see tests/test_generate_tenant_manifest_render.py.
+    """
+    lines: list[str] = []
+    lines.append(f"## Clients ({len(client_rows)})")
+    lines.append("")
+    lines.append(
+        "Client identities are deliberately not written to this file — "
+        "`foundry-cip` is a public repository. Authorized readers query "
+        "the `cip_clients` table (RLS tenant-scoped) or use the "
+        "`foundry_mcp_cip_query` tool."
+    )
+    lines.append("")
+    return lines
+
+
+def format_client_breakdown(bd_rows: list) -> str:
+    """Render a table's per-client row-count breakdown for the manifest.
+
+    At >10 distinct clients, listing every `client_id[:8]=count` pair is
+    itself a roster in miniature — enough client_id prefixes, cross-
+    referenced against `cip_clients`, to reconstruct who's in the system.
+    Collapse to a bare count instead. At <=10, the existing itemized format
+    is kept (it's diagnostic signal, not a roster, at that size).
+
+    Pure function (no DB, no I/O) — see
+    tests/test_generate_tenant_manifest_render.py.
+    """
+    if not bd_rows:
+        return ""
+    if len(bd_rows) > 10:
+        return f"across {len(bd_rows)} clients"
+    parts = []
+    for bd in bd_rows:
+        cid = str(bd[0])[:8] if bd[0] else "NULL"
+        parts.append(f"{cid}={bd[1]:,}")
+    return ", ".join(parts)
+
+
 def _connect() -> object:
     url = os.environ.get("DATABASE_URL", "")
     if not url:
@@ -220,16 +274,7 @@ def main() -> int:
             ),
             {"t": tenant_uuid},
         ).all()
-        lines.append(f"## Clients ({len(client_rows)})")
-        lines.append("")
-        if client_rows:
-            lines.append("| Client name | Slug | client_id | Industry |")
-            lines.append("|---|---|---|---|")
-            for r in client_rows:
-                lines.append(f"| {r[1]} | `{r[2]}` | `{r[0]}` | {r[3] or '—'} |")
-        else:
-            lines.append("*(no clients seeded yet — tenant data may live without a client_id scope)*")
-        lines.append("")
+        lines.extend(render_clients_section(client_rows))
 
         # ── Table row counts ─────────────────────────────────────────────
         lines.append("## Tables populated")
@@ -271,11 +316,7 @@ def main() -> int:
                         ),
                         {"t": tenant_uuid},
                     ).all()
-                    parts = []
-                    for bd in bd_rows:
-                        cid = str(bd[0])[:8] if bd[0] else "NULL"
-                        parts.append(f"{cid}={bd[1]:,}")
-                    breakdown = ", ".join(parts)
+                    breakdown = format_client_breakdown(bd_rows)
                 lines.append(f"| `{tbl}` | {n:,} | {breakdown or '—'} |")
                 sp.commit()
             except Exception as e:  # noqa: BLE001

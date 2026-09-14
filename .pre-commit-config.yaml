@@ -55,6 +55,28 @@ repos:
   # signal of a missing trailer was master already being red. This closes that
   # loop locally. Patterns are kept identical to the CI job's greps, and
   # tests/test_fnd_s14_trailer.py fails if the two ever drift apart.
+  #
+  # public-repo-guard, enforced at PRE-COMMIT time (stages default —
+  # includes pre-commit).
+  #
+  # foundry-cip is a PUBLIC repo. A client roster, revenue CSVs, and
+  # third-party emails sat here world-readable for months before being
+  # purged, past two narrower `.gitignore` rules written for exactly this
+  # risk. This hook is the ONLY place this class of content can actually be
+  # PREVENTED — the CI counterpart
+  # (`.github/workflows/public-repo-guard.yml`) only detects, since on a
+  # public repo a pushed branch is already public by the time CI runs it.
+  # See scripts/check_public_repo_guard.py for the rules.
+  - repo: local
+    hooks:
+      - id: public-repo-guard
+        name: public-repo-guard (denied paths / data files / emails / roster rows)
+        entry: python scripts/check_public_repo_guard.py --staged
+        language: system
+        stages: [pre-commit]
+        always_run: true
+        pass_filenames: false
+
   - repo: local
     hooks:
       - id: fnd-s14-trailer

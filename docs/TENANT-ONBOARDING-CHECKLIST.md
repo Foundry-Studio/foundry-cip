@@ -115,7 +115,7 @@ You are onboarding a new venture as a CIP tenant. The venture has at least one s
 
 | Step | Action | Verify |
 |------|--------|--------|
-| 7.1 | `DATABASE_URL=$DATABASE_PUBLIC_URL python scripts/generate_tenant_manifest.py <tenant_uuid>` | Writes `docs/tenants/<tenant_uuid>/MANIFEST.md` |
+| 7.1 | `DATABASE_URL=$DATABASE_PUBLIC_URL python scripts/generate_tenant_manifest.py <tenant_uuid>` | Writes `docs/tenants/<tenant_uuid>/MANIFEST.md` — this path is `.gitignore`d for any tenant other than the one registered exemption (CIP-DIAG-102), and the file itself never contains client names, slugs, or client_ids regardless (see `render_clients_section` in the generator) |
 | 7.2 | Manifest sections present: Tenant identity, Clients, Tables populated, Connector sync health, Property catalog, Lenses, Cross-references | All sections non-empty (except Lenses if Phase 6 deferred) |
 | 7.3 | Per-client row breakdowns match Phase 4 counts | No rows attributed to NULL client_id (unless intentional) |
 

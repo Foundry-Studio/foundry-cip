@@ -222,7 +222,7 @@ Otherwise use the standard 7-phase discovery-first flow.
 
 7. **Run the first mirror.** Validates the lens → mapper → persister chain end-to-end. Verify row counts match the lens count minus any unattributable rows (the mapper skips rows whose lookup-key resolves to nothing).
 
-8. **Generate the destination tenant's MANIFEST** via `scripts/generate_tenant_manifest.py`. Wire the foundry-metabase (or other consumer surface) to the destination tenant's CIP role + the destination-side lenses (when authored — that's Phase 2.7 for PS).
+8. **Generate the destination tenant's MANIFEST** via `scripts/generate_tenant_manifest.py`. The resulting `docs/tenants/<uuid>/MANIFEST.md` is `.gitignore`d for any tenant other than the one registered exemption (CIP-DIAG-102), and never contains client names, slugs, or client_ids regardless of tenant. Wire the foundry-metabase (or other consumer surface) to the destination tenant's CIP role + the destination-side lenses (when authored — that's Phase 2.7 for PS).
 
 The standard 7-phase discovery flow STILL APPLIES alongside if the destination tenant ALSO ingests its own external sources. Most cross-tenant tenants are pure mirrors for v1 and add their own connectors later.
 
